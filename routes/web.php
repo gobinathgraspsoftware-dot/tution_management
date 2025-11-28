@@ -87,7 +87,7 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
         Route::put('/update', [ProfileController::class, 'update'])->name('update');
-        Route::get('/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('password');
+        Route::get('/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('change-password');
         Route::put('/change-password', [ProfileController::class, 'updatePassword'])->name('password.update');
     });
 
