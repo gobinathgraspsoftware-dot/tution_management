@@ -6,6 +6,12 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Admin\ParentController;
+use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Staff\StudentRegistrationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,13 +80,46 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
 
     /*
     |--------------------------------------------------------------------------
+    | Profile Routes (All Authenticated Users)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+        Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+        Route::put('/update', [ProfileController::class, 'update'])->name('update');
+        Route::get('/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('password');
+        Route::put('/change-password', [ProfileController::class, 'updatePassword'])->name('password.update');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Admin Routes (Super Admin & Admin)
     |--------------------------------------------------------------------------
     */
     Route::middleware(['role:super-admin|admin'])->prefix('admin')->name('admin.')->group(function () {
+        // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
 
-        // Additional admin routes will be added in subsequent chats
+        // Staff Management
+        Route::resource('staff', StaffController::class);
+        Route::patch('/staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
+
+        // Teacher Management
+        Route::resource('teachers', TeacherController::class);
+        Route::patch('/teachers/{teacher}/toggle-status', [TeacherController::class, 'toggleStatus'])->name('teachers.toggle-status');
+
+        // Parent Management
+        Route::resource('parents', ParentController::class);
+        Route::patch('/parents/{parent}/toggle-status', [ParentController::class, 'toggleStatus'])->name('parents.toggle-status');
+        Route::get('/parents-export', [ParentController::class, 'export'])->name('parents.export');
+
+        // Student Management
+        Route::resource('students', StudentController::class);
+        Route::patch('/students/{student}/toggle-status', [StudentController::class, 'toggleStatus'])->name('students.toggle-status');
+        Route::patch('/students/{student}/approve', [StudentController::class, 'approve'])->name('students.approve');
+        Route::patch('/students/{student}/reject', [StudentController::class, 'reject'])->name('students.reject');
+        Route::get('/students-export', [StudentController::class, 'export'])->name('students.export');
+
     });
 
     /*
@@ -89,7 +128,16 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
     |--------------------------------------------------------------------------
     */
     Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
+        // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('dashboard');
+
+        // Student Registration
+        Route::get('/registration/student', [StudentRegistrationController::class, 'createStudent'])->name('registration.create-student');
+        Route::post('/registration/student', [StudentRegistrationController::class, 'storeStudent'])->name('registration.store-student');
+
+        // Parent Registration
+        Route::get('/registration/parent', [StudentRegistrationController::class, 'createParent'])->name('registration.create-parent');
+        Route::post('/registration/parent', [StudentRegistrationController::class, 'storeParent'])->name('registration.store-parent');
 
         // Additional staff routes will be added in subsequent chats
     });

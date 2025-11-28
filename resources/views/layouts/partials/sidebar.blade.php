@@ -6,16 +6,16 @@
 </a>
 
 <div class="menu-section-title">User Management</div>
-<a href="#" class="menu-item">
+<a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> Students
 </a>
-<a href="#" class="menu-item">
+<a href="{{ route('admin.parents.index') }}" class="menu-item {{ request()->routeIs('admin.parents.*') ? 'active' : '' }}">
     <i class="fas fa-user-friends"></i> Parents
 </a>
-<a href="#" class="menu-item">
+<a href="{{ route('admin.teachers.index') }}" class="menu-item {{ request()->routeIs('admin.teachers.*') ? 'active' : '' }}">
     <i class="fas fa-chalkboard-teacher"></i> Teachers
 </a>
-<a href="#" class="menu-item">
+<a href="{{ route('admin.staff.index') }}" class="menu-item {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
     <i class="fas fa-user-tie"></i> Staff
 </a>
 
@@ -65,6 +65,11 @@
 <a href="#" class="menu-item">
     <i class="fas fa-cog"></i> Settings
 </a>
+
+<div class="menu-section-title">Account</div>
+<a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+    <i class="fas fa-user"></i> My Profile
+</a>
 @endrole
 
 {{-- Staff Sidebar --}}
@@ -74,12 +79,17 @@
     <i class="fas fa-home"></i> Dashboard
 </a>
 
+<div class="menu-section-title">Registration</div>
+<a href="{{ route('staff.registration.create-student') }}" class="menu-item {{ request()->routeIs('staff.registration.create-student') ? 'active' : '' }}">
+    <i class="fas fa-user-plus"></i> Register Student
+</a>
+<a href="{{ route('staff.registration.create-parent') }}" class="menu-item {{ request()->routeIs('staff.registration.create-parent') ? 'active' : '' }}">
+    <i class="fas fa-user-plus"></i> Register Parent
+</a>
+
 <div class="menu-section-title">Students</div>
 <a href="#" class="menu-item">
     <i class="fas fa-users"></i> All Students
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-user-plus"></i> Register Student
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-clock"></i> Pending Approvals
@@ -105,6 +115,11 @@
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-bullhorn"></i> Announcements
+</a>
+
+<div class="menu-section-title">Account</div>
+<a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+    <i class="fas fa-user"></i> My Profile
 </a>
 @endrole
 
@@ -149,7 +164,9 @@
 <a href="#" class="menu-item">
     <i class="fas fa-bullhorn"></i> Announcements
 </a>
-<a href="#" class="menu-item">
+
+<div class="menu-section-title">Account</div>
+<a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
     <i class="fas fa-user"></i> My Profile
 </a>
 @endrole
@@ -201,7 +218,9 @@
 <a href="#" class="menu-item">
     <i class="fas fa-bullhorn"></i> Announcements
 </a>
-<a href="#" class="menu-item">
+
+<div class="menu-section-title">Account</div>
+<a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
     <i class="fas fa-user"></i> My Profile
 </a>
 @endrole
@@ -250,7 +269,9 @@
 <a href="#" class="menu-item">
     <i class="fas fa-bullhorn"></i> Announcements
 </a>
-<a href="#" class="menu-item">
+
+<div class="menu-section-title">Account</div>
+<a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
     <i class="fas fa-user"></i> My Profile
 </a>
 @endrole
