@@ -103,10 +103,12 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
         // Staff Management
         Route::resource('staff', StaffController::class);
         Route::patch('/staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
+        Route::get('/staff-export', [TeacherController::class, 'export'])->name('staff.export');
 
         // Teacher Management
         Route::resource('teachers', TeacherController::class);
         Route::patch('/teachers/{teacher}/toggle-status', [TeacherController::class, 'toggleStatus'])->name('teachers.toggle-status');
+        Route::get('/teachers-export', [TeacherController::class, 'export'])->name('teachers.export');
 
         // Parent Management
         Route::resource('parents', ParentController::class);
