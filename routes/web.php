@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\ParentController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Staff\StudentRegistrationController;
+use App\Http\Controllers\Admin\SubjectController;
+use App\Http\Controllers\Admin\PackageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -121,6 +123,18 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
         Route::patch('/students/{student}/approve', [StudentController::class, 'approve'])->name('students.approve');
         Route::patch('/students/{student}/reject', [StudentController::class, 'reject'])->name('students.reject');
         Route::get('/students-export', [StudentController::class, 'export'])->name('students.export');
+
+        // SUBJECT MANAGEMENT
+        Route::resource('subjects', SubjectController::class);
+        Route::patch('/subjects/{subject}/toggle-status', [SubjectController::class, 'toggleStatus'])->name('subjects.toggle-status');
+        Route::post('/subjects/{id}/restore', [SubjectController::class, 'restore'])->name('subjects.restore');
+
+        // PACKAGE MANAGEMENT
+        Route::resource('packages', PackageController::class);
+        Route::patch('/packages/{package}/toggle-status', [PackageController::class, 'toggleStatus'])->name('packages.toggle-status');
+        Route::post('/packages/{id}/restore', [PackageController::class, 'restore'])->name('packages.restore');
+        Route::post('/packages/{package}/duplicate', [PackageController::class, 'duplicate'])->name('packages.duplicate');
+        Route::get('/packages/{package}/pricing', [PackageController::class, 'getPricing'])->name('packages.pricing');
 
     });
 

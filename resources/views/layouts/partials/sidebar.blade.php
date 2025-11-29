@@ -20,10 +20,10 @@
 </a>
 
 <div class="menu-section-title">Academic</div>
-<a href="#" class="menu-item">
+<a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
     <i class="fas fa-book"></i> Subjects
 </a>
-<a href="#" class="menu-item">
+<a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
     <i class="fas fa-box"></i> Packages
 </a>
 <a href="#" class="menu-item">
