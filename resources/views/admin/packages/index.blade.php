@@ -332,7 +332,7 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 function confirmDelete(id, name) {
     document.getElementById('deletePackageName').textContent = name;
@@ -354,4 +354,4 @@ function confirmDuplicate(id, name) {
     new bootstrap.Modal(document.getElementById('duplicateModal')).show();
 }
 </script>
-@endsection
+@endpush

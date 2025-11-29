@@ -280,13 +280,14 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 function confirmDelete(id, name) {
     document.getElementById('deleteSubjectName').textContent = name;
     document.getElementById('deleteForm').action = `/admin/subjects/${id}`;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
+
 
 function confirmToggle(id, name, currentStatus) {
     const action = currentStatus === 'active' ? 'deactivate' : 'activate';
@@ -296,4 +297,4 @@ function confirmToggle(id, name, currentStatus) {
     new bootstrap.Modal(document.getElementById('toggleModal')).show();
 }
 </script>
-@endsection
+@endpush

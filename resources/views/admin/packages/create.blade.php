@@ -305,7 +305,7 @@
 </form>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 // Handle package type change
 document.getElementById('type').addEventListener('change', function() {
@@ -388,4 +388,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePriceSummary();
 });
 </script>
-@endsection
+@endpush
