@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Staff\StudentRegistrationController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\PackageController;
+use App\Http\Controllers\Public\OnlineRegistrationController;
+use App\Http\Controllers\Parent\ChildRegistrationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,10 +30,30 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
+| Public Online Registration Routes (No Auth Required)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('register')->name('public.registration.')->group(function () {
+    // Landing page
+    Route::get('/', [OnlineRegistrationController::class, 'index'])->name('index');
+
+    // Student registration form
+    Route::get('/student', [OnlineRegistrationController::class, 'showStudentForm'])->name('student');
+    Route::post('/student', [OnlineRegistrationController::class, 'registerStudent'])->name('student.submit');
+
+    // Success page
+    Route::get('/success', [OnlineRegistrationController::class, 'success'])->name('success');
+
+    // AJAX endpoints
+    Route::get('/validate-referral', [OnlineRegistrationController::class, 'validateReferralCode'])->name('validate-referral');
+    Route::get('/check-email', [OnlineRegistrationController::class, 'checkEmail'])->name('check-email');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
-
 Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -58,7 +80,6 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
-
 Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(function () {
 
     // Default Dashboard (redirects based on role)
@@ -155,7 +176,12 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
         Route::get('/registration/parent', [StudentRegistrationController::class, 'createParent'])->name('registration.create-parent');
         Route::post('/registration/parent', [StudentRegistrationController::class, 'storeParent'])->name('registration.store-parent');
 
-        // Additional staff routes will be added in subsequent chats
+        // Pending Registrations
+        Route::get('/registration/pending', [StudentRegistrationController::class, 'pendingList'])->name('registration.pending');
+
+        // AJAX: Search Parents
+        Route::get('/registration/search-parent', [StudentRegistrationController::class, 'searchParent'])->name('registration.search-parent');
+
     });
 
     /*
@@ -177,7 +203,12 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
     Route::middleware(['role:parent'])->prefix('parent')->name('parent.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'parentDashboard'])->name('dashboard');
 
-        // Additional parent routes will be added in subsequent chats
+        // Children Management
+        Route::get('/children', [ChildRegistrationController::class, 'index'])->name('children.index');
+        Route::get('/children/register', [ChildRegistrationController::class, 'create'])->name('children.register');
+        Route::post('/children/register', [ChildRegistrationController::class, 'store'])->name('children.store');
+        Route::get('/children/{student}', [ChildRegistrationController::class, 'show'])->name('children.show');
+
     });
 
     /*

@@ -11,40 +11,53 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Http\Requests\StaffStudentRegistrationRequest;
+use App\Models\Package;
 
 class StudentRegistrationController extends Controller
 {
+    /**
+     * Show staff registration dashboard.
+     */
+    public function index()
+    {
+        $pendingCount = Student::where('approval_status', 'pending')->count();
+        $todayRegistrations = Student::whereDate('registration_date', today())->count();
+        $recentRegistrations = Student::with(['user', 'parent.user'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('staff.registration.index', compact('pendingCount', 'todayRegistrations', 'recentRegistrations'));
+    }
+
     /**
      * Show the student registration form.
      */
     public function createStudent()
     {
-        $parents = Parents::with('user')->whereHas('user', function ($q) {
-            $q->where('status', 'active');
-        })->get();
+        $parents = Parents::with('user')
+            ->whereHas('user', function ($q) {
+                $q->where('status', 'active');
+            })
+            ->get();
 
-        return view('staff.registration.create-student', compact('parents'));
+        $packages = Package::active()
+            ->with('subjects')
+            ->orderBy('name')
+            ->get();
+
+        $gradeLevels = $this->getGradeLevelOptions();
+
+        return view('staff.registration.create-student', compact('parents', 'packages', 'gradeLevels'));
     }
 
     /**
-     * Store a new student registration.
+     * Store a new student registration (offline by staff).
      */
-    public function storeStudent(Request $request)
+    public function storeStudent(StaffStudentRegistrationRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
-            'parent_id' => 'required|exists:parents,id',
-            'ic_number' => 'required|string|max:20|unique:students,ic_number',
-            'date_of_birth' => 'required|date|before:today',
-            'gender' => 'required|in:male,female',
-            'school_name' => 'required|string|max:255',
-            'grade_level' => 'required|string|max:50',
-            'address' => 'nullable|string|max:500',
-            'medical_conditions' => 'nullable|string|max:500',
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -55,10 +68,10 @@ class StudentRegistrationController extends Controller
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $validated['phone'] ?? null,
                 'password' => Hash::make($tempPassword),
-                'status' => 'active',
-                'email_verified_at' => now(),
+                'status' => 'inactive', // Inactive until approved
+                'email_verified_at' => null,
             ]);
 
             // Assign student role
@@ -69,6 +82,15 @@ class StudentRegistrationController extends Controller
 
             // Generate referral code
             $referralCode = strtoupper(Str::random(8));
+
+            // Check if referred by someone
+            $referredBy = null;
+            if (!empty($validated['referral_code'])) {
+                $referrer = Student::where('referral_code', $validated['referral_code'])->first();
+                if ($referrer) {
+                    $referredBy = $referrer->id;
+                }
+            }
 
             // Create Student profile (pending approval by default for staff registration)
             $student = Student::create([
@@ -81,13 +103,24 @@ class StudentRegistrationController extends Controller
                 'school_name' => $validated['school_name'],
                 'grade_level' => $validated['grade_level'],
                 'address' => $validated['address'],
-                'medical_conditions' => $validated['medical_conditions'],
+                'medical_conditions' => $validated['medical_conditions'] ?? null,
                 'registration_type' => 'offline',
                 'registration_date' => now(),
                 'referral_code' => $referralCode,
-                'approval_status' => 'pending',
-                'notes' => $validated['notes'],
+                'referred_by' => $referredBy,
+                'approval_status' => $validated['auto_approve'] ?? false ? 'approved' : 'pending',
+                'approved_by' => $validated['auto_approve'] ?? false ? auth()->id() : null,
+                'approved_at' => $validated['auto_approve'] ?? false ? now() : null,
+                'notes' => $validated['notes'] ?? null,
             ]);
+
+            // If auto-approved, activate user
+            if ($validated['auto_approve'] ?? false) {
+                $user->update([
+                    'status' => 'active',
+                    'email_verified_at' => now(),
+                ]);
+            }
 
             // Log activity
             ActivityLog::create([
@@ -103,8 +136,12 @@ class StudentRegistrationController extends Controller
             DB::commit();
 
             // Return with success and temporary password
+            $statusMsg = ($validated['auto_approve'] ?? false)
+                ? 'approved and activated'
+                : 'pending approval';
+
             return redirect()->route('staff.registration.create-student')
-                ->with('success', "Student registered successfully. Student ID: {$studentId}. Temporary Password: {$tempPassword}. Please provide this to the parent.");
+                ->with('success', "Student registered successfully ({$statusMsg}). Student ID: {$studentId}. Temporary Password: {$tempPassword}. Please provide this to the parent.");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -161,7 +198,7 @@ class StudentRegistrationController extends Controller
             $user->assignRole('parent');
 
             // Generate parent ID
-            $parentId = 'PAR-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
+            $parentId = 'PAR-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
             // Create Parent profile
             $parent = Parents::create([
@@ -205,6 +242,37 @@ class StudentRegistrationController extends Controller
     }
 
     /**
+     * Show pending registrations list.
+     */
+    public function pendingList(Request $request)
+    {
+        $query = Student::where('approval_status', 'pending')
+            ->with(['user', 'parent.user']);
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($userQ) use ($search) {
+                    $userQ->where('name', 'like', "%{$search}%")
+                          ->orWhere('email', 'like', "%{$search}%");
+                })
+                ->orWhere('student_id', 'like', "%{$search}%")
+                ->orWhere('ic_number', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by registration type
+        if ($request->filled('registration_type')) {
+            $query->where('registration_type', $request->registration_type);
+        }
+
+        $pendingStudents = $query->latest('registration_date')->paginate(15)->withQueryString();
+
+        return view('staff.registration.pending-list', compact('pendingStudents'));
+    }
+
+    /**
      * Quick search for existing parents (AJAX).
      */
     public function searchParent(Request $request)
@@ -227,9 +295,31 @@ class StudentRegistrationController extends Controller
                     'name' => $parent->user->name,
                     'email' => $parent->user->email,
                     'phone' => $parent->user->phone,
+                    'address' => $parent->address,
                 ];
             });
 
         return response()->json(['results' => $parents]);
+    }
+
+    /**
+     * Get grade level options.
+     */
+    private function getGradeLevelOptions(): array
+    {
+        return [
+            'Standard 1' => 'Standard 1',
+            'Standard 2' => 'Standard 2',
+            'Standard 3' => 'Standard 3',
+            'Standard 4' => 'Standard 4',
+            'Standard 5' => 'Standard 5',
+            'Standard 6' => 'Standard 6',
+            'Form 1' => 'Form 1',
+            'Form 2' => 'Form 2',
+            'Form 3' => 'Form 3',
+            'Form 4' => 'Form 4',
+            'Form 5' => 'Form 5',
+            'Pre-University' => 'Pre-University',
+        ];
     }
 }

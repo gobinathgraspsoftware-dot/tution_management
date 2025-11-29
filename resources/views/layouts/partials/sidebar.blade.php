@@ -81,18 +81,24 @@
 
 <div class="menu-section-title">Registration</div>
 <a href="{{ route('staff.registration.create-student') }}" class="menu-item {{ request()->routeIs('staff.registration.create-student') ? 'active' : '' }}">
-    <i class="fas fa-user-plus"></i> Register Student
+    <i class="fas fa-user-graduate"></i> Register Student
 </a>
 <a href="{{ route('staff.registration.create-parent') }}" class="menu-item {{ request()->routeIs('staff.registration.create-parent') ? 'active' : '' }}">
-    <i class="fas fa-user-plus"></i> Register Parent
+    <i class="fas fa-user-friends"></i> Register Parent
+</a>
+<a href="{{ route('staff.registration.pending') }}" class="menu-item {{ request()->routeIs('staff.registration.pending') ? 'active' : '' }}">
+    <i class="fas fa-clock"></i> Pending Approvals
+    @php
+        $pendingCount = \App\Models\Student::where('approval_status', 'pending')->count();
+    @endphp
+    @if($pendingCount > 0)
+        <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+    @endif
 </a>
 
 <div class="menu-section-title">Students</div>
 <a href="#" class="menu-item">
     <i class="fas fa-users"></i> All Students
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-clock"></i> Pending Approvals
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-user-graduate"></i> Trial Classes
@@ -130,7 +136,7 @@
     <i class="fas fa-home"></i> Dashboard
 </a>
 
-<div class="menu-section-title">My Classes</div>
+<div class="menu-section-title">Teaching</div>
 <a href="#" class="menu-item">
     <i class="fas fa-school"></i> My Classes
 </a>
@@ -138,31 +144,15 @@
     <i class="fas fa-calendar-alt"></i> My Schedule
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-users"></i> My Students
-</a>
-
-<div class="menu-section-title">Teaching</div>
-<a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
 </a>
-<a href="#" class="menu-item">
-    <i class="fas fa-file-upload"></i> Upload Materials
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> My Materials
-</a>
 
-<div class="menu-section-title">Assessment</div>
+<div class="menu-section-title">Content</div>
 <a href="#" class="menu-item">
-    <i class="fas fa-file-signature"></i> Exams
+    <i class="fas fa-file-alt"></i> Materials
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-chart-bar"></i> Results
-</a>
-
-<div class="menu-section-title">Other</div>
-<a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
+    <i class="fas fa-clipboard-list"></i> Exams
 </a>
 
 <div class="menu-section-title">Account</div>
@@ -178,45 +168,39 @@
     <i class="fas fa-home"></i> Dashboard
 </a>
 
-<div class="menu-section-title">My Children</div>
-<a href="#" class="menu-item">
-    <i class="fas fa-child"></i> My Children
+<div class="menu-section-title">Children</div>
+<a href="{{ route('parent.children.index') }}" class="menu-item {{ request()->routeIs('parent.children.index') || request()->routeIs('parent.children.show') ? 'active' : '' }}">
+    <i class="fas fa-users"></i> My Children
 </a>
-<a href="#" class="menu-item">
-    <i class="fas fa-user-plus"></i> Register New Child
+<a href="{{ route('parent.children.register') }}" class="menu-item {{ request()->routeIs('parent.children.register') ? 'active' : '' }}">
+    <i class="fas fa-user-plus"></i> Register Child
 </a>
 
 <div class="menu-section-title">Academic</div>
 <a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> Attendance
-</a>
-<a href="#" class="menu-item">
     <i class="fas fa-calendar-alt"></i> Timetable
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> Materials
+    <i class="fas fa-check-square"></i> Attendance
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-chart-bar"></i> Results
+    <i class="fas fa-clipboard-list"></i> Results
 </a>
 
-<div class="menu-section-title">Financial</div>
+<div class="menu-section-title">Payments</div>
 <a href="#" class="menu-item">
-    <i class="fas fa-file-invoice"></i> Invoices
+    <i class="fas fa-file-invoice-dollar"></i> Invoices
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-money-bill-wave"></i> Payments
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-history"></i> Payment History
+    <i class="fas fa-money-bill-wave"></i> Payment History
 </a>
 
 <div class="menu-section-title">Other</div>
 <a href="#" class="menu-item">
-    <i class="fas fa-calendar-check"></i> Seminars
+    <i class="fas fa-bullhorn"></i> Announcements
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
+    <i class="fas fa-file-alt"></i> Materials
 </a>
 
 <div class="menu-section-title">Account</div>
@@ -237,34 +221,18 @@
     <i class="fas fa-school"></i> My Classes
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> My Timetable
+    <i class="fas fa-calendar-alt"></i> Timetable
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> My Attendance
+    <i class="fas fa-check-square"></i> Attendance
+</a>
+<a href="#" class="menu-item">
+    <i class="fas fa-clipboard-list"></i> Results
 </a>
 
 <div class="menu-section-title">Learning</div>
 <a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> Study Materials
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-file-signature"></i> Exams
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-chart-bar"></i> My Results
-</a>
-
-<div class="menu-section-title">Financial</div>
-<a href="#" class="menu-item">
-    <i class="fas fa-file-invoice"></i> My Invoices
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-history"></i> Payment History
-</a>
-
-<div class="menu-section-title">Other</div>
-<a href="#" class="menu-item">
-    <i class="fas fa-calendar-check"></i> Seminars
+    <i class="fas fa-file-alt"></i> Materials
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-bullhorn"></i> Announcements
