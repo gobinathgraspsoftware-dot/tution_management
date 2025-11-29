@@ -244,6 +244,12 @@ class PackageController extends Controller
     {
         DB::beginTransaction();
         try {
+
+            if (str_contains($package->code, 'COPY')) {
+                DB::rollBack();
+                return back()->with('error', 'Cannot duplicate a duplicated package.');
+            }
+
             $newPackage = $package->replicate();
             $newPackage->name = $package->name . ' (Copy)';
             $newPackage->code = $package->code . '-COPY-' . time();
