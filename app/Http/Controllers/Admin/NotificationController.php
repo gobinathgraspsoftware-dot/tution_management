@@ -117,7 +117,10 @@ class NotificationController extends Controller
     public function create()
     {
         $templates = MessageTemplate::active()->get()->groupBy('category');
-        $students = Student::with('user')->where('status', 'active')->get();
+        $students = Student::with('user')
+                            ->whereHas('user', function ($q) {
+                                $q->where('status', 'active');
+                            })->get();
         $parents = Parents::with('user')->get();
 
         return view('admin.notifications.send', compact('templates', 'students', 'parents'));
