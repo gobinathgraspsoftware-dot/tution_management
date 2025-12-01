@@ -9,6 +9,16 @@
 <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> Students
 </a>
+{{-- NEW: Add Pending Approvals menu item --}}
+<a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
+    <i class="fas fa-user-clock"></i> Pending Approvals
+    @php
+        $pendingCount = \App\Models\Student::pending()->count();
+    @endphp
+    @if($pendingCount > 0)
+    <span class="badge bg-warning text-dark ms-auto">{{ $pendingCount }}</span>
+    @endif
+</a>
 <a href="{{ route('admin.parents.index') }}" class="menu-item {{ request()->routeIs('admin.parents.*') ? 'active' : '' }}">
     <i class="fas fa-user-friends"></i> Parents
 </a>
@@ -124,6 +134,11 @@
 <a href="#" class="menu-item">
     <i class="fas fa-users"></i> All Students
 </a>
+{{-- Staff can view pending but limited actions --}}
+{{-- <a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
+    <i class="fas fa-clock"></i> Pending Approvals
+</a> --}}
+
 <a href="#" class="menu-item">
     <i class="fas fa-user-graduate"></i> Trial Classes
 </a>

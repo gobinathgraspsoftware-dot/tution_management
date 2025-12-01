@@ -11,7 +11,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register StudentApprovalService
+        $this->app->singleton(\App\Services\StudentApprovalService::class, function ($app) {
+            return new \App\Services\StudentApprovalService(
+                $app->make(\App\Services\NotificationService::class),
+                $app->make(\App\Services\WhatsappService::class)
+            );
+        });
     }
 
     /**

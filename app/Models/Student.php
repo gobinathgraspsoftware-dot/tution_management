@@ -186,4 +186,15 @@ class Student extends Model
         }
         return $this->referral_code;
     }
+
+    public function referredBy()
+    {
+        return $this->belongsTo(Student::class, 'referred_by');
+    }
+
+    public function isRejected()
+    {
+        return $this->approval_status === 'rejected';
+    }
+
 }

@@ -105,6 +105,33 @@ return [
             'channels' => ['email'],
             'priority' => 'urgent',
         ],
+        'student_approval' => [
+            'name' => 'Student Approved',
+            'description' => 'Notification when student registration is approved',
+            'channels' => ['whatsapp', 'email'],
+            'priority' => 'high',
+        ],
+
+        'student_rejection' => [
+            'name' => 'Student Rejected',
+            'description' => 'Notification when student registration is rejected',
+            'channels' => ['whatsapp', 'email'],
+            'priority' => 'high',
+        ],
+
+        'student_welcome' => [
+            'name' => 'Student Welcome',
+            'description' => 'Welcome notification for newly approved students',
+            'channels' => ['whatsapp', 'email'],
+            'priority' => 'normal',
+        ],
+
+        'info_request' => [
+            'name' => 'Information Request',
+            'description' => 'Request for additional information from parent',
+            'channels' => ['whatsapp', 'email'],
+            'priority' => 'normal',
+        ],
     ],
 
     /*

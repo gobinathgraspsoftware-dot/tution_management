@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Public\OnlineRegistrationController;
 use App\Http\Controllers\Parent\ChildRegistrationController;
+use App\Http\Controllers\Admin\StudentApprovalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -200,6 +201,33 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
             Route::post('/{template}/toggle-status', [App\Http\Controllers\Admin\MessageTemplateController::class, 'toggleStatus'])->name('toggle-status');
             Route::post('/{template}/duplicate', [App\Http\Controllers\Admin\MessageTemplateController::class, 'duplicate'])->name('duplicate');
             Route::get('/{template}/preview', [App\Http\Controllers\Admin\MessageTemplateController::class, 'preview'])->name('preview');
+        });
+
+        // Student Approval Queue
+        Route::prefix('approvals')->name('approvals.')->group(function () {
+            // Pending approvals list
+            Route::get('/', [StudentApprovalController::class, 'index'])->name('index');
+
+            // Approval history
+            Route::get('/history', [StudentApprovalController::class, 'history'])->name('history');
+
+            // Review single student
+            Route::get('/{student}', [StudentApprovalController::class, 'show'])->name('show');
+
+            // Approve student
+            Route::patch('/{student}/approve', [StudentApprovalController::class, 'approve'])->name('approve');
+
+            // Reject student
+            Route::patch('/{student}/reject', [StudentApprovalController::class, 'reject'])->name('reject');
+
+            // Request more information
+            Route::post('/{student}/request-info', [StudentApprovalController::class, 'requestInfo'])->name('request-info');
+
+            // Bulk approve
+            Route::post('/bulk-approve', [StudentApprovalController::class, 'bulkApprove'])->name('bulk-approve');
+
+            // Resend welcome notification
+            Route::post('/{student}/resend-welcome', [StudentApprovalController::class, 'resendWelcome'])->name('resend-welcome');
         });
 
     });
