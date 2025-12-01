@@ -70,6 +70,30 @@
 <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
     <i class="fas fa-user"></i> My Profile
 </a>
+
+<div class="menu-section-title">Communications</div>
+<a href="{{ route('admin.notifications.index') }}" class="menu-item {{ request()->routeIs('admin.notifications.index') ? 'active' : '' }}">
+    <i class="fas fa-bell"></i> Notification Dashboard
+</a>
+<a href="{{ route('admin.notifications.create') }}" class="menu-item {{ request()->routeIs('admin.notifications.create') ? 'active' : '' }}">
+    <i class="fas fa-paper-plane"></i> Send Notification
+</a>
+<a href="{{ route('admin.notifications.logs') }}" class="menu-item {{ request()->routeIs('admin.notifications.logs') ? 'active' : '' }}">
+    <i class="fas fa-history"></i> Notification Logs
+</a>
+<a href="{{ route('admin.templates.index') }}" class="menu-item {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}">
+    <i class="fas fa-file-alt"></i> Message Templates
+</a>
+<a href="{{ route('admin.notifications.whatsapp-queue') }}" class="menu-item {{ request()->routeIs('admin.notifications.whatsapp-queue') ? 'active' : '' }}">
+    <i class="fab fa-whatsapp"></i> WhatsApp Queue
+</a>
+<a href="{{ route('admin.notifications.email-queue') }}" class="menu-item {{ request()->routeIs('admin.notifications.email-queue') ? 'active' : '' }}">
+    <i class="fas fa-envelope"></i> Email Queue
+</a>
+<a href="{{ route('admin.notifications.settings') }}" class="menu-item {{ request()->routeIs('admin.notifications.settings') ? 'active' : '' }}">
+    <i class="fas fa-cog"></i> Notification Settings
+</a>
+
 @endrole
 
 {{-- Staff Sidebar --}}

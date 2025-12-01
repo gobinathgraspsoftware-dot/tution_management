@@ -157,6 +157,51 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
         Route::post('/packages/{package}/duplicate', [PackageController::class, 'duplicate'])->name('packages.duplicate');
         Route::get('/packages/{package}/pricing', [PackageController::class, 'getPricing'])->name('packages.pricing');
 
+        // Notification Management
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('index');
+            Route::get('/logs', [App\Http\Controllers\Admin\NotificationController::class, 'logs'])->name('logs');
+            Route::get('/send', [App\Http\Controllers\Admin\NotificationController::class, 'create'])->name('create');
+            Route::post('/send', [App\Http\Controllers\Admin\NotificationController::class, 'send'])->name('send');
+
+            // Queue Management
+            Route::get('/whatsapp-queue', [App\Http\Controllers\Admin\NotificationController::class, 'whatsappQueue'])->name('whatsapp-queue');
+            Route::get('/email-queue', [App\Http\Controllers\Admin\NotificationController::class, 'emailQueue'])->name('email-queue');
+
+            // Process Queues
+            Route::post('/process-whatsapp', [App\Http\Controllers\Admin\NotificationController::class, 'processWhatsappQueue'])->name('process-whatsapp');
+            Route::post('/process-email', [App\Http\Controllers\Admin\NotificationController::class, 'processEmailQueue'])->name('process-email');
+
+            // Retry Failed
+            Route::post('/retry-whatsapp', [App\Http\Controllers\Admin\NotificationController::class, 'retryWhatsapp'])->name('retry-whatsapp');
+            Route::post('/retry-email', [App\Http\Controllers\Admin\NotificationController::class, 'retryEmail'])->name('retry-email');
+
+            // Cancel Message
+            Route::delete('/cancel/{type}/{id}', [App\Http\Controllers\Admin\NotificationController::class, 'cancelMessage'])->name('cancel');
+
+            // Test Connections
+            Route::post('/test-whatsapp', [App\Http\Controllers\Admin\NotificationController::class, 'testWhatsapp'])->name('test-whatsapp');
+            Route::post('/test-email', [App\Http\Controllers\Admin\NotificationController::class, 'testEmail'])->name('test-email');
+
+            // Settings
+            Route::get('/settings', [App\Http\Controllers\Admin\NotificationController::class, 'settings'])->name('settings');
+            Route::post('/settings', [App\Http\Controllers\Admin\NotificationController::class, 'updateSettings'])->name('settings.update');
+        });
+
+        // Message Templates
+        Route::prefix('templates')->name('templates.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\MessageTemplateController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Admin\MessageTemplateController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Admin\MessageTemplateController::class, 'store'])->name('store');
+            Route::get('/{template}', [App\Http\Controllers\Admin\MessageTemplateController::class, 'show'])->name('show');
+            Route::get('/{template}/edit', [App\Http\Controllers\Admin\MessageTemplateController::class, 'edit'])->name('edit');
+            Route::put('/{template}', [App\Http\Controllers\Admin\MessageTemplateController::class, 'update'])->name('update');
+            Route::delete('/{template}', [App\Http\Controllers\Admin\MessageTemplateController::class, 'destroy'])->name('destroy');
+            Route::post('/{template}/toggle-status', [App\Http\Controllers\Admin\MessageTemplateController::class, 'toggleStatus'])->name('toggle-status');
+            Route::post('/{template}/duplicate', [App\Http\Controllers\Admin\MessageTemplateController::class, 'duplicate'])->name('duplicate');
+            Route::get('/{template}/preview', [App\Http\Controllers\Admin\MessageTemplateController::class, 'preview'])->name('preview');
+        });
+
     });
 
     /*

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmailQueue extends Model
 {
     use HasFactory;
+    protected $table = 'email_queue';
     protected $fillable = ['recipient_email', 'recipient_name', 'subject', 'body', 'template_id', 'priority', 'status', 'attempts', 'max_attempts', 'scheduled_at', 'sent_at', 'failed_at', 'error_message'];
     protected $casts = ['attempts' => 'integer', 'max_attempts' => 'integer', 'scheduled_at' => 'datetime', 'sent_at' => 'datetime', 'failed_at' => 'datetime'];
     public function template() { return $this->belongsTo(MessageTemplate::class, 'template_id'); }
