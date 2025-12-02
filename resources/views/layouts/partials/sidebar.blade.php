@@ -6,9 +6,14 @@
 </a>
 
 <div class="menu-section-title">User Management</div>
-<a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
+{{-- <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> Students
+</a> --}}
+@can('view-students')
+<a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.index') ? 'active' : '' }}">
+    <i class="fas fa-users"></i> All Students
 </a>
+@endcan
 {{-- NEW: Add Pending Approvals menu item --}}
 <a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
     <i class="fas fa-user-clock"></i> Pending Approvals
@@ -19,6 +24,7 @@
     <span class="badge bg-warning text-dark ms-auto">{{ $pendingCount }}</span>
     @endif
 </a>
+
 <a href="{{ route('admin.parents.index') }}" class="menu-item {{ request()->routeIs('admin.parents.*') ? 'active' : '' }}">
     <i class="fas fa-user-friends"></i> Parents
 </a>
@@ -29,6 +35,33 @@
     <i class="fas fa-user-tie"></i> Staff
 </a>
 
+{{-- Section Start: Referral & Trial --}}
+<div class="menu-section-title">Referral & Trial</div>
+
+@can('view-referrals')
+    <a href="{{ route('admin.referrals.index') }}" class="menu-item {{ request()->routeIs('admin.referrals.*') && !request()->routeIs('admin.referrals.vouchers') ? 'active' : '' }}">
+        <i class="fas fa-user-friends"></i> Referrals
+    </a>
+@endcan
+
+@can('view-referral-vouchers')
+    <a href="{{ route('admin.referrals.vouchers') }}" class="menu-item {{ request()->routeIs('admin.referrals.vouchers') ? 'active' : '' }}">
+        <i class="fas fa-ticket-alt"></i> Vouchers
+    </a>
+@endcan
+
+@can('view-trial-classes')
+    <a href="{{ route('admin.trial-classes.index') }}" class="menu-item {{ request()->routeIs('admin.trial-classes.*') ? 'active' : '' }}">
+        <i class="fas fa-chalkboard"></i> Trial Classes
+    </a>
+@endcan
+
+@can('view-reviews')
+    <a href="{{ route('admin.reviews.index') }}" class="menu-item {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}">
+        <i class="fas fa-star"></i> Student Reviews
+    </a>
+@endcan
+{{-- Section End: Referral & Trial --}}
 <div class="menu-section-title">Academic</div>
 <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
     <i class="fas fa-book"></i> Subjects

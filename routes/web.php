@@ -230,6 +230,158 @@ Route::middleware(['auth', \App\Http\Middleware\CheckUserStatus::class])->group(
             Route::post('/{student}/resend-welcome', [StudentApprovalController::class, 'resendWelcome'])->name('resend-welcome');
         });
 
+        // =====================================================================
+        // STUDENT PROFILE ROUTES (Chat 9)
+        // =====================================================================
+        Route::prefix('students')->name('students.')->group(function () {
+            Route::get('{student}/profile', [App\Http\Controllers\Admin\StudentProfileController::class, 'show'])
+                ->name('profile')
+                ->middleware('permission:view-students');
+
+            Route::get('{student}/history', [App\Http\Controllers\Admin\StudentProfileController::class, 'history'])
+                ->name('history')
+                ->middleware('permission:view-students');
+
+            Route::post('{student}/regenerate-referral', [App\Http\Controllers\Admin\StudentProfileController::class, 'regenerateReferralCode'])
+                ->name('regenerate-referral')
+                ->middleware('permission:edit-students');
+
+            Route::get('{student}/export-profile', [App\Http\Controllers\Admin\StudentProfileController::class, 'exportProfile'])
+                ->name('export-profile')
+                ->middleware('permission:export-students');
+        });
+
+        // =====================================================================
+        // REFERRAL MANAGEMENT ROUTES (Chat 9)
+        // =====================================================================
+        Route::prefix('referrals')->name('referrals.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\ReferralController::class, 'index'])
+                ->name('index')
+                ->middleware('permission:view-referrals');
+
+            Route::get('/export', [App\Http\Controllers\Admin\ReferralController::class, 'export'])
+                ->name('export')
+                ->middleware('permission:view-referrals');
+
+            Route::get('/vouchers', [App\Http\Controllers\Admin\ReferralController::class, 'vouchers'])
+                ->name('vouchers')
+                ->middleware('permission:view-referral-vouchers');
+
+            Route::post('/vouchers/generate', [App\Http\Controllers\Admin\ReferralController::class, 'generateVoucher'])
+                ->name('vouchers.generate')
+                ->middleware('permission:generate-referral-vouchers');
+
+            Route::post('/vouchers/{voucher}/expire', [App\Http\Controllers\Admin\ReferralController::class, 'expireVoucher'])
+                ->name('vouchers.expire')
+                ->middleware('permission:manage-referrals');
+
+            Route::get('/{referral}', [App\Http\Controllers\Admin\ReferralController::class, 'show'])
+                ->name('show')
+                ->middleware('permission:view-referrals');
+
+            Route::post('/{referral}/complete', [App\Http\Controllers\Admin\ReferralController::class, 'complete'])
+                ->name('complete')
+                ->middleware('permission:manage-referrals');
+
+            Route::post('/{referral}/cancel', [App\Http\Controllers\Admin\ReferralController::class, 'cancel'])
+                ->name('cancel')
+                ->middleware('permission:manage-referrals');
+        });
+
+        // =====================================================================
+        // TRIAL CLASS MANAGEMENT ROUTES (Chat 9)
+        // =====================================================================
+        Route::prefix('trial-classes')->name('trial-classes.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\TrialClassController::class, 'index'])
+                ->name('index')
+                ->middleware('permission:view-trial-classes');
+
+            Route::get('/create', [App\Http\Controllers\Admin\TrialClassController::class, 'create'])
+                ->name('create')
+                ->middleware('permission:create-trial-classes');
+
+            Route::post('/', [App\Http\Controllers\Admin\TrialClassController::class, 'store'])
+                ->name('store')
+                ->middleware('permission:create-trial-classes');
+
+            Route::get('/export', [App\Http\Controllers\Admin\TrialClassController::class, 'export'])
+                ->name('export')
+                ->middleware('permission:view-trial-classes');
+
+            Route::get('/{trialClass}', [App\Http\Controllers\Admin\TrialClassController::class, 'show'])
+                ->name('show')
+                ->middleware('permission:view-trial-classes');
+
+            Route::post('/{trialClass}/update-status', [App\Http\Controllers\Admin\TrialClassController::class, 'updateStatus'])
+                ->name('update-status')
+                ->middleware('permission:edit-trial-classes');
+
+            Route::post('/{trialClass}/mark-attendance', [App\Http\Controllers\Admin\TrialClassController::class, 'markAttendance'])
+                ->name('mark-attendance')
+                ->middleware('permission:mark-trial-attendance');
+
+            Route::post('/{trialClass}/convert', [App\Http\Controllers\Admin\TrialClassController::class, 'convert'])
+                ->name('convert')
+                ->middleware('permission:convert-trial-classes');
+
+            Route::post('/{trialClass}/decline', [App\Http\Controllers\Admin\TrialClassController::class, 'decline'])
+                ->name('decline')
+                ->middleware('permission:edit-trial-classes');
+
+            Route::delete('/{trialClass}', [App\Http\Controllers\Admin\TrialClassController::class, 'destroy'])
+                ->name('destroy')
+                ->middleware('permission:delete-trial-classes');
+        });
+
+        // =====================================================================
+        // STUDENT REVIEWS ROUTES (Chat 9)
+        // =====================================================================
+        Route::prefix('reviews')->name('reviews.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\StudentReviewController::class, 'index'])
+                ->name('index')
+                ->middleware('permission:view-reviews');
+
+            Route::get('/create', [App\Http\Controllers\Admin\StudentReviewController::class, 'create'])
+                ->name('create')
+                ->middleware('permission:edit-reviews');
+
+            Route::post('/', [App\Http\Controllers\Admin\StudentReviewController::class, 'store'])
+                ->name('store')
+                ->middleware('permission:edit-reviews');
+
+            Route::get('/export', [App\Http\Controllers\Admin\StudentReviewController::class, 'export'])
+                ->name('export')
+                ->middleware('permission:view-reviews');
+
+            Route::post('/bulk-approve', [App\Http\Controllers\Admin\StudentReviewController::class, 'bulkApprove'])
+                ->name('bulk-approve')
+                ->middleware('permission:approve-reviews');
+
+            Route::get('/{review}', [App\Http\Controllers\Admin\StudentReviewController::class, 'show'])
+                ->name('show')
+                ->middleware('permission:view-reviews');
+
+            Route::get('/{review}/edit', [App\Http\Controllers\Admin\StudentReviewController::class, 'edit'])
+                ->name('edit')
+                ->middleware('permission:edit-reviews');
+
+            Route::put('/{review}', [App\Http\Controllers\Admin\StudentReviewController::class, 'update'])
+                ->name('update')
+                ->middleware('permission:edit-reviews');
+
+            Route::post('/{review}/approve', [App\Http\Controllers\Admin\StudentReviewController::class, 'approve'])
+                ->name('approve')
+                ->middleware('permission:approve-reviews');
+
+            Route::post('/{review}/reject', [App\Http\Controllers\Admin\StudentReviewController::class, 'reject'])
+                ->name('reject')
+                ->middleware('permission:approve-reviews');
+
+            Route::delete('/{review}', [App\Http\Controllers\Admin\StudentReviewController::class, 'destroy'])
+                ->name('destroy')
+                ->middleware('permission:delete-reviews');
+        });
+
     });
 
     /*
