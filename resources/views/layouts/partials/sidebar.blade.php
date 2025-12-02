@@ -69,12 +69,25 @@
 <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
     <i class="fas fa-box"></i> Packages
 </a>
-<a href="#" class="menu-item">
-    <i class="fas fa-school"></i> Classes
+@canany(['view-classes', 'create-classes', 'manage-class-schedule'])
+<div class="menu-section-title">CLASS MANAGEMENT</div>
+
+@can('view-classes')
+<a href="{{ route('admin.classes.index') }}"
+   class="menu-item {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
+    <i class="fas fa-chalkboard"></i>
+    Classes
 </a>
-<a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> Timetable
+@endcan
+
+@can('manage-class-schedule')
+<a href="{{ route('admin.classes.timetable') }}"
+   class="menu-item {{ request()->routeIs('admin.classes.timetable') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Weekly Timetable
 </a>
+@endcan
+@endcanany
 
 <div class="menu-section-title">Operations</div>
 <a href="#" class="menu-item">
