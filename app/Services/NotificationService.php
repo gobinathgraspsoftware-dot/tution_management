@@ -397,6 +397,457 @@ class NotificationService
         ];
     }
 
-    
+    /**
+     * Send WhatsApp message via Ultra Messenger API.
+     */
+    public function sendWhatsApp($phoneNumber, $message, $templateId = null)
+    {
+        try {
+            // Clean phone number (remove spaces, dashes, etc.)
+            $phoneNumber = preg_replace('/[^0-9+]/', '', $phoneNumber);
+
+            // Ensure Malaysian format (+60)
+            if (!str_starts_with($phoneNumber, '+')) {
+                if (str_starts_with($phoneNumber, '0')) {
+                    $phoneNumber = '+60' . substr($phoneNumber, 1);
+                } else if (str_starts_with($phoneNumber, '60')) {
+                    $phoneNumber = '+' . $phoneNumber;
+                } else {
+                    $phoneNumber = '+60' . $phoneNumber;
+                }
+            }
+
+            // Ultra Messenger API Configuration
+            $apiUrl = config('services.ultramessenger.api_url', 'https://api.ultramsg.com');
+            $instanceId = config('services.ultramessenger.instance_id');
+            $token = config('services.ultramessenger.token');
+
+            if (!$instanceId || !$token) {
+                throw new \Exception('Ultra Messenger API credentials not configured');
+            }
+
+            // Send request to Ultra Messenger
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post("{$apiUrl}/{$instanceId}/messages/chat", [
+                'token' => $token,
+                'to' => $phoneNumber,
+                'body' => $message,
+            ]);
+
+            // Log notification
+            $this->logNotification(
+                null,
+                'whatsapp',
+                $phoneNumber,
+                'whatsapp_message',
+                null,
+                $message,
+                $templateId,
+                $response->successful() ? 'sent' : 'failed',
+                $response->json(),
+                $response->successful() ? null : $response->body()
+            );
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error('WhatsApp sending failed: ' . $e->getMessage());
+
+            $this->logNotification(
+                null,
+                'whatsapp',
+                $phoneNumber,
+                'whatsapp_message',
+                null,
+                $message,
+                $templateId,
+                'failed',
+                null,
+                $e->getMessage()
+            );
+
+            return false;
+        }
+    }
+
+    /**
+     * Send Email notification.
+     */
+    public function sendEmail($to, $subject, $view, $data = [])
+    {
+        try {
+            Mail::send($view, $data, function ($message) use ($to, $subject) {
+                $message->to($to)
+                        ->subject($subject)
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+            });
+
+            $this->logNotification(
+                $data['recipient']->id ?? null,
+                'email',
+                $to,
+                'email_message',
+                $subject,
+                $view,
+                null,
+                'sent',
+                null,
+                null
+            );
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Email sending failed: ' . $e->getMessage());
+
+            $this->logNotification(
+                $data['recipient']->id ?? null,
+                'email',
+                $to,
+                'email_message',
+                $subject,
+                $view,
+                null,
+                'failed',
+                null,
+                $e->getMessage()
+            );
+
+            return false;
+        }
+    }
+
+    /**
+     * Send SMS notification.
+     */
+    public function sendSMS($phoneNumber, $message)
+    {
+        try {
+            // SMS Gateway Configuration (Example: Twilio)
+            $accountSid = config('services.twilio.account_sid');
+            $authToken = config('services.twilio.auth_token');
+            $fromNumber = config('services.twilio.from_number');
+
+            if (!$accountSid || !$authToken) {
+                throw new \Exception('SMS Gateway credentials not configured');
+            }
+
+            // Clean phone number
+            $phoneNumber = preg_replace('/[^0-9+]/', '', $phoneNumber);
+            if (!str_starts_with($phoneNumber, '+')) {
+                $phoneNumber = '+60' . ltrim($phoneNumber, '0');
+            }
+
+            // Send via Twilio (example)
+            $response = Http::withBasicAuth($accountSid, $authToken)
+                ->asForm()
+                ->post("https://api.twilio.com/2010-04-01/Accounts/{$accountSid}/Messages.json", [
+                    'From' => $fromNumber,
+                    'To' => $phoneNumber,
+                    'Body' => $message,
+                ]);
+
+            $this->logNotification(
+                null,
+                'sms',
+                $phoneNumber,
+                'sms_message',
+                null,
+                $message,
+                null,
+                $response->successful() ? 'sent' : 'failed',
+                $response->json(),
+                $response->successful() ? null : $response->body()
+            );
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error('SMS sending failed: ' . $e->getMessage());
+
+            $this->logNotification(
+                null,
+                'sms',
+                $phoneNumber,
+                'sms_message',
+                null,
+                $message,
+                null,
+                'failed',
+                null,
+                $e->getMessage()
+            );
+
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // MATERIAL NOTIFICATION METHODS
+    // =========================================================================
+
+    /**
+     * Send notification when physical material is collected.
+     */
+    public function sendMaterialCollectionNotification($recipient, $student, $material)
+    {
+        // WhatsApp Notification
+        if ($recipient->phone) {
+            $message = "Material Collection Alert\n\n";
+            $message .= "Student: {$student->user->name}\n";
+            $message .= "Material: {$material->name}\n";
+            $message .= "Subject: {$material->subject->name}\n";
+            $message .= "Collected: " . now()->format('M d, Y H:i') . "\n\n";
+            $message .= "This material has been collected successfully.";
+
+            $this->sendWhatsApp($recipient->phone, $message);
+        }
+
+        // Email Notification
+        if ($recipient->email) {
+            $this->sendEmail(
+                $recipient->email,
+                'Material Collection Confirmation',
+                'emails.material-collection',
+                [
+                    'recipient' => $recipient,
+                    'student' => $student,
+                    'material' => $material,
+                    'collected_at' => now(),
+                ]
+            );
+        }
+
+        // In-app Notification
+        \App\Models\Notification::create([
+            'user_id' => $recipient->id,
+            'type' => 'material_collection',
+            'title' => 'Material Collected',
+            'message' => "{$student->user->name} has collected {$material->name}",
+            'data' => json_encode([
+                'student_id' => $student->id,
+                'material_id' => $material->id,
+                'type' => 'physical_material',
+            ]),
+        ]);
+    }
+
+    /**
+     * Send notification about new physical material availability.
+     */
+    public function sendNewMaterialNotification($recipient, $material)
+    {
+        // WhatsApp Notification
+        if ($recipient->phone) {
+            $message = "New Study Material Available!\n\n";
+            $message .= "Material: {$material->name}\n";
+            $message .= "Subject: {$material->subject->name}\n";
+
+            if ($material->grade_level) {
+                $message .= "Grade: {$material->grade_level}\n";
+            }
+
+            if ($material->month && $material->year) {
+                $message .= "Period: {$material->month} {$material->year}\n";
+            }
+
+            $message .= "\nPlease collect this material from the centre.";
+
+            $this->sendWhatsApp($recipient->phone, $message);
+        }
+
+        // Email Notification
+        if ($recipient->email) {
+            $this->sendEmail(
+                $recipient->email,
+                'New Study Material Available',
+                'emails.new-material',
+                [
+                    'recipient' => $recipient,
+                    'material' => $material,
+                ]
+            );
+        }
+
+        // In-app Notification
+        \App\Models\Notification::create([
+            'user_id' => $recipient->id,
+            'type' => 'new_material',
+            'title' => 'New Material Available',
+            'message' => "New material '{$material->name}' is now available for collection",
+            'data' => json_encode([
+                'material_id' => $material->id,
+                'type' => 'physical_material',
+            ]),
+        ]);
+    }
+
+    /**
+     * Send notification when digital material is uploaded (for students).
+     */
+    public function sendDigitalMaterialNotification($recipient, $material)
+    {
+        // WhatsApp Notification
+        if ($recipient->phone) {
+            $message = "New Study Material Uploaded!\n\n";
+            $message .= "Title: {$material->title}\n";
+            $message .= "Class: {$material->class->name}\n";
+            $message .= "Subject: {$material->subject->name}\n";
+            $message .= "Type: " . ucfirst($material->type) . "\n";
+            $message .= "Teacher: {$material->teacher->user->name}\n\n";
+            $message .= "Access: ";
+            $message .= $material->access_type == 'view_only' ? 'View Only' : 'Downloadable';
+            $message .= "\n\nLogin to view: " . url('/student/materials');
+
+            $this->sendWhatsApp($recipient->phone, $message);
+        }
+
+        // Email Notification
+        if ($recipient->email) {
+            $this->sendEmail(
+                $recipient->email,
+                'New Digital Material Available',
+                'emails.digital-material',
+                [
+                    'recipient' => $recipient,
+                    'material' => $material,
+                    'url' => url('/student/materials'),
+                ]
+            );
+        }
+
+        // In-app Notification
+        \App\Models\Notification::create([
+            'user_id' => $recipient->id,
+            'type' => 'digital_material',
+            'title' => 'New Material: ' . $material->title,
+            'message' => "New {$material->type} uploaded for {$material->class->name}",
+            'data' => json_encode([
+                'material_id' => $material->id,
+                'class_id' => $material->class_id,
+                'type' => 'digital_material',
+                'url' => '/student/materials',
+            ]),
+        ]);
+    }
+
+    /**
+     * Send notification when teacher material is approved.
+     */
+    public function sendMaterialApprovalNotification($teacher, $material)
+    {
+        // WhatsApp Notification
+        if ($teacher->user->phone) {
+            $message = "Material Approved! ✓\n\n";
+            $message .= "Your material has been approved:\n";
+            $message .= "Title: {$material->title}\n";
+            $message .= "Class: {$material->class->name}\n";
+            $message .= "Status: Published\n\n";
+            $message .= "Students can now access this material.";
+
+            $this->sendWhatsApp($teacher->user->phone, $message);
+        }
+
+        // Email Notification
+        if ($teacher->user->email) {
+            $this->sendEmail(
+                $teacher->user->email,
+                'Material Approved',
+                'emails.material-approved',
+                [
+                    'teacher' => $teacher,
+                    'material' => $material,
+                ]
+            );
+        }
+
+        // In-app Notification
+        \App\Models\Notification::create([
+            'user_id' => $teacher->user_id,
+            'type' => 'material_approved',
+            'title' => 'Material Approved',
+            'message' => "Your material '{$material->title}' has been approved and published",
+            'data' => json_encode([
+                'material_id' => $material->id,
+                'type' => 'digital_material',
+            ]),
+        ]);
+    }
+
+    // =========================================================================
+    // ATTENDANCE NOTIFICATION METHODS (For future use)
+    // =========================================================================
+
+    /**
+     * Send attendance notification to parent.
+     */
+    public function sendAttendanceNotification($parent, $student, $attendance)
+    {
+        if ($parent->user->phone) {
+            $status = ucfirst($attendance->status);
+            $message = "Attendance Alert\n\n";
+            $message .= "Student: {$student->user->name}\n";
+            $message .= "Class: {$attendance->classSession->class->name}\n";
+            $message .= "Date: " . $attendance->date->format('M d, Y') . "\n";
+            $message .= "Status: {$status}\n";
+
+            if ($attendance->remarks) {
+                $message .= "Remarks: {$attendance->remarks}\n";
+            }
+
+            $this->sendWhatsApp($parent->user->phone, $message);
+        }
+    }
+
+    // =========================================================================
+    // PAYMENT NOTIFICATION METHODS (For future use)
+    // =========================================================================
+
+    /**
+     * Send invoice notification.
+     */
+    public function sendInvoiceNotification($user, $invoice)
+    {
+        if ($user->phone) {
+            $message = "New Invoice\n\n";
+            $message .= "Invoice: {$invoice->invoice_number}\n";
+            $message .= "Amount: RM " . number_format($invoice->total_amount, 2) . "\n";
+            $message .= "Due Date: " . $invoice->due_date->format('M d, Y') . "\n";
+            $message .= "\nPlease login to view details.";
+
+            $this->sendWhatsApp($user->phone, $message);
+        }
+    }
+
+    /**
+     * Send payment reminder.
+     */
+    public function sendPaymentReminder($user, $invoice, $daysOverdue)
+    {
+        if ($user->phone) {
+            $message = "Payment Reminder\n\n";
+            $message .= "Invoice: {$invoice->invoice_number}\n";
+            $message .= "Amount: RM " . number_format($invoice->total_amount, 2) . "\n";
+            $message .= "Overdue: {$daysOverdue} days\n";
+            $message .= "\nPlease make payment as soon as possible.";
+
+            $this->sendWhatsApp($user->phone, $message);
+        }
+    }
+
+    /**
+     * Send payment confirmation.
+     */
+    public function sendPaymentConfirmation($user, $payment)
+    {
+        if ($user->phone) {
+            $message = "Payment Received ✓\n\n";
+            $message .= "Receipt: {$payment->receipt_number}\n";
+            $message .= "Amount: RM " . number_format($payment->amount, 2) . "\n";
+            $message .= "Method: " . ucfirst($payment->payment_method) . "\n";
+            $message .= "Date: " . $payment->payment_date->format('M d, Y') . "\n";
+            $message .= "\nThank you for your payment!";
+
+            $this->sendWhatsApp($user->phone, $message);
+        }
+    }
 
 }
