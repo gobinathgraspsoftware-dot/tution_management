@@ -31,6 +31,10 @@ use App\Http\Controllers\Admin\PhysicalMaterialController;
 use App\Http\Controllers\Teacher\MaterialController as TeacherMaterialController;
 use App\Http\Controllers\Student\MaterialController as StudentMaterialController;
 use App\Http\Controllers\Parent\MaterialController as ParentMaterialController;
+use App\Http\Controllers\Admin\TimetableController;
+use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\ExamController;
+use App\Http\Controllers\Admin\ExamResultController;
 
 
 /*
@@ -116,6 +120,19 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         return redirect()->route('login');
     })->name('dashboard');
+
+    /*
+    |--------------------------------------------------------------------------
+    | TIMETABLE ROUTES
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/timetable', [TimetableController::class, 'index'])->name('timetable.index');
+    Route::get('/timetable/filter-by-class', [TimetableController::class, 'filterByClass'])->name('timetable.filter.class');
+    Route::get('/timetable/filter-by-teacher', [TimetableController::class, 'filterByTeacher'])->name('timetable.filter.teacher');
+    Route::get('/timetable/export', [TimetableController::class, 'export'])->name('timetable.export');
+    Route::get('/timetable/print', [TimetableController::class, 'print'])->name('timetable.print');
+    Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
 
     /*
     |--------------------------------------------------------------------------
@@ -340,6 +357,29 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('/physical-materials/{physicalMaterial}/collections', [PhysicalMaterialController::class, 'collections'])->name('physical-materials.collections');
         Route::post('/physical-materials/{physicalMaterial}/record-collection', [PhysicalMaterialController::class, 'recordCollection'])->name('physical-materials.record-collection');
 
+        Route::resource('announcements', AnnouncementController::class);
+        Route::post('announcements/{announcement}/publish', [AnnouncementController::class, 'publish'])->name('announcements.publish');
+        Route::post('announcements/{announcement}/archive', [AnnouncementController::class, 'archive'])->name('announcements.archive');
+        Route::post('announcements/{announcement}/toggle-pin', [AnnouncementController::class, 'togglePin'])->name('announcements.toggle-pin');
+        Route::post('announcements/{announcement}/mark-read', [AnnouncementController::class, 'markAsRead'])->name('announcements.mark-read');
+        Route::delete('announcements/{announcement}/attachment/{index}', [AnnouncementController::class, 'deleteAttachment'])->name('announcements.delete-attachment');
+        Route::resource('exams', ExamController::class);
+        Route::post('exams/{exam}/update-status', [ExamController::class, 'updateStatus'])->name('exams.update-status');
+        Route::get('exams/{exam}/students', [ExamController::class, 'getStudents'])->name('exams.students');
+        Route::post('exams/{exam}/duplicate', [ExamController::class, 'duplicate'])->name('exams.duplicate');
+        Route::get('exams/{exam}/results', [ExamResultController::class, 'index'])->name('exam-results.index');
+        Route::get('exams/{exam}/results/create', [ExamResultController::class, 'create'])->name('exam-results.create');
+        Route::post('exams/{exam}/results/bulk-store', [ExamResultController::class, 'bulkStore'])->name('exam-results.bulk-store');
+        Route::get('exam-results/{result}/edit', [ExamResultController::class, 'edit'])->name('exam-results.edit');
+        Route::put('exam-results/{result}', [ExamResultController::class, 'update'])->name('exam-results.update');
+        Route::delete('exam-results/{result}', [ExamResultController::class, 'destroy'])->name('exam-results.destroy');
+        Route::post('exams/{exam}/results/publish', [ExamResultController::class, 'publish'])->name('exam-results.publish');
+        Route::post('exams/{exam}/results/unpublish', [ExamResultController::class, 'unpublish'])->name('exam-results.unpublish');
+        Route::get('exam-results/{result}/card', [ExamResultController::class, 'resultCard'])->name('exam-results.card');
+        Route::get('exam-results/{result}/download', [ExamResultController::class, 'downloadResultCard'])->name('exam-results.download');
+        Route::get('exams/{exam}/export', [ExamResultController::class, 'export'])->name('exam-results.export');
+        Route::get('exams/{exam}/statistics', [ExamResultController::class, 'statistics'])->name('exam-results.statistics');
+        Route::post('exam-results/auto-calculate', [ExamResultController::class, 'autoCalculate'])->name('exam-results.auto-calculate');
 
     });
 
