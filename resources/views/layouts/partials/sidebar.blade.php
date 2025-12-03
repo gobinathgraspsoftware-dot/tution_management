@@ -62,6 +62,15 @@
     </a>
 @endcan
 {{-- Section End: Referral & Trial --}}
+{{-- Section Start: Materials Management  --}}
+<div class="menu-section-title">Materials Management</div>
+<a href="{{ route('admin.materials.index') }}" class="menu-item {{ request()->routeIs('admin.materials.*') ? 'active' : '' }}">
+    <i class="fas fa-file-alt"></i> Digital Materials
+</a>
+<a href="{{ route('admin.physical-materials.index') }}" class="menu-item {{ request()->routeIs('admin.physical-materials.*') ? 'active' : '' }}">
+    <i class="fas fa-book"></i> Physical Materials
+</a>
+{{-- Section End: Materials Management  --}}
 <div class="menu-section-title">Academic</div>
 <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
     <i class="fas fa-book"></i> Subjects
@@ -175,7 +184,12 @@
         <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
     @endif
 </a>
-
+{{-- start: Meterials --}}
+<div class="menu-section-title">Materials</div>
+<a href="{{ route('admin.physical-materials.collections', ['physicalMaterial' => 1]) }}" class="menu-item">
+    <i class="fas fa-hands"></i> Material Collection
+</a>
+{{-- End: Meterials --}}
 <div class="menu-section-title">Students</div>
 <a href="#" class="menu-item">
     <i class="fas fa-users"></i> All Students
@@ -223,13 +237,19 @@
 
 <div class="menu-section-title">Teaching</div>
 <a href="#" class="menu-item">
+    <i class="fas fa-check-square"></i> Attendance
+</a>
+<a href="{{ route('teacher.materials.index') }}" class="menu-item {{ request()->routeIs('teacher.materials.*') ? 'active' : '' }}">
+    <i class="fas fa-upload"></i> My Materials
+</a>
+<a href="{{ route('teacher.materials.create') }}" class="menu-item">
+    <i class="fas fa-plus-circle"></i> Upload Material
+</a>
+<a href="#" class="menu-item">
     <i class="fas fa-school"></i> My Classes
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-calendar-alt"></i> My Schedule
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> Attendance
 </a>
 
 <div class="menu-section-title">Content</div>
@@ -270,6 +290,9 @@
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-clipboard-list"></i> Results
+</a>
+<a href="{{ route('parent.materials.index') }}" class="menu-item {{ request()->routeIs('parent.materials.*') ? 'active' : '' }}">
+    <i class="fas fa-book-open"></i> Study Materials
 </a>
 
 <div class="menu-section-title">Payments</div>
@@ -317,10 +340,13 @@
 
 <div class="menu-section-title">Learning</div>
 <a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> Materials
+    <i class="fas fa-bullhorn"></i> Announcements
+</a>
+<a href="{{ route('student.materials.index') }}" class="menu-item {{ request()->routeIs('student.materials.*') ? 'active' : '' }}">
+    <i class="fas fa-book-open"></i> Study Materials
 </a>
 <a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
+    <i class="fas fa-calendar-alt"></i> My Schedule
 </a>
 
 <div class="menu-section-title">Account</div>

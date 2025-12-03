@@ -18,14 +18,20 @@ use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Public\OnlineRegistrationController;
 use App\Http\Controllers\Parent\ChildRegistrationController;
 use App\Http\Controllers\Admin\StudentApprovalController;
-use App\Http\Controllers\Admin\ClassScheduleController;
 use App\Http\Controllers\Admin\StudentReviewController;
 use App\Http\Controllers\Admin\ClassController;
+use App\Http\Controllers\Admin\ClassScheduleController;
 use App\Http\Controllers\Admin\TrialClassController;
 use App\Http\Controllers\Admin\StudentProfileController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\MessageTemplateController;
 use App\Http\Controllers\Admin\ReferralController;
+use App\Http\Controllers\Admin\MaterialController;
+use App\Http\Controllers\Admin\PhysicalMaterialController;
+use App\Http\Controllers\Teacher\MaterialController as TeacherMaterialController;
+use App\Http\Controllers\Student\MaterialController as StudentMaterialController;
+use App\Http\Controllers\Parent\MaterialController as ParentMaterialController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -323,6 +329,18 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::put('/{schedule}', [ClassScheduleController::class, 'update'])->name('update');
             Route::delete('/{schedule}', [ClassScheduleController::class, 'destroy'])->name('destroy');
         });
+
+        // Digital Materials
+        Route::resource('materials', MaterialController::class);
+        Route::patch('/materials/{material}/approve', [MaterialController::class, 'approve'])->name('materials.approve');
+        Route::get('/materials/{material}/download', [MaterialController::class, 'download'])->name('materials.download');
+
+        // Physical Materials
+        Route::resource('physical-materials', PhysicalMaterialController::class);
+        Route::get('/physical-materials/{physicalMaterial}/collections', [PhysicalMaterialController::class, 'collections'])->name('physical-materials.collections');
+        Route::post('/physical-materials/{physicalMaterial}/record-collection', [PhysicalMaterialController::class, 'recordCollection'])->name('physical-materials.record-collection');
+
+
     });
 
     /*
@@ -358,7 +376,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
     Route::middleware(['role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'teacherDashboard'])->name('dashboard');
 
-        // Additional teacher routes will be added in subsequent chats
+        Route::resource('materials', TeacherMaterialController::class);
     });
 
     /*
@@ -375,6 +393,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::post('/children/register', [ChildRegistrationController::class, 'store'])->name('children.store');
         Route::get('/children/{student}', [ChildRegistrationController::class, 'show'])->name('children.show');
 
+        Route::get('/materials', [ParentMaterialController::class, 'index'])->name('materials.index');
+
     });
 
     /*
@@ -385,6 +405,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
     Route::middleware(['role:student'])->prefix('student')->name('student.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'studentDashboard'])->name('dashboard');
 
-        // Additional student routes will be added in subsequent chats
+        Route::get('/materials', [StudentMaterialController::class, 'index'])->name('materials.index');
+        Route::get('/materials/{material}/view', [StudentMaterialController::class, 'view'])->name('materials.view');
     });
 });
