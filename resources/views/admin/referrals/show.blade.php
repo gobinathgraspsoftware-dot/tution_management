@@ -45,7 +45,7 @@
                         <h6 class="text-muted mb-3">Referrer (Student who referred)</h6>
                         @if($referral->referrer)
                         <div class="d-flex align-items-center mb-3">
-                            <div class="avatar-circle me-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <div class="avatar-circle me-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                 <span style="font-size: 24px; color: white; font-weight: bold;">
                                     {{ strtoupper(substr($referral->referrer->user->name ?? 'NA', 0, 2)) }}
                                 </span>

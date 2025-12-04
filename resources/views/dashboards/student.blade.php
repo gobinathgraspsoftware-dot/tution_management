@@ -18,7 +18,7 @@
 <!-- Welcome Message -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card border-0" style="background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);">
             <div class="card-body text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>

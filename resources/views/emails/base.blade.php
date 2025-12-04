@@ -19,7 +19,7 @@
             background-color: #ffffff;
         }
         .email-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: #ffffff;
             padding: 30px;
             text-align: center;
@@ -46,13 +46,13 @@
             border-top: 1px solid #e9ecef;
         }
         .email-footer a {
-            color: #667eea;
+            color: #fda530;
             text-decoration: none;
         }
         .btn {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 5px;

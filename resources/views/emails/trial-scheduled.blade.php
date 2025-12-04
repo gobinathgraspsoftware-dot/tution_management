@@ -25,7 +25,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 30px 20px;
             text-align: center;
@@ -66,7 +66,7 @@
         }
         .cta-button {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             text-decoration: none;
             padding: 12px 30px;
@@ -82,7 +82,7 @@
             color: #666;
         }
         .footer a {
-            color: #667eea;
+            color: #fda530;
             text-decoration: none;
         }
         .highlight {
@@ -108,7 +108,7 @@
                 <p>Great news! A trial class has been scheduled for <strong>{{ $trial_class->student_name ?? 'your child' }}</strong>.</p>
 
                 <div class="info-box">
-                    <h3 style="margin-top: 0; color: #667eea;">📋 Trial Class Details</h3>
+                    <h3 style="margin-top: 0; color: #fda530;">📋 Trial Class Details</h3>
 
                     <div class="info-item">
                         <span class="info-label">📖 Class:</span>

@@ -25,7 +25,7 @@
             overflow: hidden;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 30px;
             text-align: center;
@@ -52,14 +52,14 @@
         }
         .info-box {
             background-color: #f8f9fa;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #fda530;
             padding: 15px;
             margin: 20px 0;
             border-radius: 0 5px 5px 0;
         }
         .info-box h3 {
             margin-top: 0;
-            color: #667eea;
+            color: #fda530;
         }
         .info-item {
             margin: 10px 0;
@@ -69,7 +69,7 @@
             color: #555;
         }
         .referral-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 20px;
             border-radius: 10px;
@@ -89,7 +89,7 @@
         .btn {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             text-decoration: none;
             border-radius: 5px;

@@ -17,7 +17,7 @@
         }
 
         .hero-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -57,7 +57,7 @@
 
         .btn-white {
             background: white;
-            color: #667eea;
+            color: #fda530;
         }
 
         .btn-white:hover {
@@ -78,14 +78,14 @@
         .stat-number {
             font-size: 3rem;
             font-weight: bold;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .footer {
-            background: #2d3748;
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 40px 0 20px 0;
         }
@@ -286,7 +286,7 @@
                     </ul>
                 </div>
                 <div class="col-lg-6 text-center">
-                    <i class="fas fa-school" style="font-size: 20rem; color: #667eea; opacity: 0.1;"></i>
+                    <i class="fas fa-school" style="font-size: 20rem; color: #fda530; opacity: 0.1;"></i>
                 </div>
             </div>
         </div>

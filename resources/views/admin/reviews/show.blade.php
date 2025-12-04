@@ -88,7 +88,7 @@
                 @if($review->student)
                 <div class="row align-items-center">
                     <div class="col-md-2 text-center">
-                        <div class="avatar-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                        <div class="avatar-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
                             <span style="font-size: 32px; color: white; font-weight: bold;">
                                 {{ strtoupper(substr($review->student->user->name, 0, 2)) }}
                             </span>

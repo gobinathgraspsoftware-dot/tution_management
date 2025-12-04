@@ -14,7 +14,7 @@
 
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -35,7 +35,7 @@
         }
 
         .auth-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 2rem;
             text-align: center;
@@ -56,12 +56,12 @@
         }
 
         .form-control:focus {
-            border-color: #667eea;
+            border-color: #fda530;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             border: none;
             padding: 0.75rem;
             font-weight: 600;
@@ -81,13 +81,13 @@
         }
 
         .auth-links a {
-            color: #667eea;
+            color: #fda530;
             text-decoration: none;
             font-weight: 500;
         }
 
         .auth-links a:hover {
-            color: #764ba2;
+            color: #4c4c4c;
             text-decoration: underline;
         }
 
@@ -101,7 +101,7 @@
         }
 
         .input-group:focus-within .input-group-text {
-            border-color: #667eea;
+            border-color: #fda530;
         }
 
         .alert {

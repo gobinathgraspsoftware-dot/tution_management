@@ -99,7 +99,7 @@
                                     <td class="align-top">
                                         @foreach($daySchedules as $schedule)
                                             <div class="class-card mb-2"
-                                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                 style="background: linear-gradient(135deg, var(--primary-color) 0%, #4c4c4c 100%);
                                                         color: white;
                                                         padding: 10px;
                                                         border-radius: 8px;

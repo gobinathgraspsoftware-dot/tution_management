@@ -25,7 +25,7 @@
             overflow: hidden;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 40px 30px;
             text-align: center;
@@ -53,8 +53,8 @@
         }
         .info-card h3 {
             margin-top: 0;
-            color: #667eea;
-            border-bottom: 2px solid #667eea;
+            color: #fda530;
+            border-bottom: 2px solid #fda530;
             padding-bottom: 10px;
         }
         .info-item {
@@ -71,7 +71,7 @@
         .btn {
             display: inline-block;
             padding: 15px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             text-decoration: none;
             border-radius: 30px;
@@ -137,7 +137,7 @@
         .social-links a {
             display: inline-block;
             margin: 0 8px;
-            color: #667eea;
+            color: #fda530;
             font-size: 20px;
             text-decoration: none;
         }

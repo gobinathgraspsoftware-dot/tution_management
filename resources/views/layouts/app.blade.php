@@ -16,8 +16,8 @@
         :root {
             --sidebar-width: 260px;
             --header-height: 60px;
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
+            --primary-color: #fda530;
+            --secondary-color: #4c4c4c;
         }
 
         body {
@@ -32,7 +32,7 @@
             left: 0;
             height: 100vh;
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(180deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             overflow-y: auto;
             transition: transform 0.3s ease;
@@ -144,7 +144,7 @@
             width: 35px;
             height: 35px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -282,7 +282,7 @@
 
         /* Buttons */
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             border: none;
         }
 
