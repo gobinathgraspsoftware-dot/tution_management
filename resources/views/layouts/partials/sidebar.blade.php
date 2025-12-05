@@ -4,7 +4,28 @@
 <a href="{{ route('admin.dashboard') }}" class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
     <i class="fas fa-home"></i> Dashboard
 </a>
+<!-- Attendance Management -->
+@canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
+<div class="menu-section-title">Attendance Management</div>
+@can('view-student-attendance-all')
+    <a href="{{ route('admin.attendance.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.index') ? 'active' : '' }}"><i class="fas fa-users"></i> Dashboard</a>
+@endcan
+@can('mark-student-attendance')
+    <a href="{{ route('admin.attendance.student.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Mark Student Attendance</a>
+@endcan
 
+@can('view-student-attendance-all')
+    <a href="{{ route('admin.attendance.student.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Student Calendar</a>
+@endcan
+
+@can('mark-teacher-attendance')
+    <a href="{{ route('admin.attendance.teacher.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Mark Teacher Attendance</a>
+@endcan
+
+@can('view-teacher-attendance-all')
+    <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
+@endcan
+@endcanany
 <div class="menu-section-title">User Management</div>
 {{-- <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> Students

@@ -35,6 +35,7 @@ use App\Http\Controllers\Admin\TimetableController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\ExamResultController;
+use App\Http\Controllers\Admin\AttendanceController;
 
 
 /*
@@ -380,6 +381,29 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('exams/{exam}/export', [ExamResultController::class, 'export'])->name('exam-results.export');
         Route::get('exams/{exam}/statistics', [ExamResultController::class, 'statistics'])->name('exam-results.statistics');
         Route::post('exam-results/auto-calculate', [ExamResultController::class, 'autoCalculate'])->name('exam-results.auto-calculate');
+
+        // ==================== ATTENDANCE MANAGEMENT ROUTES ====================
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            // Dashboard
+            Route::get('/', [AttendanceController::class, 'index'])->middleware('permission:view-student-attendance-all|view-teacher-attendance-all')->name('index');
+            // Student Attendance
+            Route::prefix('student')->name('student.')->group(function () {
+                Route::get('/mark', [AttendanceController::class, 'markStudent'])->middleware('permission:mark-student-attendance')->name('mark');
+                Route::post('/mark', [AttendanceController::class, 'storeStudent'])->middleware('permission:mark-student-attendance')->name('store');
+                Route::get('/calendar', [AttendanceController::class, 'studentCalendar'])->middleware('permission:view-student-attendance-all')->name('calendar');
+            });
+
+            // Teacher Attendance
+            Route::prefix('teacher')->name('teacher.')->group(function () {
+                Route::get('/mark', [AttendanceController::class, 'markTeacher'])->middleware('permission:mark-teacher-attendance')->name('mark');
+                Route::post('/mark', [AttendanceController::class, 'storeTeacher'])->middleware('permission:mark-teacher-attendance')->name('store');
+                Route::get('/calendar', [AttendanceController::class, 'teacherCalendar'])->middleware('permission:view-teacher-attendance-all')->name('calendar');
+            });
+
+            // AJAX Endpoints
+            Route::get('/get-sessions', [AttendanceController::class, 'getSessions'])->name('get-sessions');
+            Route::get('/session/{session}/summary', [AttendanceController::class, 'getSessionSummary'])->name('session.summary');
+        });
 
     });
 
