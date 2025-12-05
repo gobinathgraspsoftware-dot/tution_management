@@ -7,6 +7,8 @@ use App\Models\TeacherAttendance;
 use App\Models\ClassSession;
 use App\Models\ClassAttendanceSummary;
 use App\Models\ActivityLog;
+use App\Models\Student;
+use App\Models\LowAttendanceAlert;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -262,7 +264,7 @@ class AttendanceService
         $calendarData = [];
         foreach ($sessions as $session) {
             $dateKey = $session->session_date->format('Y-m-d');
-
+            
             if (!isset($calendarData[$dateKey])) {
                 $calendarData[$dateKey] = [
                     'sessions' => [],
@@ -377,7 +379,7 @@ class AttendanceService
 
         $calendarData = [];
         $current = $startDate->copy();
-
+        
         while ($current <= $endDate) {
             $dateKey = $current->format('Y-m-d');
             $record = $attendance->get($dateKey);
@@ -394,5 +396,274 @@ class AttendanceService
         }
 
         return $calendarData;
+    }
+
+    // ==================== REPORT METHODS (NEW - Chat 14) ====================
+
+    /**
+     * Get parent's children attendance statistics
+     */
+    public function getChildrenAttendanceStats(int $parentId): array
+    {
+        $parent = \App\Models\Parents::with('students.user')->findOrFail($parentId);
+        $stats = [];
+
+        foreach ($parent->students as $student) {
+            $stats[$student->id] = $this->getStudentMonthlyStats($student->id);
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Get student monthly stats
+     */
+    public function getStudentMonthlyStats(int $studentId, ?int $month = null, ?int $year = null): array
+    {
+        $month = $month ?? now()->month;
+        $year = $year ?? now()->year;
+
+        $records = StudentAttendance::where('student_id', $studentId)
+            ->whereHas('classSession', function($q) use ($month, $year) {
+                $q->whereMonth('session_date', $month)
+                  ->whereYear('session_date', $year);
+            })
+            ->get();
+
+        $total = $records->count();
+        $present = $records->where('status', 'present')->count();
+        $absent = $records->where('status', 'absent')->count();
+        $late = $records->where('status', 'late')->count();
+        $excused = $records->where('status', 'excused')->count();
+
+        return [
+            'total_sessions' => $total,
+            'present' => $present,
+            'absent' => $absent,
+            'late' => $late,
+            'excused' => $excused,
+            'percentage' => $total > 0 ? round(($present / $total) * 100, 2) : 0,
+        ];
+    }
+
+    /**
+     * Get student class-wise attendance stats
+     */
+    public function getStudentClasswiseStats(int $studentId, ?int $month = null, ?int $year = null): \Illuminate\Support\Collection
+    {
+        $month = $month ?? now()->month;
+        $year = $year ?? now()->year;
+
+        $records = StudentAttendance::where('student_id', $studentId)
+            ->whereHas('classSession', function($q) use ($month, $year) {
+                $q->whereMonth('session_date', $month)
+                  ->whereYear('session_date', $year);
+            })
+            ->with('classSession.class.subject')
+            ->get();
+
+        return $records->groupBy('classSession.class_id')
+            ->map(function($classRecords) {
+                $class = $classRecords->first()->classSession->class;
+                $total = $classRecords->count();
+                $present = $classRecords->where('status', 'present')->count();
+
+                return [
+                    'class_id' => $class->id,
+                    'class_name' => $class->name,
+                    'subject' => $class->subject->name ?? 'N/A',
+                    'total' => $total,
+                    'present' => $present,
+                    'absent' => $classRecords->where('status', 'absent')->count(),
+                    'late' => $classRecords->where('status', 'late')->count(),
+                    'percentage' => $total > 0 ? round(($present / $total) * 100, 2) : 0,
+                ];
+            })->values();
+    }
+
+    /**
+     * Get student attendance calendar data
+     */
+    public function getStudentAttendanceCalendar(int $studentId, int $month, int $year): array
+    {
+        $records = StudentAttendance::where('student_id', $studentId)
+            ->whereHas('classSession', function($q) use ($month, $year) {
+                $q->whereMonth('session_date', $month)
+                  ->whereYear('session_date', $year);
+            })
+            ->with('classSession.class')
+            ->get();
+
+        $calendar = [];
+        foreach ($records as $record) {
+            $dateKey = $record->classSession->session_date->format('Y-m-d');
+            
+            // If multiple sessions on same day, prioritize worst status
+            if (!isset($calendar[$dateKey]) || $this->getStatusPriority($record->status) > $this->getStatusPriority($calendar[$dateKey]['status'])) {
+                $calendar[$dateKey] = [
+                    'status' => $record->status,
+                    'class_name' => $record->classSession->class->name,
+                    'time' => $record->classSession->start_time->format('H:i'),
+                ];
+            }
+        }
+
+        return $calendar;
+    }
+
+    /**
+     * Get status priority for comparison (higher = worse)
+     */
+    protected function getStatusPriority(string $status): int
+    {
+        return match($status) {
+            'present' => 1,
+            'excused' => 2,
+            'late' => 3,
+            'absent' => 4,
+            default => 0,
+        };
+    }
+
+    /**
+     * Get recent attendance records for a student
+     */
+    public function getRecentAttendance(int $studentId, int $limit = 10)
+    {
+        return StudentAttendance::where('student_id', $studentId)
+            ->with('classSession.class.subject')
+            ->latest('created_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Get overall attendance percentage for a student
+     */
+    public function getOverallAttendancePercentage(int $studentId): float
+    {
+        $totalRecords = StudentAttendance::where('student_id', $studentId)->count();
+        
+        if ($totalRecords === 0) {
+            return 0;
+        }
+
+        $presentRecords = StudentAttendance::where('student_id', $studentId)
+            ->where('status', 'present')
+            ->count();
+
+        return round(($presentRecords / $totalRecords) * 100, 2);
+    }
+
+    /**
+     * Get parent's overall children attendance
+     */
+    public function getParentOverallAttendance(int $parentId): float
+    {
+        $parent = \App\Models\Parents::with('students')->findOrFail($parentId);
+        
+        if ($parent->students->isEmpty()) {
+            return 0;
+        }
+
+        $totalPercentage = 0;
+        $childCount = 0;
+
+        foreach ($parent->students as $student) {
+            $percentage = $this->getOverallAttendancePercentage($student->id);
+            if ($percentage > 0) {
+                $totalPercentage += $percentage;
+                $childCount++;
+            }
+        }
+
+        return $childCount > 0 ? round($totalPercentage / $childCount, 2) : 0;
+    }
+
+    /**
+     * Check and auto-create low attendance alerts
+     */
+    public function autoCreateLowAttendanceAlerts(float $threshold = 75): int
+    {
+        $summaries = ClassAttendanceSummary::where('attendance_percentage', '<', $threshold)
+            ->where('month', now()->month)
+            ->where('year', now()->year)
+            ->get();
+
+        $alertsCreated = 0;
+
+        foreach ($summaries as $summary) {
+            $existingAlert = LowAttendanceAlert::where('student_id', $summary->student_id)
+                ->where('class_id', $summary->class_id)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->exists();
+
+            if (!$existingAlert) {
+                LowAttendanceAlert::create([
+                    'student_id' => $summary->student_id,
+                    'class_id' => $summary->class_id,
+                    'attendance_percentage' => $summary->attendance_percentage,
+                    'threshold' => $threshold,
+                    'status' => 'pending',
+                ]);
+                $alertsCreated++;
+            }
+        }
+
+        return $alertsCreated;
+    }
+
+    /**
+     * Get pending low attendance alerts for a parent
+     */
+    public function getParentLowAttendanceAlerts(int $parentId)
+    {
+        $parent = \App\Models\Parents::with('students')->findOrFail($parentId);
+        $studentIds = $parent->students->pluck('id');
+
+        return LowAttendanceAlert::whereIn('student_id', $studentIds)
+            ->with(['student.user', 'class'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * Export attendance history
+     */
+    public function exportAttendanceHistory(array $filters): \Illuminate\Support\Collection
+    {
+        $query = StudentAttendance::with([
+            'student.user',
+            'classSession.class.subject',
+            'markedBy'
+        ]);
+
+        if (!empty($filters['student_id'])) {
+            $query->where('student_id', $filters['student_id']);
+        }
+
+        if (!empty($filters['class_id'])) {
+            $query->whereHas('classSession', fn($q) => $q->where('class_id', $filters['class_id']));
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->whereHas('classSession', fn($q) => 
+                $q->whereDate('session_date', '>=', $filters['date_from'])
+            );
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereHas('classSession', fn($q) => 
+                $q->whereDate('session_date', '<=', $filters['date_to'])
+            );
+        }
+
+        return $query->orderBy('created_at', 'desc')->get();
     }
 }

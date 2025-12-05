@@ -204,20 +204,39 @@ class PermissionSeeder extends Seeder
             'export-teacher-attendance',
 
             // ===================================================================
+            // ATTENDANCE REPORTS & ALERTS PERMISSIONS (NEW - Chat 14)
+            // ===================================================================
+            'view-attendance-dashboard',
+            'view-student-attendance-report',
+            'view-class-attendance-report',
+            'view-low-attendance-alerts',
+            'send-low-attendance-alert',
+            'send-bulk-attendance-alerts',
+            'view-attendance-history',
+            'export-attendance-reports',
+            'email-attendance-report',
+            'resend-attendance-notification',
+            'view-attendance-trends',
+            'view-class-comparison-report',
+
+            // Parent Attendance View Permissions (NEW - Chat 14)
+            'view-children-attendance',
+            'view-child-attendance-detail',
+            'view-attendance-calendar',
+            'receive-attendance-notifications',
+
+            // ===================================================================
             // INVOICE & BILLING PERMISSIONS
             // ===================================================================
             'view-invoices',
             'create-invoices',
             'edit-invoices',
             'delete-invoices',
-            'cancel-invoices',
+            'void-invoices',
             'send-invoices',
             'export-invoices',
-            'view-invoice-details',
-            'generate-bulk-invoices',
-            'apply-invoice-discount',
-            'view-overdue-invoices',
-            'manage-installments',
+            'view-invoice-payments',
+            'manage-invoice-items',
 
             // ===================================================================
             // PAYMENT MANAGEMENT PERMISSIONS
@@ -226,26 +245,21 @@ class PermissionSeeder extends Seeder
             'create-payments',
             'edit-payments',
             'delete-payments',
+            'void-payments',
             'refund-payments',
             'export-payments',
             'view-payment-history',
-            'process-cash-payment',
-            'process-qr-payment',
-            'process-online-payment',
-            'verify-payments',
-            'view-payment-reports',
+            'process-online-payments',
+            'manage-payment-reminders',
 
             // ===================================================================
-            // DISCOUNT & VOUCHER PERMISSIONS
+            // DISCOUNT MANAGEMENT PERMISSIONS
             // ===================================================================
             'view-discounts',
             'create-discounts',
             'edit-discounts',
             'delete-discounts',
             'apply-discounts',
-            'view-vouchers',
-            'create-vouchers',
-            'redeem-vouchers',
 
             // ===================================================================
             // REFERRAL MANAGEMENT PERMISSIONS

@@ -36,7 +36,7 @@ use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\ExamResultController;
 use App\Http\Controllers\Admin\AttendanceController;
-
+use App\Http\Controllers\Admin\AttendanceReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -403,8 +403,39 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             // AJAX Endpoints
             Route::get('/get-sessions', [AttendanceController::class, 'getSessions'])->name('get-sessions');
             Route::get('/session/{session}/summary', [AttendanceController::class, 'getSessionSummary'])->name('session.summary');
-        });
 
+            /*
+            |--------------------------------------------------------------------------
+            | Attendance Reports Routes
+            |--------------------------------------------------------------------------
+            */
+            Route::prefix('reports')->name('reports.')->group(function () {
+                // Reports Dashboard
+                Route::get('/', [AttendanceReportController::class, 'index'])->name('index');
+
+                // Student Reports
+                Route::get('/student', [AttendanceReportController::class, 'studentReport'])->name('student');
+                Route::get('/export/student', [AttendanceReportController::class, 'exportStudent'])->name('export-student');
+                Route::post('/email-parent', [AttendanceReportController::class, 'emailToParent'])->name('email-parent');
+
+                // Class Reports
+                Route::get('/class', [AttendanceReportController::class, 'classReport'])->name('class');
+                Route::get('/export/class', [AttendanceReportController::class, 'exportClass'])->name('export-class');
+
+                // Low Attendance Alerts
+                Route::get('/low-attendance', [AttendanceReportController::class, 'lowAttendance'])->name('low-attendance');
+                Route::post('/send-alert', [AttendanceReportController::class, 'sendAlert'])->name('send-alert');
+                Route::post('/bulk-alerts', [AttendanceReportController::class, 'sendBulkAlerts'])->name('bulk-alerts');
+
+                // Attendance History
+                Route::get('/history', [AttendanceReportController::class, 'history'])->name('history');
+                Route::get('/export/history', [AttendanceReportController::class, 'exportHistory'])->name('export-history');
+
+                // Resend Notification
+                Route::post('/resend-notification/{attendance}', [AttendanceReportController::class, 'resendNotification'])->name('resend-notification');
+            });
+
+        });
     });
 
     /*

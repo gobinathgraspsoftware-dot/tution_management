@@ -26,6 +26,28 @@
     <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
 @endcan
 @endcanany
+{{-- Attendance Reports Submenu --}}
+<a href="#attendanceReportsSubmenu" class="menu-item has-submenu {{ request()->routeIs('admin.attendance.reports.*') ? 'active' : '' }}" data-bs-toggle="collapse">
+    <i class="fas fa-chart-bar"></i> Reports
+    <i class="fas fa-chevron-down submenu-arrow ms-auto"></i>
+</a>
+<div class="collapse {{ request()->routeIs('admin.attendance.reports.*') ? 'show' : '' }}" id="attendanceReportsSubmenu">
+    <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    <a href="{{ route('admin.attendance.reports.student') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
+        <i class="fas fa-user"></i> Student Report
+    </a>
+    <a href="{{ route('admin.attendance.reports.class') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
+        <i class="fas fa-school"></i> Class Report
+    </a>
+    <a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
+        <i class="fas fa-exclamation-triangle"></i> Low Attendance
+    </a>
+    <a href="{{ route('admin.attendance.reports.history') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
+        <i class="fas fa-history"></i> History
+    </a>
+</div>
 <div class="menu-section-title">User Management</div>
 {{-- <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> Students
@@ -145,9 +167,6 @@
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-shopping-cart"></i> Cafeteria POS
-</a>
-<a href="#" class="menu-item">
-    <i class="fas fa-chart-line"></i> Reports
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-cog"></i> Settings
