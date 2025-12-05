@@ -211,8 +211,10 @@
 <a href="#" class="menu-item">
     <i class="fas fa-money-bill-wave"></i> Payments
 </a>
-<a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> Timetable
+<a href="{{ route('timetable.index') }}"
+   class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Timetable
 </a>
 
 <div class="menu-section-title">Other</div>
@@ -283,8 +285,10 @@
 </a>
 
 <div class="menu-section-title">Academic</div>
-<a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> Timetable
+<a href="{{ route('timetable.index') }}"
+   class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Timetable
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
@@ -329,8 +333,10 @@
 <a href="#" class="menu-item">
     <i class="fas fa-school"></i> My Classes
 </a>
-<a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> Timetable
+<a href="{{ route('timetable.index') }}"
+   class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Timetable
 </a>
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
