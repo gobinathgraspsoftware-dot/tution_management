@@ -19,8 +19,8 @@
                     <i class="fas fa-download"></i> Export
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('admin.timetable.export', ['format' => 'pdf', 'view' => $view, 'date' => $date]) }}">Export as PDF</a></li>
-                    <li><a class="dropdown-item" href="{{ route('admin.timetable.export', ['format' => 'csv', 'view' => $view, 'date' => $date]) }}">Export as CSV</a></li>
+                    <li><a class="dropdown-item" href="{{ route('timetable.export', ['format' => 'pdf', 'view' => $view, 'date' => $date]) }}">Export as PDF</a></li>
+                    <li><a class="dropdown-item" href="{{ route('timetable.export', ['format' => 'csv', 'view' => $view, 'date' => $date]) }}">Export as CSV</a></li>
                 </ul>
             </div>
         </div>
@@ -29,7 +29,7 @@
     <!-- Filters Card -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="{{ route('admin.timetable.index') }}" id="filterForm">
+            <form method="GET" action="{{ route('timetable.index') }}" id="filterForm">
                 <div class="row g-3">
                     <!-- View Type -->
                     <div class="col-md-3">
@@ -208,8 +208,8 @@ function filterTimetable(type, id) {
     const view = document.querySelector('select[name="view"]').value;
     const date = document.querySelector('input[name="date"]').value;
     const url = type === 'class'
-        ? '{{ route("admin.timetable.filterByClass") }}'
-        : '{{ route("admin.timetable.filterByTeacher") }}';
+        ? '{{ route("timetable.filter.class") }}'
+        : '{{ route("timetable.filter.teacher") }}';
 
     fetch(url + '?view=' + view + '&date=' + date + '&' + type + '_id=' + id)
         .then(response => response.json())

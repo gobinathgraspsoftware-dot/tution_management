@@ -19,14 +19,28 @@
                 @php
                     // Get all unique time slots
                     $timeSlots = [];
+
                     foreach($timetableData['timetable'] as $day => $schedules) {
                         foreach($schedules as $schedule) {
-                            $timeSlots[$schedule['start_time']] = [
-                                'start' => $schedule['start_time'],
-                                'end' => $schedule['end_time']
+
+                            // Convert Carbon / DateTime into string format
+                            $start = is_object($schedule['start_time'])
+                                        ? $schedule['start_time']->format('H:i')
+                                        : (string) $schedule['start_time'];
+
+                            $end = is_object($schedule['end_time'])
+                                        ? $schedule['end_time']->format('H:i')
+                                        : (string) $schedule['end_time'];
+
+                            // Use string-based array key to avoid "Illegal offset type"
+                            $timeSlots[$start] = [
+                                'start' => $start,
+                                'end'   => $end,
                             ];
                         }
                     }
+
+                    // Sort by time
                     ksort($timeSlots);
                 @endphp
 

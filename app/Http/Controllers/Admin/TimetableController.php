@@ -17,7 +17,7 @@ class TimetableController extends Controller
     public function __construct(TimetableService $timetableService)
     {
         $this->timetableService = $timetableService;
-        $this->middleware('permission:view-timetable');
+        // $this->middleware('permission:view-timetable');
     }
 
     /**
@@ -37,7 +37,7 @@ class TimetableController extends Controller
             $timetableData = $this->timetableService->getAllClassesTimetable($view, $date);
             $classes = ClassModel::active()->with('subject', 'teacher.user')->get();
             $teachers = Teacher::active()->with('user')->get();
-
+            // dd($timetableData['schedules']);
             return view('admin.timetable.index', compact('timetableData', 'view', 'date', 'classes', 'teachers'));
         }
         elseif ($user->hasRole('teacher')) {

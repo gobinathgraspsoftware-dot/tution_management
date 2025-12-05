@@ -88,16 +88,17 @@
     Classes
 </a>
 @endcan
-
-@can('manage-class-schedule')
+@endcanany
+<a href="{{ route('timetable.index') }}"
+   class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Timetable
+</a>
 <a href="{{ route('admin.classes.timetable') }}"
    class="menu-item {{ request()->routeIs('admin.classes.timetable') ? 'active' : '' }}">
     <i class="fas fa-calendar-week"></i>
     Weekly Timetable
 </a>
-@endcan
-@endcanany
-
 <div class="menu-section-title">Operations</div>
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
@@ -113,7 +114,7 @@
 <a href="#" class="menu-item">
     <i class="fas fa-file-alt"></i> Materials
 </a>
-<a href="#" class="menu-item">
+<a href="{{ route('announcements.index') }}" class="menu-item {{ request()->routeIs('announcements.index') ? 'active' : '' }}">
     <i class="fas fa-bullhorn"></i> Announcements
 </a>
 

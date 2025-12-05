@@ -9,6 +9,7 @@ use App\Models\ClassModel;
 use App\Models\ActivityLog;
 use App\Services\AnnouncementService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AnnouncementController extends Controller
 {
@@ -17,11 +18,6 @@ class AnnouncementController extends Controller
     public function __construct(AnnouncementService $announcementService)
     {
         $this->announcementService = $announcementService;
-        $this->middleware('permission:view-announcements')->only(['index', 'show']);
-        $this->middleware('permission:create-announcements')->only(['create', 'store']);
-        $this->middleware('permission:edit-announcements')->only(['edit', 'update']);
-        $this->middleware('permission:delete-announcements')->only('destroy');
-        $this->middleware('permission:publish-announcements')->only('publish');
     }
 
     /**
@@ -34,9 +30,9 @@ class AnnouncementController extends Controller
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('content', 'like', "%{$search}%");
+                    ->orWhere('content', 'like', "%{$search}%");
             });
         }
 
@@ -62,13 +58,14 @@ class AnnouncementController extends Controller
 
         $announcements = $query->paginate(15)->withQueryString();
 
-        // Statistics
+        // Statistics - Fixed: Now using actual counts from database
         $stats = [
             'total' => Announcement::count(),
             'published' => Announcement::published()->count(),
             'draft' => Announcement::draft()->count(),
             'urgent' => Announcement::urgent()->count(),
             'pinned' => Announcement::pinned()->count(),
+            'archived' => Announcement::archived()->count(),
         ];
 
         return view('admin.announcements.index', compact('announcements', 'stats'));
@@ -206,6 +203,16 @@ class AnnouncementController extends Controller
     {
         try {
             $title = $announcement->title;
+
+            // Delete attachments from storage
+            if ($announcement->attachments) {
+                foreach ($announcement->attachments as $attachment) {
+                    if (isset($attachment['path'])) {
+                        Storage::disk('public')->delete($attachment['path']);
+                    }
+                }
+            }
+
             $announcement->delete();
 
             ActivityLog::create([
@@ -263,6 +270,16 @@ class AnnouncementController extends Controller
         try {
             $announcement->update(['status' => 'archived']);
 
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'archive',
+                'model_type' => 'Announcement',
+                'model_id' => $announcement->id,
+                'description' => "Archived announcement: {$announcement->title}",
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
             return back()->with('success', 'Announcement archived successfully!');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to archive announcement: ' . $e->getMessage());
@@ -278,6 +295,17 @@ class AnnouncementController extends Controller
             $announcement->update(['is_pinned' => !$announcement->is_pinned]);
 
             $status = $announcement->is_pinned ? 'pinned' : 'unpinned';
+
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => $status,
+                'model_type' => 'Announcement',
+                'model_id' => $announcement->id,
+                'description' => ucfirst($status) . " announcement: {$announcement->title}",
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
             return back()->with('success', "Announcement {$status} successfully!");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to toggle pin status: ' . $e->getMessage());
@@ -304,9 +332,10 @@ class AnnouncementController extends Controller
     {
         try {
             $attachments = $announcement->attachments;
+
             if (isset($attachments[$index])) {
                 // Delete file from storage
-                \Storage::disk('public')->delete($attachments[$index]['path']);
+                Storage::disk('public')->delete($attachments[$index]['path']);
 
                 // Remove from array
                 unset($attachments[$index]);
@@ -318,6 +347,69 @@ class AnnouncementController extends Controller
             return back()->with('error', 'Attachment not found!');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to delete attachment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Duplicate announcement.
+     */
+    public function duplicate(Announcement $announcement)
+    {
+        try {
+            $newAnnouncement = $announcement->replicate();
+            $newAnnouncement->title = $announcement->title . ' (Copy)';
+            $newAnnouncement->status = 'draft';
+            $newAnnouncement->is_pinned = false;
+            $newAnnouncement->publish_at = null;
+            $newAnnouncement->created_by = auth()->id();
+            $newAnnouncement->save();
+
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'duplicate',
+                'model_type' => 'Announcement',
+                'model_id' => $newAnnouncement->id,
+                'description' => "Duplicated announcement: {$announcement->title}",
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            return redirect()->route('admin.announcements.edit', $newAnnouncement)
+                ->with('success', 'Announcement duplicated successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to duplicate announcement: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk delete announcements.
+     */
+    public function bulkDelete(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+
+            if (empty($ids)) {
+                return back()->with('error', 'No announcements selected!');
+            }
+
+            $announcements = Announcement::whereIn('id', $ids)->get();
+
+            foreach ($announcements as $announcement) {
+                // Delete attachments
+                if ($announcement->attachments) {
+                    foreach ($announcement->attachments as $attachment) {
+                        if (isset($attachment['path'])) {
+                            Storage::disk('public')->delete($attachment['path']);
+                        }
+                    }
+                }
+                $announcement->delete();
+            }
+
+            return back()->with('success', count($ids) . ' announcements deleted successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete announcements: ' . $e->getMessage());
         }
     }
 }

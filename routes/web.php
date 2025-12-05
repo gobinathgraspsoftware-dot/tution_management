@@ -126,10 +126,10 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
     | TIMETABLE ROUTES
     |--------------------------------------------------------------------------
     */
+    Route::get('/timetable/export', [TimetableController::class, 'export'])->name('timetable.export');
     Route::get('/timetable', [TimetableController::class, 'index'])->name('timetable.index');
     Route::get('/timetable/filter-by-class', [TimetableController::class, 'filterByClass'])->name('timetable.filter.class');
     Route::get('/timetable/filter-by-teacher', [TimetableController::class, 'filterByTeacher'])->name('timetable.filter.teacher');
-    Route::get('/timetable/export', [TimetableController::class, 'export'])->name('timetable.export');
     Route::get('/timetable/print', [TimetableController::class, 'print'])->name('timetable.print');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');

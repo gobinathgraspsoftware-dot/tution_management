@@ -18,9 +18,9 @@
                                     <i class="fas fa-clock"></i>
                                     {{ date('h:i A', strtotime($schedule['start_time'])) }} - {{ date('h:i A', strtotime($schedule['end_time'])) }}
                                 </span>
-                                @if($schedule['teacher_name'] != 'N/A')
+                                @if($schedule['teacher'] != 'N/A')
                                     <span class="text-muted">
-                                        <i class="fas fa-user"></i> {{ $schedule['teacher_name'] }}
+                                        <i class="fas fa-user"></i> {{ $schedule['teacher'] }}
                                     </span>
                                 @endif
                                 @if($schedule['location'])

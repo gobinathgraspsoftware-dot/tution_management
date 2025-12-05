@@ -105,7 +105,7 @@ class ClassScheduleRequest extends FormRequest
             if ($this->start_time && $this->end_time) {
                 $start = \Carbon\Carbon::createFromFormat('H:i', $this->start_time);
                 $end = \Carbon\Carbon::createFromFormat('H:i', $this->end_time);
-                $duration = $end->diffInMinutes($start);
+                $duration = $start->diffInMinutes($end);
 
                 if ($duration < 30) {
                     $validator->errors()->add('end_time', 'Class duration must be at least 30 minutes.');
