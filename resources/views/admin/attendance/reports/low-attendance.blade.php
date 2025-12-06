@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Low Attendance Alerts')
 
@@ -112,7 +112,7 @@
                                     @foreach($lowAttendanceStudents as $summary)
                                         <tr>
                                             <td>
-                                                <input type="checkbox" class="form-check-input student-checkbox" 
+                                                <input type="checkbox" class="form-check-input student-checkbox"
                                                        name="student_ids[]" form="bulkAlertForm"
                                                        value="{{ $summary->student_id }}">
                                             </td>
@@ -143,7 +143,7 @@
                                                 <span class="text-muted">{{ $summary->total_sessions }}</span>
                                             </td>
                                             <td>
-                                                <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                <button type="button" class="btn btn-sm btn-outline-warning"
                                                         onclick="openAlertModal({{ $summary->student_id }}, {{ $summary->class_id }}, '{{ $summary->student->user->name ?? 'Student' }}', {{ $summary->attendance_percentage }})">
                                                     <i class="fas fa-bell"></i> Alert
                                                 </button>
@@ -257,7 +257,7 @@
                 @csrf
                 <input type="hidden" name="student_id" id="alertStudentId">
                 <input type="hidden" name="class_id" id="alertClassId">
-                
+
                 <div class="modal-header bg-warning">
                     <h5 class="modal-title">
                         <i class="fas fa-bell me-2"></i>Send Low Attendance Alert
@@ -269,14 +269,14 @@
                         <strong>Student:</strong> <span id="alertStudentName"></span><br>
                         <strong>Current Attendance:</strong> <span id="alertPercentage"></span>%
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="alertMessage" class="form-label">Custom Message (Optional)</label>
-                        <textarea name="message" id="alertMessage" class="form-control" rows="3" 
+                        <textarea name="message" id="alertMessage" class="form-control" rows="3"
                                   placeholder="Enter a custom message for the parent..."></textarea>
                         <small class="text-muted">Leave blank to use the default message.</small>
                     </div>
-                    
+
                     <div class="alert alert-secondary mb-0">
                         <i class="fas fa-info-circle me-2"></i>
                         This alert will be sent to the parent via WhatsApp and Email.
@@ -318,7 +318,7 @@ function openAlertModal(studentId, classId, studentName, percentage) {
     document.getElementById('alertStudentName').textContent = studentName;
     document.getElementById('alertPercentage').textContent = percentage.toFixed(1);
     document.getElementById('alertMessage').value = '';
-    
+
     new bootstrap.Modal(document.getElementById('alertModal')).show();
 }
 
@@ -339,7 +339,7 @@ function updateBulkButton() {
     const bulkBtn = document.getElementById('sendBulkAlerts');
     if (bulkBtn) {
         bulkBtn.disabled = checked === 0;
-        bulkBtn.innerHTML = checked > 0 
+        bulkBtn.innerHTML = checked > 0
             ? `<i class="fas fa-bell me-2"></i>Send Alerts (${checked})`
             : '<i class="fas fa-bell me-2"></i>Send Bulk Alerts';
     }

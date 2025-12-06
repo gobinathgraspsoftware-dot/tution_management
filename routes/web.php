@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\ExamResultController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceReportController;
+use App\Http\Controllers\Parent\AttendanceController as ParentAttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -489,6 +490,16 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('/children/{student}', [ChildRegistrationController::class, 'show'])->name('children.show');
 
         Route::get('/materials', [ParentMaterialController::class, 'index'])->name('materials.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Parent Attendance Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [ParentAttendanceController::class, 'index'])->name('index');
+            Route::get('/child/{student}', [ParentAttendanceController::class, 'childAttendance'])->name('child');
+        });
 
     });
 

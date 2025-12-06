@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Attendance History')
 
@@ -86,7 +86,7 @@
                     </div>
                     <div class="col-md-2">
                         <label for="date_from" class="form-label">Date From</label>
-                        <input type="date" name="date_from" id="date_from" class="form-control" 
+                        <input type="date" name="date_from" id="date_from" class="form-control"
                                value="{{ request('date_from') }}">
                     </div>
                     <div class="col-md-2">
@@ -185,7 +185,7 @@
                                             {{ $record->classSession->session_date->format('d/m/Y') }}
                                         </div>
                                         <small class="text-muted">
-                                            {{ $record->classSession->start_time->format('H:i') }} - 
+                                            {{ $record->classSession->start_time->format('H:i') }} -
                                             {{ $record->classSession->end_time->format('H:i') }}
                                         </small>
                                     </td>
@@ -235,7 +235,7 @@
                                     </td>
                                     <td>
                                         @if($record->remarks)
-                                            <span class="text-truncate d-inline-block" style="max-width: 150px;" 
+                                            <span class="text-truncate d-inline-block" style="max-width: 150px;"
                                                   title="{{ $record->remarks }}">
                                                 {{ $record->remarks }}
                                             </span>
@@ -248,14 +248,14 @@
                                             @if(!$record->parent_notified && $record->student->parent)
                                                 <form method="POST" action="{{ route('admin.attendance.reports.resend-notification', $record->id) }}" class="d-inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary" 
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary"
                                                             title="Send notification to parent"
                                                             onclick="return confirm('Send notification to parent?')">
                                                         <i class="fas fa-bell"></i>
                                                     </button>
                                                 </form>
                                             @endif
-                                            <a href="{{ route('admin.attendance.reports.student', ['student_id' => $record->student_id]) }}" 
+                                            <a href="{{ route('admin.attendance.reports.student', ['student_id' => $record->student_id]) }}"
                                                class="btn btn-sm btn-outline-info" title="View student report">
                                                 <i class="fas fa-chart-bar"></i>
                                             </a>
@@ -303,10 +303,10 @@ function exportHistory(format) {
     const form = document.getElementById('filterForm');
     const formData = new FormData(form);
     formData.append('format', format);
-    
+
     // Build query string
     const params = new URLSearchParams(formData);
-    
+
     // Redirect to export URL (you would need to create this route)
     window.location.href = '{{ route("admin.attendance.reports.export-history") }}?' + params.toString();
 }

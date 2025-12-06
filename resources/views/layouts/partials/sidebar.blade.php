@@ -27,27 +27,30 @@
 @endcan
 @endcanany
 {{-- Attendance Reports Submenu --}}
-<a href="#attendanceReportsSubmenu" class="menu-item has-submenu {{ request()->routeIs('admin.attendance.reports.*') ? 'active' : '' }}" data-bs-toggle="collapse">
+{{-- <a href="#attendanceReportsSubmenu" class="menu-item has-submenu {{ request()->routeIs('admin.attendance.reports.*') ? 'active' : '' }}" data-bs-toggle="collapse">
     <i class="fas fa-chart-bar"></i> Reports
     <i class="fas fa-chevron-down submenu-arrow ms-auto"></i>
-</a>
-<div class="collapse {{ request()->routeIs('admin.attendance.reports.*') ? 'show' : '' }}" id="attendanceReportsSubmenu">
-    <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
+</a> --}}
+<div class="menu-section-title">Reports</div>
+
+{{-- <div class="collapse {{ request()->routeIs('admin.attendance.reports.*') ? 'show' : '' }}" id="attendanceReportsSubmenu"> --}}
+    <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
         <i class="fas fa-tachometer-alt"></i> Dashboard
     </a>
-    <a href="{{ route('admin.attendance.reports.student') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
+    <a href="{{ route('admin.attendance.reports.student') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
         <i class="fas fa-user"></i> Student Report
     </a>
-    <a href="{{ route('admin.attendance.reports.class') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
+    <a href="{{ route('admin.attendance.reports.class') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
         <i class="fas fa-school"></i> Class Report
     </a>
-    <a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
+    <a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
         <i class="fas fa-exclamation-triangle"></i> Low Attendance
     </a>
-    <a href="{{ route('admin.attendance.reports.history') }}" class="menu-item submenu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
+    <a href="{{ route('admin.attendance.reports.history') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
         <i class="fas fa-history"></i> History
     </a>
-</div>
+{{-- </div> --}}
+
 <div class="menu-section-title">User Management</div>
 {{-- <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> Students
