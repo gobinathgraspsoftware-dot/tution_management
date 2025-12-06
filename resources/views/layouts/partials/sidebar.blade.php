@@ -4,63 +4,13 @@
 <a href="{{ route('admin.dashboard') }}" class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
     <i class="fas fa-home"></i> Dashboard
 </a>
-<!-- Attendance Management -->
-@canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
-<div class="menu-section-title">Attendance Management</div>
-@can('view-student-attendance-all')
-    <a href="{{ route('admin.attendance.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.index') ? 'active' : '' }}"><i class="fas fa-users"></i> Dashboard</a>
-@endcan
-@can('mark-student-attendance')
-    <a href="{{ route('admin.attendance.student.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Mark Student Attendance</a>
-@endcan
-
-@can('view-student-attendance-all')
-    <a href="{{ route('admin.attendance.student.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Student Calendar</a>
-@endcan
-
-@can('mark-teacher-attendance')
-    <a href="{{ route('admin.attendance.teacher.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Mark Teacher Attendance</a>
-@endcan
-
-@can('view-teacher-attendance-all')
-    <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
-@endcan
-@endcanany
-{{-- Attendance Reports Submenu --}}
-{{-- <a href="#attendanceReportsSubmenu" class="menu-item has-submenu {{ request()->routeIs('admin.attendance.reports.*') ? 'active' : '' }}" data-bs-toggle="collapse">
-    <i class="fas fa-chart-bar"></i> Reports
-    <i class="fas fa-chevron-down submenu-arrow ms-auto"></i>
-</a> --}}
-<div class="menu-section-title">Reports</div>
-
-{{-- <div class="collapse {{ request()->routeIs('admin.attendance.reports.*') ? 'show' : '' }}" id="attendanceReportsSubmenu"> --}}
-    <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
-    </a>
-    <a href="{{ route('admin.attendance.reports.student') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
-        <i class="fas fa-user"></i> Student Report
-    </a>
-    <a href="{{ route('admin.attendance.reports.class') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
-        <i class="fas fa-school"></i> Class Report
-    </a>
-    <a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
-        <i class="fas fa-exclamation-triangle"></i> Low Attendance
-    </a>
-    <a href="{{ route('admin.attendance.reports.history') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
-        <i class="fas fa-history"></i> History
-    </a>
-{{-- </div> --}}
-
+{{-- Start: User Management --}}
 <div class="menu-section-title">User Management</div>
-{{-- <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
-    <i class="fas fa-users"></i> Students
-</a> --}}
 @can('view-students')
 <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.index') ? 'active' : '' }}">
     <i class="fas fa-users"></i> All Students
 </a>
 @endcan
-{{-- NEW: Add Pending Approvals menu item --}}
 <a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
     <i class="fas fa-user-clock"></i> Pending Approvals
     @php
@@ -70,7 +20,6 @@
     <span class="badge bg-warning text-dark ms-auto">{{ $pendingCount }}</span>
     @endif
 </a>
-
 <a href="{{ route('admin.parents.index') }}" class="menu-item {{ request()->routeIs('admin.parents.*') ? 'active' : '' }}">
     <i class="fas fa-user-friends"></i> Parents
 </a>
@@ -80,8 +29,52 @@
 <a href="{{ route('admin.staff.index') }}" class="menu-item {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
     <i class="fas fa-user-tie"></i> Staff
 </a>
+{{-- End: User Management --}}
 
-{{-- Section Start: Referral & Trial --}}
+{{-- Start: Attendance Management --}}
+@canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
+<div class="menu-section-title">Attendance Management</div>
+@can('view-student-attendance-all')
+    <a href="{{ route('admin.attendance.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.index') ? 'active' : '' }}"><i class="fas fa-users"></i> Attendance Dashboard</a>
+@endcan
+@can('mark-student-attendance')
+    <a href="{{ route('admin.attendance.student.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Student Attendance</a>
+@endcan
+
+@can('view-student-attendance-all')
+    <a href="{{ route('admin.attendance.student.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Student Calendar</a>
+@endcan
+
+@can('mark-teacher-attendance')
+    <a href="{{ route('admin.attendance.teacher.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Attendance</a>
+@endcan
+
+@can('view-teacher-attendance-all')
+    <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
+@endcan
+@endcanany
+{{-- End: Attendance Management --}}
+
+{{-- Start: Reports Management --}}
+<div class="menu-section-title">Reports Management</div>
+<a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
+    <i class="fas fa-tachometer-alt"></i> Reports Dashboard
+</a>
+<a href="{{ route('admin.attendance.reports.student') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
+    <i class="fas fa-user"></i> Student Report
+</a>
+<a href="{{ route('admin.attendance.reports.class') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
+    <i class="fas fa-school"></i> Class Report
+</a>
+<a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
+    <i class="fas fa-exclamation-triangle"></i> Low Attendance
+</a>
+<a href="{{ route('admin.attendance.reports.history') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
+    <i class="fas fa-history"></i> History
+</a>
+{{-- End: Reports Management --}}
+
+{{-- Start: Referral & Trial --}}
 <div class="menu-section-title">Referral & Trial</div>
 
 @can('view-referrals')
@@ -107,8 +100,9 @@
         <i class="fas fa-star"></i> Student Reviews
     </a>
 @endcan
-{{-- Section End: Referral & Trial --}}
-{{-- Section Start: Materials Management  --}}
+{{-- End: Referral & Trial --}}
+
+{{-- Start: Materials Management  --}}
 <div class="menu-section-title">Materials Management</div>
 <a href="{{ route('admin.materials.index') }}" class="menu-item {{ request()->routeIs('admin.materials.*') ? 'active' : '' }}">
     <i class="fas fa-file-alt"></i> Digital Materials
@@ -116,14 +110,17 @@
 <a href="{{ route('admin.physical-materials.index') }}" class="menu-item {{ request()->routeIs('admin.physical-materials.*') ? 'active' : '' }}">
     <i class="fas fa-book"></i> Physical Materials
 </a>
-{{-- Section End: Materials Management  --}}
-<div class="menu-section-title">Academic</div>
+{{-- End: Materials Management  --}}
+
+{{-- Start: Academic Management  --}}
+<div class="menu-section-title">Academic Management</div>
 <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
     <i class="fas fa-book"></i> Subjects
 </a>
 <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
     <i class="fas fa-box"></i> Packages
 </a>
+{{-- End: Academic Management  --}}
 @canany(['view-classes', 'create-classes', 'manage-class-schedule'])
 <div class="menu-section-title">CLASS MANAGEMENT</div>
 
