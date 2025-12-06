@@ -146,9 +146,23 @@
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
 </a>
-<a href="#" class="menu-item">
+
+{{-- Start: Financial Section --}}
+<div class="menu-section-title">Financial</div>
+<a href="{{ route('admin.invoices.index') }}" class="menu-item {{ request()->routeIs('admin.invoices.index') || request()->routeIs('admin.invoices.create') || request()->routeIs('admin.invoices.show') || request()->routeIs('admin.invoices.edit') ? 'active' : '' }}">
     <i class="fas fa-file-invoice-dollar"></i> Invoices
 </a>
+<a href="{{ route('admin.invoices.overdue') }}" class="menu-item {{ request()->routeIs('admin.invoices.overdue') ? 'active' : '' }}">
+    <i class="fas fa-exclamation-triangle"></i> Overdue Invoices
+</a>
+<a href="{{ route('admin.billing.payment-cycles') }}" class="menu-item {{ request()->routeIs('admin.billing.payment-cycles') ? 'active' : '' }}">
+    <i class="fas fa-sync-alt"></i> Payment Cycles
+</a>
+<a href="{{ route('admin.billing.subscription-alerts') }}" class="menu-item {{ request()->routeIs('admin.billing.subscription-alerts') ? 'active' : '' }}">
+    <i class="fas fa-bell"></i> Subscription Alerts
+</a>
+{{-- End: Financial Section --}}
+
 <a href="#" class="menu-item">
     <i class="fas fa-money-bill-wave"></i> Payments
 </a>
@@ -330,6 +344,18 @@
     <i class="fas fa-calendar-week"></i>
     Timetable
 </a>
+{{-- Start: Financial Section --}}
+<div class="menu-section-title">Financial</div>
+<a href="{{ route('parent.invoices.index') }}" class="menu-item {{ request()->routeIs('parent.invoices.*') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice"></i> Invoices
+</a>
+<a href="{{ route('parent.payments.create') }}" class="menu-item {{ request()->routeIs('parent.payments.create') ? 'active' : '' }}">
+    <i class="fas fa-money-bill-wave"></i> Make Payment
+</a>
+<a href="{{ route('parent.invoices.history') }}" class="menu-item {{ request()->routeIs('parent.invoices.history') ? 'active' : '' }}">
+    <i class="fas fa-history"></i> Payment History
+</a>
+{{-- End: Financial Section --}}
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
 </a>
@@ -368,7 +394,15 @@
 <a href="{{ route('student.dashboard') }}" class="menu-item {{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
     <i class="fas fa-home"></i> Dashboard
 </a>
-
+{{-- Start: Student Financial Section  --}}
+<div class="menu-section-title">Financial</div>
+<a href="{{ route('student.invoices.index') }}" class="menu-item {{ request()->routeIs('student.invoices.*') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice"></i> My Invoices
+</a>
+<a href="{{ route('student.invoices.history') }}" class="menu-item {{ request()->routeIs('student.invoices.history') ? 'active' : '' }}">
+    <i class="fas fa-history"></i> Payment History
+</a>
+{{-- End: Student Financial Section  --}}
 <div class="menu-section-title">Academic</div>
 <a href="#" class="menu-item">
     <i class="fas fa-school"></i> My Classes

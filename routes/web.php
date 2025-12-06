@@ -38,6 +38,9 @@ use App\Http\Controllers\Admin\ExamResultController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Parent\AttendanceController as ParentAttendanceController;
+use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
+use App\Http\Controllers\Parent\InvoiceController as ParentInvoiceController;
+use App\Http\Controllers\Student\InvoiceController as StudentInvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -437,6 +440,32 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             });
 
         });
+
+        // Invoice Management
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/', [AdminInvoiceController::class, 'index'])->name('index');
+            Route::get('/create', [AdminInvoiceController::class, 'create'])->name('create');
+            Route::post('/', [AdminInvoiceController::class, 'store'])->name('store');
+            Route::get('/overdue', [AdminInvoiceController::class, 'overdue'])->name('overdue');
+            Route::get('/bulk-generate', [AdminInvoiceController::class, 'bulkGenerateForm'])->name('bulk-generate');
+            Route::post('/bulk-generate', [AdminInvoiceController::class, 'bulkGenerate'])->name('bulk-generate.store');
+            Route::get('/export', [AdminInvoiceController::class, 'export'])->name('export');
+            Route::get('/{invoice}', [AdminInvoiceController::class, 'show'])->name('show');
+            Route::get('/{invoice}/edit', [AdminInvoiceController::class, 'edit'])->name('edit');
+            Route::put('/{invoice}', [AdminInvoiceController::class, 'update'])->name('update');
+            Route::delete('/{invoice}', [AdminInvoiceController::class, 'destroy'])->name('destroy');
+            Route::post('/{invoice}/send', [AdminInvoiceController::class, 'send'])->name('send');
+            Route::post('/{invoice}/cancel', [AdminInvoiceController::class, 'cancel'])->name('cancel');
+            Route::post('/{invoice}/reminder', [AdminInvoiceController::class, 'sendReminder'])->name('reminder');
+        });
+
+        // Billing Management
+        Route::prefix('billing')->name('billing.')->group(function () {
+            Route::get('/payment-cycles', [AdminInvoiceController::class, 'paymentCycles'])->name('payment-cycles');
+            Route::get('/subscription-alerts', [AdminInvoiceController::class, 'subscriptionAlerts'])->name('subscription-alerts');
+            Route::post('/renew-enrollment/{enrollment}', [AdminInvoiceController::class, 'renewEnrollment'])->name('renew-enrollment');
+        });
+
     });
 
     /*
@@ -501,6 +530,13 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/child/{student}', [ParentAttendanceController::class, 'childAttendance'])->name('child');
         });
 
+        // Parent Invoice Routes
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/', [ParentInvoiceController::class, 'index'])->name('index');
+            Route::get('/history', [ParentInvoiceController::class, 'paymentHistory'])->name('history');
+            Route::get('/{invoice}', [ParentInvoiceController::class, 'show'])->name('show');
+        });
+
     });
 
     /*
@@ -513,5 +549,13 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         Route::get('/materials', [StudentMaterialController::class, 'index'])->name('materials.index');
         Route::get('/materials/{material}/view', [StudentMaterialController::class, 'view'])->name('materials.view');
+
+        // Student Invoice Routes
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/', [StudentInvoiceController::class, 'index'])->name('index');
+            Route::get('/history', [StudentInvoiceController::class, 'paymentHistory'])->name('history');
+            Route::get('/{invoice}', [StudentInvoiceController::class, 'show'])->name('show');
+        });
+
     });
 });

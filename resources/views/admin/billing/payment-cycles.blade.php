@@ -77,7 +77,7 @@
             </button>
         </div>
         <div class="col-md-4 text-end">
-            <a href="{{ route('admin.invoices.bulk-generate-form', ['month' => $month->format('Y-m')]) }}" class="btn btn-success">
+            <a href="{{ route('admin.invoices.bulk-generate', ['month' => $month->format('Y-m')]) }}" class="btn btn-success">
                 <i class="fas fa-plus me-2"></i> Generate Invoices
             </a>
         </div>

@@ -67,7 +67,7 @@
     <div class="col-lg-6">
         <div class="month-selector">
             <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i> Select Billing Month</h5>
-            <form action="{{ route('admin.invoices.bulk-generate-form') }}" method="GET" class="row g-3 align-items-end">
+            <form action="{{ route('admin.invoices.bulk-generate') }}" method="GET" class="row g-3 align-items-end">
                 <div class="col-md-8">
                     <label for="month" class="form-label">Billing Month</label>
                     <input type="month" name="month" id="month" class="form-control form-control-lg"
