@@ -108,7 +108,7 @@ class AnnouncementController extends Controller
 
             // If publish now, send notifications
             if ($data['status'] === 'published' && (!isset($data['publish_at']) || $data['publish_at'] <= now())) {
-                $this->announcementService->sendNotifications($announcement);
+                // $this->announcementService->sendNotifications($announcement);
             }
 
             ActivityLog::create([
@@ -138,7 +138,8 @@ class AnnouncementController extends Controller
 
         $stats = [
             'read_count' => $announcement->getReadCount(),
-            'unread_count' => $this->announcementService->getUnreadCount($announcement),
+            // 'unread_count' => $this->announcementService->getUnreadCount($announcement),
+            'unread_count' => 0,
         ];
 
         return view('admin.announcements.show', compact('announcement', 'stats'));
@@ -244,7 +245,7 @@ class AnnouncementController extends Controller
             ]);
 
             // Send notifications
-            $this->announcementService->sendNotifications($announcement);
+            // $this->announcementService->sendNotifications($announcement);
 
             ActivityLog::create([
                 'user_id' => auth()->id(),
