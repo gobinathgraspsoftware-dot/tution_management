@@ -41,6 +41,11 @@ use App\Http\Controllers\Parent\AttendanceController as ParentAttendanceControll
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Parent\InvoiceController as ParentInvoiceController;
 use App\Http\Controllers\Student\InvoiceController as StudentInvoiceController;
+use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Staff\PaymentController as StaffPaymentController;
+use App\Http\Controllers\Parent\PaymentController as ParentPaymentController;
+use App\Http\Controllers\Student\PaymentController as StudentPaymentController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -466,6 +471,30 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/renew-enrollment/{enrollment}', [AdminInvoiceController::class, 'renewEnrollment'])->name('renew-enrollment');
         });
 
+        // Payment Management
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::get('/', [AdminPaymentController::class, 'index'])->name('index');
+            Route::get('/create', [AdminPaymentController::class, 'create'])->name('create');
+            Route::post('/', [AdminPaymentController::class, 'store'])->name('store');
+            Route::get('/history', [AdminPaymentController::class, 'history'])->name('history');
+            Route::get('/daily-report', [AdminPaymentController::class, 'dailyReport'])->name('daily-report');
+            Route::post('/daily-report/update', [AdminPaymentController::class, 'updateDailyReport'])->name('daily-report.update');
+            Route::post('/daily-report/close', [AdminPaymentController::class, 'closeDailyReport'])->name('daily-report.close');
+            Route::get('/pending-verifications', [AdminPaymentController::class, 'pendingVerifications'])->name('pending-verifications');
+            Route::get('/export', [AdminPaymentController::class, 'export'])->name('export');
+
+            // Student invoices (AJAX)
+            Route::get('/student/{student}/invoices', [AdminPaymentController::class, 'getStudentInvoices'])->name('student.invoices');
+
+            // Single payment operations
+            Route::get('/{payment}', [AdminPaymentController::class, 'show'])->name('show');
+            Route::get('/{payment}/receipt', [AdminPaymentController::class, 'receipt'])->name('receipt');
+            Route::get('/{payment}/download-receipt', [AdminPaymentController::class, 'downloadReceipt'])->name('download-receipt');
+            Route::get('/{payment}/print-receipt', [AdminPaymentController::class, 'printReceipt'])->name('print-receipt');
+            Route::post('/{payment}/verify', [AdminPaymentController::class, 'verify'])->name('verify');
+            Route::post('/{payment}/refund', [AdminPaymentController::class, 'refund'])->name('refund');
+        });
+
     });
 
     /*
@@ -490,6 +519,23 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // AJAX: Search Parents
         Route::get('/registration/search-parent', [StudentRegistrationController::class, 'searchParent'])->name('registration.search-parent');
+
+        // Payment Management
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::get('/', [StaffPaymentController::class, 'index'])->name('index');
+            Route::get('/create', [StaffPaymentController::class, 'create'])->name('create');
+            Route::post('/', [StaffPaymentController::class, 'store'])->name('store');
+            Route::get('/quick-payment', [StaffPaymentController::class, 'quickPayment'])->name('quick-payment');
+            Route::get('/today-collection', [StaffPaymentController::class, 'todayCollection'])->name('today-collection');
+
+            // Student invoices (AJAX)
+            Route::get('/student/{student}/invoices', [StaffPaymentController::class, 'getStudentInvoices'])->name('student.invoices');
+
+            // Single payment operations
+            Route::get('/{payment}', [StaffPaymentController::class, 'show'])->name('show');
+            Route::get('/{payment}/receipt', [StaffPaymentController::class, 'receipt'])->name('receipt');
+            Route::get('/{payment}/print-receipt', [StaffPaymentController::class, 'printReceipt'])->name('print-receipt');
+        });
 
     });
 
@@ -537,6 +583,16 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/{invoice}', [ParentInvoiceController::class, 'show'])->name('show');
         });
 
+        // Payment Management (View Only)
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::get('/', [ParentPaymentController::class, 'index'])->name('index');
+            Route::get('/history', [ParentPaymentController::class, 'history'])->name('history');
+            Route::get('/outstanding', [ParentPaymentController::class, 'outstanding'])->name('outstanding');
+            Route::get('/{payment}', [ParentPaymentController::class, 'show'])->name('show');
+            Route::get('/{payment}/receipt', [ParentPaymentController::class, 'receipt'])->name('receipt');
+            Route::get('/{payment}/download-receipt', [ParentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
+        });
+
     });
 
     /*
@@ -555,6 +611,16 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/', [StudentInvoiceController::class, 'index'])->name('index');
             Route::get('/history', [StudentInvoiceController::class, 'paymentHistory'])->name('history');
             Route::get('/{invoice}', [StudentInvoiceController::class, 'show'])->name('show');
+        });
+
+        // Payment Management (View Only)
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::get('/', [StudentPaymentController::class, 'index'])->name('index');
+            Route::get('/history', [StudentPaymentController::class, 'history'])->name('history');
+            Route::get('/outstanding', [StudentPaymentController::class, 'outstanding'])->name('outstanding');
+            Route::get('/{payment}', [StudentPaymentController::class, 'show'])->name('show');
+            Route::get('/{payment}/receipt', [StudentPaymentController::class, 'receipt'])->name('receipt');
+            Route::get('/{payment}/download-receipt', [StudentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
         });
 
     });

@@ -163,9 +163,46 @@
 </a>
 {{-- End: Financial Section --}}
 
+{{-- Payment Menu with Submenu --}}
+@if(Route::has('admin.payments.index'))
+<div class="menu-item-group">
+    <a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">
+        <i class="fas fa-money-bill-wave"></i> Payments
+        <i class="fas fa-chevron-down menu-arrow ms-auto"></i>
+    </a>
+    <div class="submenu {{ request()->routeIs('admin.payments.*') ? 'show' : '' }}">
+        <a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.index') ? 'active' : '' }}">
+            <i class="fas fa-list"></i> All Payments
+        </a>
+        <a href="{{ route('admin.payments.create') }}" class="menu-item {{ request()->routeIs('admin.payments.create') ? 'active' : '' }}">
+            <i class="fas fa-plus"></i> Record Payment
+        </a>
+        @if(Route::has('admin.payments.pending-verifications'))
+        <a href="{{ route('admin.payments.pending-verifications') }}" class="menu-item {{ request()->routeIs('admin.payments.pending-verifications') ? 'active' : '' }}">
+            <i class="fas fa-clock"></i> Pending Verifications
+            @php
+                $pendingCount = \App\Models\Payment::where('status', 'pending_verification')->count();
+            @endphp
+            @if($pendingCount > 0)
+            <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+            @endif
+        </a>
+        @endif
+        @if(Route::has('admin.payments.daily-report'))
+        <a href="{{ route('admin.payments.daily-report') }}" class="menu-item {{ request()->routeIs('admin.payments.daily-report') ? 'active' : '' }}">
+            <i class="fas fa-cash-register"></i> Daily Cash Report
+        </a>
+        @endif
+        <a href="{{ route('admin.payments.history') }}" class="menu-item {{ request()->routeIs('admin.payments.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Payment History
+        </a>
+    </div>
+</div>
+@else
 <a href="#" class="menu-item">
     <i class="fas fa-money-bill-wave"></i> Payments
 </a>
+@endif
 
 <div class="menu-section-title">Content</div>
 <a href="#" class="menu-item">
@@ -262,9 +299,32 @@
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Mark Attendance
 </a>
+{{-- Staff Payment Menu with Submenu --}}
+@if(Route::has('staff.payments.index'))
+<div class="menu-item-group">
+    <a href="{{ route('staff.payments.index') }}" class="menu-item {{ request()->routeIs('staff.payments.*') ? 'active' : '' }}">
+        <i class="fas fa-money-bill-wave"></i> Payments
+        <i class="fas fa-chevron-down menu-arrow ms-auto"></i>
+    </a>
+    <div class="submenu {{ request()->routeIs('staff.payments.*') ? 'show' : '' }}">
+        <a href="{{ route('staff.payments.index') }}" class="menu-item {{ request()->routeIs('staff.payments.index') ? 'active' : '' }}">
+            <i class="fas fa-list"></i> Today's Payments
+        </a>
+        <a href="{{ route('staff.payments.create') }}" class="menu-item {{ request()->routeIs('staff.payments.create') ? 'active' : '' }}">
+            <i class="fas fa-plus"></i> Record Payment
+        </a>
+        @if(Route::has('staff.payments.quick-payment'))
+        <a href="{{ route('staff.payments.quick-payment') }}" class="menu-item {{ request()->routeIs('staff.payments.quick-payment') ? 'active' : '' }}">
+            <i class="fas fa-bolt"></i> Quick Payment
+        </a>
+        @endif
+    </div>
+</div>
+@else
 <a href="#" class="menu-item">
     <i class="fas fa-money-bill-wave"></i> Payments
 </a>
+@endif
 <a href="{{ route('timetable.index') }}"
    class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
     <i class="fas fa-calendar-week"></i>
@@ -367,6 +427,16 @@
 </a>
 
 <div class="menu-section-title">Payments</div>
+{{-- Parent Payment Menu --}}
+@if(Route::has('parent.payments.index'))
+<a href="{{ route('parent.payments.index') }}" class="menu-item {{ request()->routeIs('parent.payments.index') || request()->routeIs('parent.payments.show') ? 'active' : '' }}">
+    <i class="fas fa-money-bill-wave"></i> Payments
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-money-bill-wave"></i> Payments
+</a>
+@endif
 <a href="#" class="menu-item">
     <i class="fas fa-file-invoice-dollar"></i> Invoices
 </a>
@@ -403,6 +473,16 @@
     <i class="fas fa-history"></i> Payment History
 </a>
 {{-- End: Student Financial Section  --}}
+{{-- Student Payment Menu --}}
+@if(Route::has('student.payments.index'))
+<a href="{{ route('student.payments.index') }}" class="menu-item {{ request()->routeIs('student.payments.index') || request()->routeIs('student.payments.show') ? 'active' : '' }}">
+    <i class="fas fa-money-bill-wave"></i> My Payments
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-money-bill-wave"></i> My Payments
+</a>
+@endif
 <div class="menu-section-title">Academic</div>
 <a href="#" class="menu-item">
     <i class="fas fa-school"></i> My Classes
