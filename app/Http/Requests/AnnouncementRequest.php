@@ -22,7 +22,7 @@ class AnnouncementRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
-            'type' => ['required', 'in:general,class,urgent,event'],
+            'type' => ['required', 'in:general,class,urgent,event','academic','holiday'],
             'target_audience' => ['required', 'in:all,students,parents,teachers,staff,specific_class'],
             'target_class_id' => ['nullable', 'required_if:target_audience,specific_class', 'exists:classes,id'],
             'priority' => ['required', 'in:low,normal,high,urgent'],
