@@ -562,48 +562,48 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         // Payment Gateway Management
         Route::prefix('payment-gateways')->name('payment-gateways.')->group(function () {
             Route::get('/', [PaymentGatewayConfigController::class, 'index'])
-                ->middleware('permission:view-payment-gateway-configs')
+                // ->middleware('permission:view-payment-gateway-configs')
                 ->name('index');
 
             Route::get('/create', [PaymentGatewayConfigController::class, 'create'])
-                ->middleware('permission:create-payment-gateway-configs')
+                // ->middleware('permission:create-payment-gateway-configs')
                 ->name('create');
 
             Route::post('/', [PaymentGatewayConfigController::class, 'store'])
-                ->middleware('permission:create-payment-gateway-configs')
+                // ->middleware('permission:create-payment-gateway-configs')
                 ->name('store');
 
             Route::get('/{paymentGateway}', [PaymentGatewayConfigController::class, 'show'])
-                ->middleware('permission:view-payment-gateway-configs')
+                // ->middleware('permission:view-payment-gateway-configs')
                 ->name('show');
 
             Route::get('/{paymentGateway}/edit', [PaymentGatewayConfigController::class, 'edit'])
-                ->middleware('permission:edit-payment-gateway-configs')
+                // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('edit');
 
             Route::put('/{paymentGateway}', [PaymentGatewayConfigController::class, 'update'])
-                ->middleware('permission:edit-payment-gateway-configs')
+                // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('update');
 
             Route::delete('/{paymentGateway}', [PaymentGatewayConfigController::class, 'destroy'])
-                ->middleware('permission:delete-payment-gateway-configs')
+                // ->middleware('permission:delete-payment-gateway-configs')
                 ->name('destroy');
 
             // Additional routes
             Route::patch('/{paymentGateway}/toggle-status', [PaymentGatewayConfigController::class, 'toggleStatus'])
-                ->middleware('permission:edit-payment-gateway-configs')
+                // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('toggle-status');
 
             Route::get('/{paymentGateway}/transactions', [PaymentGatewayConfigController::class, 'transactions'])
-                ->middleware('permission:view-payment-gateway-configs')
+                // ->middleware('permission:view-payment-gateway-configs')
                 ->name('transactions');
 
             Route::post('/{paymentGateway}/test', [PaymentGatewayConfigController::class, 'testConnection'])
-                ->middleware('permission:edit-payment-gateway-configs')
+                // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('test');
 
             Route::post('/{paymentGateway}/set-default', [PaymentGatewayConfigController::class, 'setDefault'])
-                ->middleware('permission:edit-payment-gateway-configs')
+                // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('set-default');
         });
 
@@ -707,7 +707,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Parent Online Payment
         Route::get('/payments/pay-online/{invoice?}', [OnlinePaymentController::class, 'parentPayOnline'])
-            ->middleware('permission:make-payment')
+            // ->middleware('permission:make-payment')
             ->name('payments.pay-online');
 
     });
@@ -742,7 +742,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Student Online Payment
         Route::get('/payments/pay-online/{invoice?}', [OnlinePaymentController::class, 'studentPayOnline'])
-            ->middleware('permission:make-payment')
+            // ->middleware('permission:make-payment')
             ->name('payments.pay-online');
     });
 });

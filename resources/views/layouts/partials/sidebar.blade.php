@@ -196,6 +196,11 @@
     <i class="fas fa-money-bill-wave"></i> Payments
 </a>
 @endif
+@can('manage-payment-gateway')
+<a href="{{ route('admin.payment-gateways.index') }}" class="menu-item {{ request()->routeIs('admin.payment-gateways.*') ? 'active' : '' }}">
+    <i class="fas fa-credit-card"></i> Payment Gateways
+</a>
+@endcan
 
 <div class="menu-section-title">Content</div>
 <a href="#" class="menu-item">
@@ -409,6 +414,11 @@
     <i class="fas fa-history"></i> Payment History
 </a>
 {{-- End: Financial Section --}}
+@if(Route::has('parent.payments.pay-online'))
+<a href="{{ route('parent.payments.pay-online') }}" class="menu-item {{ request()->routeIs('parent.payments.pay-online') ? 'active' : '' }}">
+    <i class="fas fa-globe"></i> Pay Online
+</a>
+@endif
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
 </a>
@@ -474,6 +484,11 @@
 @else
 <a href="#" class="menu-item">
     <i class="fas fa-money-bill-wave"></i> My Payments
+</a>
+@endif
+@if(Route::has('student.payments.pay-online'))
+<a href="{{ route('student.payments.pay-online') }}" class="menu-item {{ request()->routeIs('student.payments.pay-online') ? 'active' : '' }}">
+    <i class="fas fa-globe"></i> Pay Online
 </a>
 @endif
 <div class="menu-section-title">Academic</div>
