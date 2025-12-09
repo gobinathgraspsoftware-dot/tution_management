@@ -45,6 +45,8 @@ use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Staff\PaymentController as StaffPaymentController;
 use App\Http\Controllers\Parent\PaymentController as ParentPaymentController;
 use App\Http\Controllers\Student\PaymentController as StudentPaymentController;
+use App\Http\Controllers\Admin\PaymentGatewayConfigController;
+use App\Http\Controllers\OnlinePaymentController;
 
 
 /*
@@ -102,6 +104,33 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Online Payment Routes (Public - No Auth Required)
+|--------------------------------------------------------------------------
+| These routes handle payment callbacks and webhooks from payment gateways.
+| They must be accessible without authentication.
+*/
+
+// Payment Gateway Callbacks (return URL from gateway)
+Route::get('/payment/callback/{gateway}', [OnlinePaymentController::class, 'callback'])
+    ->name('payment.callback');
+
+// Payment Gateway Webhooks (server-to-server notification)
+Route::post('/payment/webhook/{gateway}', [OnlinePaymentController::class, 'webhook'])
+    ->name('payment.webhook')
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
+// Payment Status Pages (accessible without auth for redirect from gateway)
+Route::get('/payment/success', [OnlinePaymentController::class, 'success'])
+    ->name('payment.success');
+
+Route::get('/payment/failed', [OnlinePaymentController::class, 'failed'])
+    ->name('payment.failed');
+
+Route::get('/payment/pending', [OnlinePaymentController::class, 'pending'])
+    ->name('payment.pending');
+
 // Logout
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
@@ -130,6 +159,33 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         return redirect()->route('login');
     })->name('dashboard');
+
+    // Payment Checkout & Processing
+    Route::middleware('auth')->group(function () {
+        // Checkout page
+        Route::get('/payment/checkout/{invoice}', [OnlinePaymentController::class, 'checkout'])
+            ->name('payment.checkout');
+
+        // Process payment (redirect to gateway)
+        Route::post('/payment/process/{invoice}', [OnlinePaymentController::class, 'processPayment'])
+            ->name('payment.process');
+
+        // Check payment status (AJAX)
+        Route::get('/payment/status/{transactionId}', [OnlinePaymentController::class, 'checkStatus'])
+            ->name('payment.check-status');
+
+        // Retry failed payment
+        Route::get('/payment/retry/{transaction}', [OnlinePaymentController::class, 'retry'])
+            ->name('payment.retry');
+
+        // Cancel pending payment
+        Route::post('/payment/cancel/{transaction}', [OnlinePaymentController::class, 'cancel'])
+            ->name('payment.cancel');
+
+        // Invoice payment page (for students/parents)
+        Route::get('/payment/invoice/{invoice}', [OnlinePaymentController::class, 'invoicePayment'])
+            ->name('payment.invoice');
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -495,6 +551,62 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/{payment}/refund', [AdminPaymentController::class, 'refund'])->name('refund');
         });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Gateway Configuration Routes (Admin)
+        |--------------------------------------------------------------------------
+        | These routes are for managing payment gateway configurations.
+        | Add these inside your existing admin route group.
+        */
+
+        // Payment Gateway Management
+        Route::prefix('payment-gateways')->name('payment-gateways.')->group(function () {
+            Route::get('/', [PaymentGatewayConfigController::class, 'index'])
+                ->middleware('permission:view-payment-gateway-configs')
+                ->name('index');
+
+            Route::get('/create', [PaymentGatewayConfigController::class, 'create'])
+                ->middleware('permission:create-payment-gateway-configs')
+                ->name('create');
+
+            Route::post('/', [PaymentGatewayConfigController::class, 'store'])
+                ->middleware('permission:create-payment-gateway-configs')
+                ->name('store');
+
+            Route::get('/{paymentGateway}', [PaymentGatewayConfigController::class, 'show'])
+                ->middleware('permission:view-payment-gateway-configs')
+                ->name('show');
+
+            Route::get('/{paymentGateway}/edit', [PaymentGatewayConfigController::class, 'edit'])
+                ->middleware('permission:edit-payment-gateway-configs')
+                ->name('edit');
+
+            Route::put('/{paymentGateway}', [PaymentGatewayConfigController::class, 'update'])
+                ->middleware('permission:edit-payment-gateway-configs')
+                ->name('update');
+
+            Route::delete('/{paymentGateway}', [PaymentGatewayConfigController::class, 'destroy'])
+                ->middleware('permission:delete-payment-gateway-configs')
+                ->name('destroy');
+
+            // Additional routes
+            Route::patch('/{paymentGateway}/toggle-status', [PaymentGatewayConfigController::class, 'toggleStatus'])
+                ->middleware('permission:edit-payment-gateway-configs')
+                ->name('toggle-status');
+
+            Route::get('/{paymentGateway}/transactions', [PaymentGatewayConfigController::class, 'transactions'])
+                ->middleware('permission:view-payment-gateway-configs')
+                ->name('transactions');
+
+            Route::post('/{paymentGateway}/test', [PaymentGatewayConfigController::class, 'testConnection'])
+                ->middleware('permission:edit-payment-gateway-configs')
+                ->name('test');
+
+            Route::post('/{paymentGateway}/set-default', [PaymentGatewayConfigController::class, 'setDefault'])
+                ->middleware('permission:edit-payment-gateway-configs')
+                ->name('set-default');
+        });
+
     });
 
     /*
@@ -593,6 +705,11 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/{payment}/download-receipt', [ParentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
         });
 
+        // Parent Online Payment
+        Route::get('/payments/pay-online/{invoice?}', [OnlinePaymentController::class, 'parentPayOnline'])
+            ->middleware('permission:make-payment')
+            ->name('payments.pay-online');
+
     });
 
     /*
@@ -623,5 +740,9 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/{payment}/download-receipt', [StudentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
         });
 
+        // Student Online Payment
+        Route::get('/payments/pay-online/{invoice?}', [OnlinePaymentController::class, 'studentPayOnline'])
+            ->middleware('permission:make-payment')
+            ->name('payments.pay-online');
     });
 });
