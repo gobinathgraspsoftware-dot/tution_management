@@ -58,7 +58,7 @@
                     <div class="mb-4">
                         <label class="form-label text-muted small">Opening Cash</label>
                         @if($report->status === 'open')
-                        <form action="{{ route('admin.payments.update-daily-report') }}" method="POST" class="input-group">
+                        <form action="{{ route('admin.payments.daily-report.update') }}" method="POST" class="input-group">
                             @csrf
                             <input type="hidden" name="report_date" value="{{ $date->format('Y-m-d') }}">
                             <span class="input-group-text">RM</span>
@@ -124,7 +124,7 @@
                     @if($report->status === 'open')
                     <hr>
                     <!-- Close Report -->
-                    <form action="{{ route('admin.payments.close-daily-report') }}" method="POST" id="closeReportForm">
+                    <form action="{{ route('admin.payments.daily-report.close') }}" method="POST" id="closeReportForm">
                         @csrf
                         <input type="hidden" name="report_date" value="{{ $date->format('Y-m-d') }}">
                         <div class="mb-3">

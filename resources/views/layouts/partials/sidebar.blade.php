@@ -165,39 +165,32 @@
 
 {{-- Payment Menu with Submenu --}}
 @if(Route::has('admin.payments.index'))
-<div class="menu-item-group">
-    <a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">
-        <i class="fas fa-money-bill-wave"></i> Payments
-        <i class="fas fa-chevron-down menu-arrow ms-auto"></i>
-    </a>
-    <div class="submenu {{ request()->routeIs('admin.payments.*') ? 'show' : '' }}">
-        <a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.index') ? 'active' : '' }}">
-            <i class="fas fa-list"></i> All Payments
-        </a>
-        <a href="{{ route('admin.payments.create') }}" class="menu-item {{ request()->routeIs('admin.payments.create') ? 'active' : '' }}">
-            <i class="fas fa-plus"></i> Record Payment
-        </a>
-        @if(Route::has('admin.payments.pending-verifications'))
-        <a href="{{ route('admin.payments.pending-verifications') }}" class="menu-item {{ request()->routeIs('admin.payments.pending-verifications') ? 'active' : '' }}">
-            <i class="fas fa-clock"></i> Pending Verifications
-            @php
-                $pendingCount = \App\Models\Payment::where('status', 'pending_verification')->count();
-            @endphp
-            @if($pendingCount > 0)
-            <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
-            @endif
-        </a>
-        @endif
-        @if(Route::has('admin.payments.daily-report'))
-        <a href="{{ route('admin.payments.daily-report') }}" class="menu-item {{ request()->routeIs('admin.payments.daily-report') ? 'active' : '' }}">
-            <i class="fas fa-cash-register"></i> Daily Cash Report
-        </a>
-        @endif
-        <a href="{{ route('admin.payments.history') }}" class="menu-item {{ request()->routeIs('admin.payments.history') ? 'active' : '' }}">
-            <i class="fas fa-history"></i> Payment History
-        </a>
-    </div>
-</div>
+<div class="menu-section-title">Payments Management</div>
+<a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.index') ? 'active' : '' }}">
+    <i class="fas fa-list"></i> All Payments
+</a>
+<a href="{{ route('admin.payments.create') }}" class="menu-item {{ request()->routeIs('admin.payments.create') ? 'active' : '' }}">
+    <i class="fas fa-plus"></i> Record Payment
+</a>
+@if(Route::has('admin.payments.pending-verifications'))
+<a href="{{ route('admin.payments.pending-verifications') }}" class="menu-item {{ request()->routeIs('admin.payments.pending-verifications') ? 'active' : '' }}">
+    <i class="fas fa-clock"></i> Pending Verifications
+    @php
+        $pendingCount = \App\Models\Payment::where('status', 'pending_verification')->count();
+    @endphp
+    @if($pendingCount > 0)
+    <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+    @endif
+</a>
+@endif
+@if(Route::has('admin.payments.daily-report'))
+<a href="{{ route('admin.payments.daily-report') }}" class="menu-item {{ request()->routeIs('admin.payments.daily-report') ? 'active' : '' }}">
+    <i class="fas fa-cash-register"></i> Daily Cash Report
+</a>
+@endif
+<a href="{{ route('admin.payments.history') }}" class="menu-item {{ request()->routeIs('admin.payments.history') ? 'active' : '' }}">
+    <i class="fas fa-history"></i> Payment History
+</a>
 @else
 <a href="#" class="menu-item">
     <i class="fas fa-money-bill-wave"></i> Payments
