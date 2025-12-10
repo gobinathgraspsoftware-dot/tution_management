@@ -196,52 +196,43 @@
 @endif
 {{-- End: Payment Reminders Menu --}}
 
-{{-- Arrears Menu --}}
-@if(Route::has('admin.arrears.index'))
-<div class="menu-item-group">
-    <a href="#arrearsSubmenu" class="menu-item d-flex justify-content-between align-items-center"
-       data-bs-toggle="collapse" aria-expanded="{{ request()->routeIs('admin.arrears.*') ? 'true' : 'false' }}">
-        <span><i class="fas fa-exclamation-circle me-2"></i> Arrears & Due</span>
-        <i class="fas fa-chevron-down small"></i>
-    </a>
-    <div class="collapse {{ request()->routeIs('admin.arrears.*') ? 'show' : '' }}" id="arrearsSubmenu">
-        <a href="{{ route('admin.arrears.index') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.arrears.index') ? 'active' : '' }}">
-            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-        </a>
-        @if(Route::has('admin.arrears.students-list'))
-        <a href="{{ route('admin.arrears.students-list') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.arrears.students-list') ? 'active' : '' }}">
-            <i class="fas fa-users me-2"></i> Students List
-        </a>
-        @endif
-        @if(Route::has('admin.arrears.by-class'))
-        <a href="{{ route('admin.arrears.by-class') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.arrears.by-class') ? 'active' : '' }}">
-            <i class="fas fa-school me-2"></i> By Class
-        </a>
-        @endif
-        @if(Route::has('admin.arrears.aging-analysis'))
-        <a href="{{ route('admin.arrears.aging-analysis') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.arrears.aging-analysis') ? 'active' : '' }}">
-            <i class="fas fa-chart-pie me-2"></i> Aging Analysis
-        </a>
-        @endif
-        @if(Route::has('admin.arrears.due-report'))
-        <a href="{{ route('admin.arrears.due-report') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.arrears.due-report') ? 'active' : '' }}">
-            <i class="fas fa-calendar-times me-2"></i> Due Report
-        </a>
-        @endif
-        @if(Route::has('admin.arrears.forecast'))
-        <a href="{{ route('admin.arrears.forecast') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.arrears.forecast') ? 'active' : '' }}">
-            <i class="fas fa-chart-line me-2"></i> Forecast
-        </a>
-        @endif
-    </div>
-</div>
+{{-- Start: Arrears Menu --}}
+<div class="menu-section-title">Arrears Menu</div>
+<a href="{{ route('admin.arrears.index') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.index') ? 'active' : '' }}">
+    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+</a>
+@if(Route::has('admin.arrears.students-list'))
+<a href="{{ route('admin.arrears.students-list') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.students-list') ? 'active' : '' }}">
+    <i class="fas fa-users me-2"></i> Students List
+</a>
 @endif
+@if(Route::has('admin.arrears.by-class'))
+<a href="{{ route('admin.arrears.by-class') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.by-class') ? 'active' : '' }}">
+    <i class="fas fa-school me-2"></i> By Class
+</a>
+@endif
+@if(Route::has('admin.arrears.aging-analysis'))
+<a href="{{ route('admin.arrears.aging-analysis') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.aging-analysis') ? 'active' : '' }}">
+    <i class="fas fa-chart-pie me-2"></i> Aging Analysis
+</a>
+@endif
+@if(Route::has('admin.arrears.due-report'))
+<a href="{{ route('admin.arrears.due-report') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.due-report') ? 'active' : '' }}">
+    <i class="fas fa-calendar-times me-2"></i> Due Report
+</a>
+@endif
+@if(Route::has('admin.arrears.forecast'))
+<a href="{{ route('admin.arrears.forecast') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.forecast') ? 'active' : '' }}">
+    <i class="fas fa-chart-line me-2"></i> Forecast
+</a>
+@endif
+{{-- End: Arrears Menu --}}
 
 {{-- Payment Menu with Submenu --}}
 @if(Route::has('admin.payments.index'))
