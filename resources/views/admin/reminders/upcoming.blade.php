@@ -156,9 +156,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a href="{{ $reminder->invoice ? route('admin.invoices.show', $reminder->invoice) : '#' }}">
-                                                {{ $reminder->invoice?->invoice_number ?? 'N/A' }}
-                                            </a>
+                                            @if($reminder->invoice)
+                                                <a href="{{ route('admin.invoices.show', $reminder->invoice) }}">
+                                                    {{ $reminder->invoice->invoice_number ?? 'N/A' }}
+                                                </a>
+                                            @else
+                                                <span class="text-muted">N/A</span>
+                                            @endif
                                             <br>
                                             <small class="text-muted">Due: {{ $reminder->invoice?->due_date?->format('d M Y') ?? 'N/A' }}</small>
                                         </td>

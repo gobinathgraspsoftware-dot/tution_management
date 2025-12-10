@@ -170,40 +170,31 @@
 </a>
 {{-- End: Installments Menu --}}
 
-{{-- Payment Reminders Menu --}}
-@if(Route::has('admin.payment-reminders.index'))
-<div class="menu-item-group">
-    <a href="#remindersSubmenu" class="menu-item d-flex justify-content-between align-items-center"
-       data-bs-toggle="collapse" aria-expanded="{{ request()->routeIs('admin.payment-reminders.*') ? 'true' : 'false' }}">
-        <span><i class="fas fa-bell me-2"></i> Payment Reminders</span>
-        <i class="fas fa-chevron-down small"></i>
-    </a>
-    <div class="collapse {{ request()->routeIs('admin.payment-reminders.*') ? 'show' : '' }}" id="remindersSubmenu">
-        <a href="{{ route('admin.payment-reminders.index') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.payment-reminders.index') ? 'active' : '' }}">
-            <i class="fas fa-paper-plane me-2"></i> Send Reminders
-        </a>
-        @if(Route::has('admin.payment-reminders.history'))
-        <a href="{{ route('admin.payment-reminders.history') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.payment-reminders.history') ? 'active' : '' }}">
-            <i class="fas fa-history me-2"></i> History
-        </a>
-        @endif
-        @if(Route::has('admin.payment-reminders.schedule'))
-        <a href="{{ route('admin.payment-reminders.schedule') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.payment-reminders.schedule') ? 'active' : '' }}">
-            <i class="fas fa-calendar-alt me-2"></i> Schedule
-        </a>
-        @endif
-        @if(Route::has('admin.payment-reminders.settings'))
-        <a href="{{ route('admin.payment-reminders.settings') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.payment-reminders.settings') ? 'active' : '' }}">
-            <i class="fas fa-cog me-2"></i> Settings
-        </a>
-        @endif
-    </div>
-</div>
+{{-- Start: Payment Reminders Menu --}}
+<div class="menu-section-title">Payment Reminders</div>
+<a href="{{ route('admin.reminders.index') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.index') ? 'active' : '' }}">
+    <i class="fas fa-paper-plane me-2"></i> Send Reminders
+</a>
+@if(Route::has('admin.reminders.history'))
+<a href="{{ route('admin.reminders.history') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.history') ? 'active' : '' }}">
+    <i class="fas fa-history me-2"></i> History
+</a>
 @endif
+@if(Route::has('admin.reminders.schedule'))
+<a href="{{ route('admin.reminders.schedule') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.schedule') ? 'active' : '' }}">
+    <i class="fas fa-calendar-alt me-2"></i> Schedule
+</a>
+@endif
+@if(Route::has('admin.reminders.settings'))
+<a href="{{ route('admin.reminders.settings') }}"
+    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.settings') ? 'active' : '' }}">
+    <i class="fas fa-cog me-2"></i> Settings
+</a>
+@endif
+{{-- End: Payment Reminders Menu --}}
 
 {{-- Arrears Menu --}}
 @if(Route::has('admin.arrears.index'))

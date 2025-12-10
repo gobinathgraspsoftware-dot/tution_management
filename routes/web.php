@@ -615,57 +615,19 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::prefix('installments')->name('installments.')->group(function () {
-            // IMPORTANT: Specific routes MUST come BEFORE parameterized routes
-
-            // Overdue installments list
-            Route::get('/overdue', [InstallmentController::class, 'overdue'])
-                ->name('overdue');
-
-            // Export installments
-            Route::get('/export', [InstallmentController::class, 'export'])
-                ->name('export');
-
-            // Create installment plan form (uses ?invoice_id= query param)
-            Route::get('/create', [InstallmentController::class, 'create'])
-                ->name('create');
-
-            // Store new installment plan
-            Route::post('/', [InstallmentController::class, 'store'])
-                ->name('store');
-
-            // Bulk send reminders for multiple installments
-            Route::post('/bulk-reminder', [InstallmentController::class, 'bulkReminder'])
-                ->name('bulk-reminder');
-
-            // Student installment history
-            Route::get('/student/{student}/history', [InstallmentController::class, 'studentHistory'])
-                ->name('student-history');
-
-            // Update overdue status (for scheduler/AJAX)
-            Route::post('/update-overdue-status', [InstallmentController::class, 'updateOverdueStatus'])
-                ->name('update-overdue-status');
-
-            // Main listing
-            Route::get('/', [InstallmentController::class, 'index'])
-                ->name('index');
-
-            // Show installment plan details (by invoice)
-            Route::get('/{invoice}', [InstallmentController::class, 'show'])
-                ->name('show');
-
-            // Cancel installment plan
-            Route::delete('/{invoice}/cancel', [InstallmentController::class, 'cancel'])
-                ->name('cancel');
-
-            // Individual installment operations (use 'installment' prefix to differentiate)
-            Route::patch('/installment/{installment}', [InstallmentController::class, 'updateInstallment'])
-                ->name('update-installment');
-
-            Route::post('/installment/{installment}/payment', [InstallmentController::class, 'recordPayment'])
-                ->name('record-payment');
-
-            Route::post('/installment/{installment}/reminder', [InstallmentController::class, 'sendReminder'])
-                ->name('send-reminder');
+            Route::get('/overdue', [InstallmentController::class, 'overdue'])->name('overdue');
+            Route::get('/export', [InstallmentController::class, 'export'])->name('export');
+            Route::get('/create', [InstallmentController::class, 'create'])->name('create');
+            Route::post('/', [InstallmentController::class, 'store'])->name('store');
+            Route::post('/bulk-reminder', [InstallmentController::class, 'bulkReminder'])->name('bulk-reminder');
+            Route::get('/student/{student}/history', [InstallmentController::class, 'studentHistory'])->name('student-history');
+            Route::post('/update-overdue-status', [InstallmentController::class, 'updateOverdueStatus'])->name('update-overdue-status');
+            Route::get('/', [InstallmentController::class, 'index'])->name('index');
+            Route::get('/{invoice}', [InstallmentController::class, 'show'])->name('show');
+            Route::delete('/{invoice}/cancel', [InstallmentController::class, 'cancel'])->name('cancel');
+            Route::patch('/installment/{installment}', [InstallmentController::class, 'updateInstallment'])->name('update-installment');
+            Route::post('/installment/{installment}/payment', [InstallmentController::class, 'recordPayment'])->name('record-payment');
+            Route::post('/installment/{installment}/reminder', [InstallmentController::class, 'sendReminder'])->name('send-reminder');
         });
 
         /*
@@ -673,87 +635,85 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         | Payment Reminder Routes (Admin)
         |--------------------------------------------------------------------------
         */
-        Route::prefix('payment-reminders')->name('payment-reminders.')->group(function () {
-            // Main reminder routes
+        Route::prefix('reminders')->name('reminders.')->group(function () {
+
+            // --------------------------------------------------------
+            // Dashboard & Listing
+            // --------------------------------------------------------
             Route::get('/', [PaymentReminderController::class, 'index'])
                 ->name('index');
 
-            Route::get('/create', [PaymentReminderController::class, 'create'])
-                ->name('create');
+            // --------------------------------------------------------
+            // Static Routes (MUST be before {reminder} parameter routes)
+            // --------------------------------------------------------
 
-            Route::post('/', [PaymentReminderController::class, 'store'])
-                ->name('store');
+            // Upcoming reminders (next 7 days)
+            Route::get('/upcoming', [PaymentReminderController::class, 'upcoming'])
+                ->name('upcoming');
 
-            Route::get('/{reminder}', [PaymentReminderController::class, 'show'])
-                ->name('show');
-
-            Route::get('/{reminder}/edit', [PaymentReminderController::class, 'edit'])
-                ->name('edit');
-
-            Route::put('/{reminder}', [PaymentReminderController::class, 'update'])
-                ->name('update');
-
-            Route::delete('/{reminder}', [PaymentReminderController::class, 'destroy'])
-                ->name('destroy');
-
-            // Manual reminder actions
-            Route::post('/send-manual/{invoice}', [PaymentReminderController::class, 'sendManual'])
-                ->name('send-manual');
-
-            Route::post('/send-bulk', [PaymentReminderController::class, 'sendBulk'])
-                ->name('send-bulk');
-
-            Route::post('/send-all-overdue', [PaymentReminderController::class, 'sendAllOverdue'])
-                ->name('send-all-overdue');
-
-            // Reminder history
-            Route::get('/history', [PaymentReminderController::class, 'history'])
-                ->name('history');
-
-            Route::get('/history/student/{student}', [PaymentReminderController::class, 'studentHistory'])
-                ->name('student-history');
-
-            Route::get('/history/invoice/{invoice}', [PaymentReminderController::class, 'invoiceHistory'])
-                ->name('invoice-history');
-
-            // Settings
-            Route::get('/settings', [PaymentReminderController::class, 'settings'])
-                ->name('settings');
-
-            Route::post('/settings', [PaymentReminderController::class, 'updateSettings'])
-                ->name('update-settings');
-
-            // Schedule management
-            Route::get('/schedule', [PaymentReminderController::class, 'schedule'])
-                ->name('schedule');
-
-            Route::post('/schedule/update', [PaymentReminderController::class, 'updateSchedule'])
-                ->name('update-schedule');
-
-            // Reports
-            Route::get('/reports', [PaymentReminderController::class, 'reports'])
-                ->name('reports');
-
-            Route::get('/reports/effectiveness', [PaymentReminderController::class, 'effectivenessReport'])
-                ->name('effectiveness-report');
-
-            // Log viewer
+            // Reminder logs
             Route::get('/logs', [PaymentReminderController::class, 'logs'])
                 ->name('logs');
 
-            Route::get('/logs/{log}', [PaymentReminderController::class, 'viewLog'])
-                ->name('view-log');
-
-            // Export
+            // Export reminders to CSV
             Route::get('/export', [PaymentReminderController::class, 'export'])
                 ->name('export');
 
-            // AJAX endpoints
-            Route::post('/ajax/preview', [PaymentReminderController::class, 'previewMessage'])
-                ->name('ajax.preview');
+            // Settings page
+            Route::get('/settings', [PaymentReminderController::class, 'settings'])
+                ->name('settings');
 
-            Route::get('/ajax/pending-count', [PaymentReminderController::class, 'getPendingCount'])
-                ->name('ajax.pending-count');
+            // Update settings (PUT method - form uses @method('PUT'))
+            Route::put('/settings', [PaymentReminderController::class, 'updateSettings'])
+                ->name('update-settings');
+
+            // --------------------------------------------------------
+            // Quick Action Routes (POST)
+            // --------------------------------------------------------
+
+            // Schedule reminders for current/specified month
+            Route::post('/schedule-monthly', [PaymentReminderController::class, 'scheduleMonthly'])
+                ->name('schedule-monthly');
+
+            // Send all due reminders now
+            Route::post('/send-now', [PaymentReminderController::class, 'sendNow'])
+                ->name('send-now');
+
+            // Send overdue reminders
+            Route::post('/send-overdue', [PaymentReminderController::class, 'sendOverdueReminders'])
+                ->name('send-overdue');
+
+            // Retry failed reminders
+            Route::post('/retry-failed', [PaymentReminderController::class, 'retryFailed'])
+                ->name('retry-failed');
+
+            // Bulk cancel selected reminders
+            Route::post('/bulk-cancel', [PaymentReminderController::class, 'bulkCancel'])
+                ->name('bulk-cancel');
+
+            // Send follow-up reminder for specific invoice
+            Route::post('/send-follow-up/{invoice}', [PaymentReminderController::class, 'sendFollowUp'])
+                ->name('send-follow-up');
+
+            // API endpoint for cron/scheduler
+            Route::get('/trigger-scheduler', [PaymentReminderController::class, 'triggerScheduler'])
+                ->name('trigger-scheduler');
+
+            // --------------------------------------------------------
+            // Single Reminder Routes (MUST be AFTER static routes)
+            // --------------------------------------------------------
+
+            // View reminder details
+            Route::get('/{reminder}', [PaymentReminderController::class, 'show'])
+                ->name('show');
+
+            // Resend a reminder
+            Route::post('/{reminder}/resend', [PaymentReminderController::class, 'resend'])
+                ->name('resend');
+
+            // Cancel a reminder
+            Route::delete('/{reminder}', [PaymentReminderController::class, 'cancel'])
+                ->name('cancel');
         });
 
         /*

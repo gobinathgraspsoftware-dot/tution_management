@@ -134,9 +134,13 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('admin.invoices.show', $log->invoice) }}" class="fw-bold">
-                                    {{ $log->invoice->invoice_number ?? 'N/A' }}
-                                </a>
+                                @if($log->invoice)
+                                    <a href="{{ route('admin.invoices.show', $log->invoice) }}" class="fw-bold">
+                                        {{ $log->invoice->invoice_number ?? 'N/A' }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">N/A</span>
+                                @endif
                             </td>
                             <td>{{ $log->invoice->student->user->name ?? 'N/A' }}</td>
                             <td>

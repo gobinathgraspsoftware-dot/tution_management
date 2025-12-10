@@ -295,9 +295,13 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('admin.invoices.show', $reminder->invoice) }}" class="fw-bold">
-                                    {{ $reminder->invoice->invoice_number ?? 'N/A' }}
-                                </a>
+                                @if($reminder->invoice)
+                                    <a href="{{ route('admin.invoices.show', $reminder->invoice) }}" class="fw-bold">
+                                        {{ $reminder->invoice->invoice_number ?? 'N/A' }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">N/A</span>
+                                @endif
                             </td>
                             <td>
                                 {{ $reminder->invoice->student->user->name ?? $reminder->student->user->name ?? 'N/A' }}
@@ -330,7 +334,7 @@
                                 @endif
                                 {{ ucfirst($reminder->channel) }}
                             </td>
-                            <td>{{ $reminder->scheduled_date->format('d M Y') }}</td>
+                            <td>{{ $reminder->scheduled_date ? $reminder->scheduled_date->format('d M Y') : '-' }}</td>
                             <td>{{ $reminder->sent_at ? $reminder->sent_at->format('d M Y H:i') : '-' }}</td>
                             <td>
                                 @switch($reminder->status)

@@ -331,7 +331,7 @@ class PaymentReminderController extends Controller
      */
     public function resend(PaymentReminder $reminder)
     {
-        if ($reminder->invoice->isPaid()) {
+        if ($reminder->invoice && $reminder->invoice->isPaid()) {
             return back()->with('error', 'Cannot resend reminder for a paid invoice.');
         }
 
@@ -351,7 +351,7 @@ class PaymentReminderController extends Controller
      */
     public function upcoming()
     {
-        $upcomingReminders = PaymentReminder::with(['invoice.student.user'])
+        $upcomingReminders = PaymentReminder::with(['invoice.student.user', 'invoice.student.parent.user'])
             ->scheduled()
             ->whereDate('scheduled_date', '>=', today())
             ->whereDate('scheduled_date', '<=', today()->addDays(7))

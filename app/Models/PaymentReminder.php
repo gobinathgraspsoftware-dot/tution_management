@@ -64,8 +64,14 @@ class PaymentReminder extends Model
     const STATUS_SCHEDULED = 'scheduled';
     const STATUS_PENDING = 'pending';
     const STATUS_SENT = 'sent';
+    const STATUS_DELIVERED = 'delivered';
     const STATUS_FAILED = 'failed';
     const STATUS_CANCELLED = 'cancelled';
+
+    /**
+     * Default reminder days (10th, 18th, 24th of each month)
+     */
+    const DEFAULT_REMINDER_DAYS = [10, 18, 24];
 
     /**
      * Get all reminder types
@@ -103,9 +109,18 @@ class PaymentReminder extends Model
             self::STATUS_SCHEDULED => 'Scheduled',
             self::STATUS_PENDING => 'Pending',
             self::STATUS_SENT => 'Sent',
+            self::STATUS_DELIVERED => 'Delivered',
             self::STATUS_FAILED => 'Failed',
             self::STATUS_CANCELLED => 'Cancelled',
         ];
+    }
+
+    /**
+     * Get reminder days from config or default
+     */
+    public static function getReminderDays(): array
+    {
+        return config('payment_reminders.reminder_days', self::DEFAULT_REMINDER_DAYS);
     }
 
     // ==========================================
@@ -127,6 +142,12 @@ class PaymentReminder extends Model
         return $this->belongsTo(Student::class);
     }
 
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // Alias for createdBy
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -136,37 +157,90 @@ class PaymentReminder extends Model
     // SCOPES
     // ==========================================
 
+    /**
+     * Scope: scheduled reminders
+     */
     public function scopeScheduled($query)
     {
         return $query->where('status', self::STATUS_SCHEDULED);
     }
 
+    /**
+     * Scope: pending reminders
+     */
     public function scopePending($query)
     {
         return $query->where('status', self::STATUS_PENDING);
     }
 
+    /**
+     * Scope: sent reminders
+     */
     public function scopeSent($query)
     {
-        return $query->where('status', self::STATUS_SENT);
+        return $query->whereIn('status', [self::STATUS_SENT, self::STATUS_DELIVERED]);
     }
 
+    /**
+     * Scope: failed reminders
+     */
     public function scopeFailed($query)
     {
         return $query->where('status', self::STATUS_FAILED);
     }
 
+    /**
+     * Scope: cancelled reminders
+     */
     public function scopeCancelled($query)
     {
         return $query->where('status', self::STATUS_CANCELLED);
     }
 
+    /**
+     * Scope: by type (REQUIRED BY SERVICE)
+     */
+    public function scopeByType($query, $type)
+    {
+        return $query->where('reminder_type', $type);
+    }
+
+    /**
+     * Scope: by channel (REQUIRED BY SERVICE)
+     */
+    public function scopeByChannel($query, $channel)
+    {
+        return $query->where('channel', $channel);
+    }
+
+    /**
+     * Scope: alias for byType
+     */
+    public function scopeOfType($query, $type)
+    {
+        return $query->where('reminder_type', $type);
+    }
+
+    /**
+     * Scope: alias for byChannel
+     */
+    public function scopeForChannel($query, $channel)
+    {
+        return $query->where('channel', $channel);
+    }
+
+    /**
+     * Scope: reminders due to send
+     */
     public function scopeDueToSend($query)
     {
         return $query->whereIn('status', [self::STATUS_SCHEDULED, self::STATUS_PENDING])
                      ->where('scheduled_date', '<=', now()->toDateString());
     }
 
+    /**
+     * Scope: reminders that need retry
+     */
     public function scopeNeedsRetry($query)
     {
         return $query->where('status', self::STATUS_FAILED)
@@ -177,27 +251,26 @@ class PaymentReminder extends Model
                      });
     }
 
+    /**
+     * Scope: reminders for today (REQUIRED BY CONTROLLER)
+     */
     public function scopeForToday($query)
     {
         return $query->whereDate('scheduled_date', today());
     }
 
+    /**
+     * Scope: reminders for this month
+     */
     public function scopeForThisMonth($query)
     {
         return $query->whereMonth('scheduled_date', now()->month)
                      ->whereYear('scheduled_date', now()->year);
     }
 
-    public function scopeForChannel($query, $channel)
-    {
-        return $query->where('channel', $channel);
-    }
-
-    public function scopeOfType($query, $type)
-    {
-        return $query->where('reminder_type', $type);
-    }
-
+    /**
+     * Scope: upcoming reminders
+     */
     public function scopeUpcoming($query, $days = 7)
     {
         return $query->where('status', self::STATUS_SCHEDULED)
@@ -233,155 +306,129 @@ class PaymentReminder extends Model
     }
 
     /**
-     * Get status badge class
+     * Check if reminder can be cancelled
      */
-    public function getStatusBadgeAttribute(): string
+    public function getCanCancelAttribute(): bool
     {
-        return match($this->status) {
-            self::STATUS_SENT => 'success',
-            self::STATUS_SCHEDULED => 'info',
-            self::STATUS_PENDING => 'warning',
-            self::STATUS_FAILED => 'danger',
-            self::STATUS_CANCELLED => 'secondary',
-            default => 'secondary',
-        };
+        return in_array($this->status, [self::STATUS_SCHEDULED, self::STATUS_PENDING]);
     }
 
     /**
-     * Get channel icon
+     * Check if reminder can be resent
      */
-    public function getChannelIconAttribute(): string
+    public function getCanResendAttribute(): bool
     {
-        return match($this->channel) {
-            self::CHANNEL_WHATSAPP => 'fab fa-whatsapp',
-            self::CHANNEL_EMAIL => 'fas fa-envelope',
-            self::CHANNEL_SMS => 'fas fa-sms',
-            default => 'fas fa-bell',
-        };
+        return $this->status === self::STATUS_FAILED;
     }
 
     /**
-     * Check if can retry
+     * Check if reminder is overdue
      */
-    public function getCanRetryAttribute(): bool
+    public function getIsOverdueAttribute(): bool
     {
-        return $this->status === self::STATUS_FAILED &&
-               $this->attempts < $this->max_attempts;
+        return $this->scheduled_date &&
+               $this->scheduled_date->isPast() &&
+               in_array($this->status, [self::STATUS_SCHEDULED, self::STATUS_PENDING]);
     }
 
     // ==========================================
-    // HELPER METHODS
+    // METHODS
     // ==========================================
+
+    /**
+     * Cancel the reminder (REQUIRED BY CONTROLLER)
+     */
+    public function cancel(): bool
+    {
+        if (!$this->can_cancel) {
+            return false;
+        }
+
+        $this->status = self::STATUS_CANCELLED;
+        return $this->save();
+    }
+
+    /**
+     * Reset for retry (REQUIRED BY CONTROLLER)
+     */
+    public function resetForRetry(): bool
+    {
+        $this->status = self::STATUS_PENDING;
+        $this->error_message = null;
+        $this->next_retry_at = null;
+        return $this->save();
+    }
 
     /**
      * Mark as sent
      */
-    public function markAsSent(?string $response = null): void
+    public function markAsSent(?string $response = null): bool
     {
-        $this->update([
-            'status' => self::STATUS_SENT,
-            'sent_at' => now(),
-            'response' => $response,
-            'error_message' => null,
-        ]);
+        $this->status = self::STATUS_SENT;
+        $this->sent_at = now();
+        $this->response = $response;
+        $this->attempts = ($this->attempts ?? 0) + 1;
+        return $this->save();
+    }
+
+    /**
+     * Mark as delivered
+     */
+    public function markAsDelivered(?string $response = null): bool
+    {
+        $this->status = self::STATUS_DELIVERED;
+        $this->sent_at = $this->sent_at ?? now();
+        $this->response = $response;
+        return $this->save();
     }
 
     /**
      * Mark as failed
      */
-    public function markAsFailed(string $error): void
+    public function markAsFailed(string $errorMessage, ?int $retryDelayHours = null): bool
     {
-        $this->increment('attempts');
+        $this->status = self::STATUS_FAILED;
+        $this->error_message = $errorMessage;
+        $this->attempts = ($this->attempts ?? 0) + 1;
 
-        $updates = [
-            'error_message' => $error,
-        ];
+        // Set next retry time if not exceeded max attempts
+        $maxAttempts = $this->max_attempts ?? config('payment_reminders.max_retry_attempts', 3);
+        if ($this->attempts < $maxAttempts && $retryDelayHours) {
+            $this->next_retry_at = now()->addHours($retryDelayHours);
+        }
 
-        if ($this->attempts >= $this->max_attempts) {
-            $updates['status'] = self::STATUS_FAILED;
+        return $this->save();
+    }
+
+    /**
+     * Get recipient (phone or email based on channel)
+     */
+    public function getRecipient(): ?string
+    {
+        if ($this->channel === self::CHANNEL_EMAIL) {
+            return $this->recipient_email;
+        }
+        return $this->recipient_phone;
+    }
+
+    /**
+     * Set recipient based on channel
+     */
+    public function setRecipient(string $value): self
+    {
+        if ($this->channel === self::CHANNEL_EMAIL) {
+            $this->recipient_email = $value;
         } else {
-            // Schedule retry
-            $retryDelay = config('payment_reminders.retry_delay_hours', 2);
-            $updates['next_retry_at'] = now()->addHours($retryDelay);
-            $updates['status'] = self::STATUS_PENDING;
+            $this->recipient_phone = $value;
         }
-
-        $this->update($updates);
+        return $this;
     }
 
     /**
-     * Cancel reminder
+     * Check if invoice is paid
      */
-    public function cancel(): void
+    public function isInvoicePaid(): bool
     {
-        $this->update(['status' => self::STATUS_CANCELLED]);
-    }
-
-    /**
-     * Reset for retry
-     */
-    public function resetForRetry(): void
-    {
-        $this->update([
-            'status' => self::STATUS_PENDING,
-            'error_message' => null,
-            'next_retry_at' => null,
-        ]);
-    }
-
-    /**
-     * Get reminder statistics
-     */
-    public static function getStatistics(?Carbon $startDate = null, ?Carbon $endDate = null): array
-    {
-        $query = static::query();
-
-        if ($startDate && $endDate) {
-            $query->whereBetween('scheduled_date', [$startDate, $endDate]);
-        }
-
-        return [
-            'total' => (clone $query)->count(),
-            'sent' => (clone $query)->sent()->count(),
-            'failed' => (clone $query)->failed()->count(),
-            'scheduled' => (clone $query)->scheduled()->count(),
-            'pending' => (clone $query)->pending()->count(),
-            'cancelled' => (clone $query)->cancelled()->count(),
-            'by_channel' => [
-                'whatsapp' => (clone $query)->forChannel(self::CHANNEL_WHATSAPP)->sent()->count(),
-                'email' => (clone $query)->forChannel(self::CHANNEL_EMAIL)->sent()->count(),
-                'sms' => (clone $query)->forChannel(self::CHANNEL_SMS)->sent()->count(),
-            ],
-            'by_type' => [
-                'first' => (clone $query)->ofType(self::TYPE_FIRST)->count(),
-                'second' => (clone $query)->ofType(self::TYPE_SECOND)->count(),
-                'final' => (clone $query)->ofType(self::TYPE_FINAL)->count(),
-                'overdue' => (clone $query)->ofType(self::TYPE_OVERDUE)->count(),
-            ],
-            'success_rate' => static::calculateSuccessRate($query),
-        ];
-    }
-
-    /**
-     * Calculate success rate
-     */
-    protected static function calculateSuccessRate($query): float
-    {
-        $total = (clone $query)->whereIn('status', [self::STATUS_SENT, self::STATUS_FAILED])->count();
-        $sent = (clone $query)->sent()->count();
-
-        if ($total === 0) {
-            return 0;
-        }
-
-        return round(($sent / $total) * 100, 1);
-    }
-
-    /**
-     * Get reminder days configuration
-     */
-    public static function getReminderDays(): array
-    {
-        return config('payment_reminders.reminder_days', [10, 18, 24]);
+        return $this->invoice && $this->invoice->isPaid();
     }
 }
