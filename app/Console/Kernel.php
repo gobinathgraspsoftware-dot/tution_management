@@ -59,6 +59,104 @@ class Kernel extends ConsoleKernel
                 ->where('failed_at', '<', now()->subDays(30))
                 ->delete();
         })->weekly();
+
+        // Send payment reminders on the 10th of each month at 9:00 AM
+        $schedule->command('reminders:send-payment --type=initial')
+            ->monthlyOn(10, '09:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/payment-reminders.log'))
+            ->onSuccess(function () {
+                \Log::channel('reminders')->info('Initial payment reminders sent successfully on 10th');
+            })
+            ->onFailure(function () {
+                \Log::channel('reminders')->error('Failed to send initial payment reminders on 10th');
+            });
+
+        // Send follow-up reminders on the 18th of each month at 9:00 AM
+        $schedule->command('reminders:send-payment --type=followup')
+            ->monthlyOn(18, '09:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/payment-reminders.log'))
+            ->onSuccess(function () {
+                \Log::channel('reminders')->info('Follow-up payment reminders sent successfully on 18th');
+            })
+            ->onFailure(function () {
+                \Log::channel('reminders')->error('Failed to send follow-up payment reminders on 18th');
+            });
+
+        // Send final reminders on the 24th of each month at 9:00 AM
+        $schedule->command('reminders:send-payment --type=final')
+            ->monthlyOn(24, '09:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/payment-reminders.log'))
+            ->onSuccess(function () {
+                \Log::channel('reminders')->info('Final payment reminders sent successfully on 24th');
+            })
+            ->onFailure(function () {
+                \Log::channel('reminders')->error('Failed to send final payment reminders on 24th');
+            });
+
+        // =====================================================================
+        // INSTALLMENT REMINDER SCHEDULES
+        // Send installment due reminders 3 days before due date
+        // =====================================================================
+
+        // Daily check for upcoming installments (sends reminders 3 days before due)
+        $schedule->command('reminders:send-installment')
+            ->dailyAt('08:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/installment-reminders.log'));
+
+        // =====================================================================
+        // ARREARS UPDATE SCHEDULES
+        // Daily update of overdue statuses
+        // =====================================================================
+
+        // Update overdue invoices and installments daily at midnight
+        $schedule->command('arrears:update-status')
+            ->dailyAt('00:05')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/arrears-update.log'));
+
+        // Send critical arrears alerts to admin at 8 AM
+        $schedule->command('arrears:send-critical-alerts')
+            ->dailyAt('08:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/arrears-alerts.log'));
+
+        // =====================================================================
+        // CLEANUP AND MAINTENANCE SCHEDULES
+        // =====================================================================
+
+        // Clean up old reminder logs (older than 90 days)
+        $schedule->command('reminders:cleanup --days=90')
+            ->weekly()
+            ->sundays()
+            ->at('03:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->runInBackground();
+
+        // Generate weekly arrears summary report
+        $schedule->command('arrears:generate-weekly-report')
+            ->weekly()
+            ->mondays()
+            ->at('07:00')
+            ->timezone('Asia/Kuala_Lumpur')
+            ->runInBackground()
+            ->emailOutputOnFailure(config('mail.admin_email'));
+
     }
 
     /**

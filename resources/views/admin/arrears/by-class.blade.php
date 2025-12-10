@@ -1,0 +1,215 @@
+@extends('layouts.app')
+
+@section('title', 'Arrears by Class')
+@section('page-title', 'Arrears by Class')
+
+@section('content')
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.arrears.index') }}">Arrears</a></li>
+            <li class="breadcrumb-item active">By Class</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-chalkboard me-2"></i> Arrears by Class</h4>
+            <p class="text-muted mb-0">Breakdown of outstanding payments by class</p>
+        </div>
+        <div>
+            <a href="{{ route('admin.arrears.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Arrears
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h3 class="mb-0">RM {{ number_format($totalArrears, 2) }}</h3>
+                            <small>Total Arrears Across All Classes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-school fa-2x opacity-75"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h3 class="mb-0">{{ $arrearsByClass->count() }}</h3>
+                            <small>Classes with Arrears</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h3 class="mb-0">{{ $arrearsByClass->sum('students_with_arrears') }}</h3>
+                            <small>Total Students with Arrears</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Arrears by Class Chart -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Arrears Distribution</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="arrearsByClassChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Arrears by Class Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-table me-2"></i> Detailed Breakdown</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Class</th>
+                            <th>Students with Arrears</th>
+                            <th>Total Arrears</th>
+                            <th>% of Total</th>
+                            <th>Avg. per Student</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($arrearsByClass as $classData)
+                            @php
+                                $percentage = $totalArrears > 0 ? ($classData->total_arrears / $totalArrears) * 100 : 0;
+                                $avgPerStudent = $classData->students_with_arrears > 0
+                                    ? $classData->total_arrears / $classData->students_with_arrears
+                                    : 0;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <strong>{{ $classData->name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ $classData->code ?? '' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">{{ $classData->students_with_arrears }} students</span>
+                                </td>
+                                <td>
+                                    <strong class="text-danger">RM {{ number_format($classData->total_arrears, 2) }}</strong>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-danger" role="progressbar"
+                                                 style="width: {{ $percentage }}%"></div>
+                                        </div>
+                                        <small>{{ number_format($percentage, 1) }}%</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    RM {{ number_format($avgPerStudent, 2) }}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ route('admin.arrears.index', ['class_id' => $classData->id]) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                        <p>No arrears found by class!</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    @if($arrearsByClass->isNotEmpty())
+                        <tfoot class="table-light">
+                            <tr>
+                                <th>Total</th>
+                                <th>{{ $arrearsByClass->sum('students_with_arrears') }} students</th>
+                                <th class="text-danger">RM {{ number_format($totalArrears, 2) }}</th>
+                                <th>100%</th>
+                                <th>
+                                    RM {{ number_format($arrearsByClass->sum('students_with_arrears') > 0 ? $totalArrears / $arrearsByClass->sum('students_with_arrears') : 0, 2) }}
+                                </th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    @endif
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var ctx = document.getElementById('arrearsByClassChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($arrearsByClass->pluck('name')) !!},
+            datasets: [{
+                label: 'Arrears Amount (RM)',
+                data: {!! json_encode($arrearsByClass->pluck('total_arrears')) !!},
+                backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'RM ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+@endpush
+@endsection

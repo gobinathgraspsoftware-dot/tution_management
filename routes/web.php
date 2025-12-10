@@ -47,7 +47,9 @@ use App\Http\Controllers\Parent\PaymentController as ParentPaymentController;
 use App\Http\Controllers\Student\PaymentController as StudentPaymentController;
 use App\Http\Controllers\Admin\PaymentGatewayConfigController;
 use App\Http\Controllers\OnlinePaymentController;
-
+use App\Http\Controllers\Admin\InstallmentController;
+use App\Http\Controllers\Admin\PaymentReminderController;
+use App\Http\Controllers\Admin\ArrearsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -605,6 +607,221 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/{paymentGateway}/set-default', [PaymentGatewayConfigController::class, 'setDefault'])
                 // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('set-default');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Installment Management Routes (Admin)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('installments')->name('installments.')->group(function () {
+            // Main installment routes
+            Route::get('/', [InstallmentController::class, 'index'])
+                ->name('index');
+
+            Route::get('/create/{invoice}', [InstallmentController::class, 'create'])
+                ->name('create');
+
+            Route::post('/store/{invoice}', [InstallmentController::class, 'store'])
+                ->name('store');
+
+            Route::get('/{installment}', [InstallmentController::class, 'show'])
+                ->name('show');
+
+            Route::get('/{installment}/edit', [InstallmentController::class, 'edit'])
+                ->name('edit');
+
+            Route::put('/{installment}', [InstallmentController::class, 'update'])
+                ->name('update');
+
+            Route::delete('/{installment}', [InstallmentController::class, 'destroy'])
+                ->name('destroy');
+
+            // Invoice installment plan management
+            Route::get('/invoice/{invoice}', [InstallmentController::class, 'invoicePlan'])
+                ->name('invoice-plan');
+
+            Route::post('/invoice/{invoice}/setup', [InstallmentController::class, 'setupPlan'])
+                ->name('setup-plan');
+
+            Route::delete('/invoice/{invoice}/cancel', [InstallmentController::class, 'cancelPlan'])
+                ->name('cancel-plan');
+
+            // Payment operations
+            Route::get('/{installment}/pay', [InstallmentController::class, 'payForm'])
+                ->name('pay-form');
+
+            Route::post('/{installment}/pay', [InstallmentController::class, 'recordPayment'])
+                ->name('record-payment');
+
+            // Student installment view
+            Route::get('/student/{student}', [InstallmentController::class, 'studentInstallments'])
+                ->name('student');
+
+            // Reports
+            Route::get('/reports/overdue', [InstallmentController::class, 'overdueReport'])
+                ->name('overdue-report');
+
+            Route::get('/reports/upcoming', [InstallmentController::class, 'upcomingReport'])
+                ->name('upcoming-report');
+
+            // Export
+            Route::get('/export', [InstallmentController::class, 'export'])
+                ->name('export');
+
+            // AJAX endpoints
+            Route::get('/ajax/calculate', [InstallmentController::class, 'calculateInstallments'])
+                ->name('ajax.calculate');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Reminder Routes (Admin)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('payment-reminders')->name('payment-reminders.')->group(function () {
+            // Main reminder routes
+            Route::get('/', [PaymentReminderController::class, 'index'])
+                ->name('index');
+
+            Route::get('/create', [PaymentReminderController::class, 'create'])
+                ->name('create');
+
+            Route::post('/', [PaymentReminderController::class, 'store'])
+                ->name('store');
+
+            Route::get('/{reminder}', [PaymentReminderController::class, 'show'])
+                ->name('show');
+
+            Route::get('/{reminder}/edit', [PaymentReminderController::class, 'edit'])
+                ->name('edit');
+
+            Route::put('/{reminder}', [PaymentReminderController::class, 'update'])
+                ->name('update');
+
+            Route::delete('/{reminder}', [PaymentReminderController::class, 'destroy'])
+                ->name('destroy');
+
+            // Manual reminder actions
+            Route::post('/send-manual/{invoice}', [PaymentReminderController::class, 'sendManual'])
+                ->name('send-manual');
+
+            Route::post('/send-bulk', [PaymentReminderController::class, 'sendBulk'])
+                ->name('send-bulk');
+
+            Route::post('/send-all-overdue', [PaymentReminderController::class, 'sendAllOverdue'])
+                ->name('send-all-overdue');
+
+            // Reminder history
+            Route::get('/history', [PaymentReminderController::class, 'history'])
+                ->name('history');
+
+            Route::get('/history/student/{student}', [PaymentReminderController::class, 'studentHistory'])
+                ->name('student-history');
+
+            Route::get('/history/invoice/{invoice}', [PaymentReminderController::class, 'invoiceHistory'])
+                ->name('invoice-history');
+
+            // Settings
+            Route::get('/settings', [PaymentReminderController::class, 'settings'])
+                ->name('settings');
+
+            Route::post('/settings', [PaymentReminderController::class, 'updateSettings'])
+                ->name('update-settings');
+
+            // Schedule management
+            Route::get('/schedule', [PaymentReminderController::class, 'schedule'])
+                ->name('schedule');
+
+            Route::post('/schedule/update', [PaymentReminderController::class, 'updateSchedule'])
+                ->name('update-schedule');
+
+            // Reports
+            Route::get('/reports', [PaymentReminderController::class, 'reports'])
+                ->name('reports');
+
+            Route::get('/reports/effectiveness', [PaymentReminderController::class, 'effectivenessReport'])
+                ->name('effectiveness-report');
+
+            // Log viewer
+            Route::get('/logs', [PaymentReminderController::class, 'logs'])
+                ->name('logs');
+
+            Route::get('/logs/{log}', [PaymentReminderController::class, 'viewLog'])
+                ->name('view-log');
+
+            // Export
+            Route::get('/export', [PaymentReminderController::class, 'export'])
+                ->name('export');
+
+            // AJAX endpoints
+            Route::post('/ajax/preview', [PaymentReminderController::class, 'previewMessage'])
+                ->name('ajax.preview');
+
+            Route::get('/ajax/pending-count', [PaymentReminderController::class, 'getPendingCount'])
+                ->name('ajax.pending-count');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Arrears Management Routes (Admin)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('arrears')->name('arrears.')->group(function () {
+            // Main arrears dashboard
+            Route::get('/', [ArrearsController::class, 'index'])
+                ->name('index');
+
+            // Student-specific arrears
+            Route::get('/student/{student}', [ArrearsController::class, 'student'])
+                ->name('student');
+
+            // Students with arrears list
+            Route::get('/students-list', [ArrearsController::class, 'studentsWithArrears'])
+                ->name('students-list');
+
+            // Arrears by class
+            Route::get('/by-class', [ArrearsController::class, 'byClass'])
+                ->name('by-class');
+
+            // Arrears by subject
+            Route::get('/by-subject', [ArrearsController::class, 'bySubject'])
+                ->name('by-subject');
+
+            // Due report (upcoming dues)
+            Route::get('/due-report', [ArrearsController::class, 'dueReport'])
+                ->name('due-report');
+
+            // Collection forecast
+            Route::get('/forecast', [ArrearsController::class, 'forecast'])
+                ->name('forecast');
+
+            // Aging analysis
+            Route::get('/aging-analysis', [ArrearsController::class, 'agingAnalysis'])
+                ->name('aging-analysis');
+
+            // Bulk reminder sending
+            Route::post('/send-bulk-reminders', [ArrearsController::class, 'sendBulkReminders'])
+                ->name('send-bulk-reminders');
+
+            // Flag student for follow-up
+            Route::post('/flag-student/{student}', [ArrearsController::class, 'flagStudent'])
+                ->name('flag-student');
+
+            // Export & Print
+            Route::get('/export', [ArrearsController::class, 'export'])
+                ->name('export');
+
+            Route::get('/print', [ArrearsController::class, 'print'])
+                ->name('print');
+
+            // API endpoints
+            Route::get('/summary', [ArrearsController::class, 'getSummary'])
+                ->name('summary');
+
+            // Daily update (can be called by scheduler)
+            Route::post('/daily-update', [ArrearsController::class, 'dailyUpdate'])
+                ->name('daily-update');
         });
 
     });

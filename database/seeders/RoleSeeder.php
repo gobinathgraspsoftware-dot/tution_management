@@ -20,7 +20,7 @@ class RoleSeeder extends Seeder
         // SUPER ADMIN - Full System Access
         // ===================================================================
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
-        
+
         // Super Admin gets ALL permissions
         $superAdmin->syncPermissions(Permission::all());
         $this->command->info('✓ Super Admin role created with ALL permissions');
@@ -29,7 +29,7 @@ class RoleSeeder extends Seeder
         // ADMIN - Operational Management
         // ===================================================================
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        
+
         $adminPermissions = [
             // Dashboard
             'view-dashboard',
@@ -364,6 +364,20 @@ class RoleSeeder extends Seeder
             'view-class-reports',
             'view-payment-analytics',
             'view-enrollment-analytics',
+
+            // Installment, Reminders & Arrears
+            'view-installments', 'create-installments', 'edit-installments', 'delete-installments',
+            'setup-installment-plan', 'cancel-installment-plan', 'record-installment-payment',
+            'view-installment-reports', 'export-installments', 'view-overdue-installments',
+            'manage-installment-settings',
+            'view-payment-reminders', 'create-payment-reminders', 'edit-payment-reminders',
+            'delete-payment-reminders', 'send-payment-reminders', 'send-bulk-reminders',
+            'view-reminder-history', 'manage-reminder-settings', 'manage-reminder-schedule',
+            'view-reminder-reports', 'view-reminder-logs', 'export-reminder-reports',
+            'view-arrears', 'view-arrears-dashboard', 'view-arrears-by-class',
+            'view-arrears-by-subject', 'view-student-arrears', 'view-due-reports',
+            'view-collection-forecast', 'view-aging-analysis', 'send-arrears-reminders',
+            'flag-student-arrears', 'export-arrears-reports', 'print-arrears-reports',
         ];
 
         $admin->syncPermissions($adminPermissions);
@@ -373,7 +387,7 @@ class RoleSeeder extends Seeder
         // STAFF - Teaching and Attendance Management
         // ===================================================================
         $staff = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
-        
+
         $staffPermissions = [
             // Dashboard
             'view-dashboard',
@@ -479,6 +493,11 @@ class RoleSeeder extends Seeder
             'view-reports',
             'view-student-reports',
             'view-class-reports',
+
+            // Installment, Reminders & Arrears
+            'view-installments', 'record-installment-payment', 'view-installment-reports',
+            'view-payment-reminders', 'view-reminder-history',
+            'view-arrears', 'view-student-arrears', 'view-due-reports',
         ];
 
         $staff->syncPermissions($staffPermissions);
@@ -488,7 +507,7 @@ class RoleSeeder extends Seeder
         // TEACHER - Teaching and Material Management
         // ===================================================================
         $teacher = Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
-        
+
         $teacherPermissions = [
             // Dashboard
             'view-dashboard',
@@ -561,7 +580,7 @@ class RoleSeeder extends Seeder
         // PARENT - View Student Progress, Make Payments
         // ===================================================================
         $parent = Role::firstOrCreate(['name' => 'parent', 'guard_name' => 'web']);
-        
+
         $parentPermissions = [
             // Dashboard
             'view-dashboard',
@@ -632,7 +651,7 @@ class RoleSeeder extends Seeder
         // STUDENT - Access Materials, View Schedule
         // ===================================================================
         $student = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
-        
+
         $studentPermissions = [
             // Dashboard
             'view-dashboard',
