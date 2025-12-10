@@ -3,8 +3,12 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use App\Models\Invoice;
+use App\Models\Installment;
 use App\Services\InvoiceService;
-use App\Services\PaymentCycleService;
+use App\Services\InstallmentService;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class UpdateOverdueInvoices extends Command
 {
@@ -14,25 +18,28 @@ class UpdateOverdueInvoices extends Command
      * @var string
      */
     protected $signature = 'invoices:update-overdue
-                            {--show-details : Show details of overdue invoices}';
+                            {--dry-run : Show what would be updated without making changes}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Update invoice status to overdue for past due invoices';
+    protected $description = 'Update status of overdue invoices and installments';
 
     protected $invoiceService;
-    protected $paymentCycleService;
+    protected $installmentService;
 
+    /**
+     * Create a new command instance.
+     */
     public function __construct(
         InvoiceService $invoiceService,
-        PaymentCycleService $paymentCycleService
+        InstallmentService $installmentService
     ) {
         parent::__construct();
         $this->invoiceService = $invoiceService;
-        $this->paymentCycleService = $paymentCycleService;
+        $this->installmentService = $installmentService;
     }
 
     /**
@@ -40,81 +47,113 @@ class UpdateOverdueInvoices extends Command
      */
     public function handle()
     {
-        $this->info("Checking for overdue invoices...");
+        $this->info('Checking for overdue invoices and installments...');
+        $this->newLine();
+
+        $isDryRun = $this->option('dry-run');
+        $today = Carbon::today();
+
+        if ($isDryRun) {
+            $this->warn('DRY RUN MODE - No changes will be made.');
+            $this->newLine();
+        }
 
         try {
-            // Update overdue status
-            $count = $this->invoiceService->updateOverdueInvoices();
+            // Find pending invoices that are past due date
+            $overdueInvoices = Invoice::where('status', 'pending')
+                ->where('due_date', '<', $today)
+                ->get();
 
-            if ($count > 0) {
-                $this->warn("Marked {$count} invoices as overdue.");
-            } else {
-                $this->info("No new overdue invoices found.");
-            }
+            $this->info("Found {$overdueInvoices->count()} invoices to mark as overdue.");
 
-            // Show details if requested
-            if ($this->option('show-details')) {
-                $this->newLine();
-                $this->info("Current Overdue Invoices:");
-
-                $overdueInvoices = $this->paymentCycleService->getOverduePaymentCycles();
-
-                if ($overdueInvoices->count() > 0) {
-                    $tableData = $overdueInvoices->map(function($item) {
-                        return [
-                            $item['invoice_number'],
-                            $item['student_name'],
-                            $item['student_code'],
-                            'RM ' . number_format($item['balance'], 2),
-                            $item['due_date']->format('Y-m-d'),
-                            $item['days_overdue'] . ' days',
-                            $item['reminder_count'],
-                        ];
-                    })->toArray();
-
+            if ($overdueInvoices->isNotEmpty()) {
+                if ($isDryRun) {
                     $this->table(
-                        ['Invoice #', 'Student', 'Code', 'Balance', 'Due Date', 'Days Overdue', 'Reminders'],
-                        $tableData
-                    );
-
-                    $this->newLine();
-                    $totalOverdue = $overdueInvoices->sum('balance');
-                    $this->info("Total overdue amount: RM " . number_format($totalOverdue, 2));
-                } else {
-                    $this->info("No overdue invoices found.");
-                }
-
-                // Show students with payment issues
-                $this->newLine();
-                $this->info("Students with Multiple Overdue Invoices:");
-
-                $studentsWithIssues = $this->paymentCycleService->getStudentsWithPaymentIssues();
-
-                if ($studentsWithIssues->count() > 0) {
-                    $tableData = $studentsWithIssues->map(function($item) {
-                        return [
-                            $item['student_name'],
-                            $item['student_code'],
-                            $item['overdue_count'],
-                            'RM ' . number_format($item['total_overdue'], 2),
-                            $item['oldest_days'] . ' days',
-                            $item['parent_phone'],
-                        ];
-                    })->toArray();
-
-                    $this->table(
-                        ['Student', 'Code', 'Overdue Count', 'Total', 'Oldest', 'Parent Phone'],
-                        $tableData
+                        ['Invoice #', 'Student', 'Due Date', 'Amount', 'Balance'],
+                        $overdueInvoices->map(function($invoice) {
+                            return [
+                                $invoice->invoice_number,
+                                $invoice->student?->user?->name ?? 'N/A',
+                                $invoice->due_date->format('d M Y'),
+                                'RM ' . number_format($invoice->total_amount, 2),
+                                'RM ' . number_format($invoice->balance, 2),
+                            ];
+                        })
                     );
                 } else {
-                    $this->info("No students with multiple overdue invoices.");
+                    $updatedInvoices = Invoice::where('status', 'pending')
+                        ->where('due_date', '<', $today)
+                        ->update(['status' => 'overdue']);
+
+                    $this->info("✓ Updated {$updatedInvoices} invoices to overdue status.");
                 }
             }
+
+            $this->newLine();
+
+            // Find pending/partial installments that are past due date
+            $overdueInstallments = Installment::whereIn('status', ['pending', 'partial'])
+                ->where('due_date', '<', $today)
+                ->get();
+
+            $this->info("Found {$overdueInstallments->count()} installments to mark as overdue.");
+
+            if ($overdueInstallments->isNotEmpty()) {
+                if ($isDryRun) {
+                    $this->table(
+                        ['Invoice #', 'Installment #', 'Due Date', 'Amount', 'Balance'],
+                        $overdueInstallments->map(function($inst) {
+                            return [
+                                $inst->invoice?->invoice_number ?? 'N/A',
+                                $inst->installment_number,
+                                $inst->due_date->format('d M Y'),
+                                'RM ' . number_format($inst->amount, 2),
+                                'RM ' . number_format($inst->balance, 2),
+                            ];
+                        })
+                    );
+                } else {
+                    $updatedInstallments = Installment::whereIn('status', ['pending', 'partial'])
+                        ->where('due_date', '<', $today)
+                        ->update(['status' => 'overdue']);
+
+                    $this->info("✓ Updated {$updatedInstallments} installments to overdue status.");
+                }
+            }
+
+            $this->newLine();
+
+            // Summary statistics
+            $this->info('Current Status Summary:');
+            $this->table(
+                ['Metric', 'Count', 'Amount'],
+                [
+                    ['Overdue Invoices', Invoice::overdue()->count(), 'RM ' . number_format(Invoice::overdue()->sum(\DB::raw('total_amount - paid_amount')), 2)],
+                    ['Overdue Installments', Installment::overdue()->count(), 'RM ' . number_format(Installment::overdue()->sum(\DB::raw('amount - paid_amount')), 2)],
+                    ['Pending Invoices', Invoice::pending()->count(), 'RM ' . number_format(Invoice::pending()->sum(\DB::raw('total_amount - paid_amount')), 2)],
+                ]
+            );
+
+            $this->newLine();
+            $this->info('✅ Overdue update process completed.');
+
+            Log::info('Overdue invoices update completed', [
+                'dry_run' => $isDryRun,
+                'overdue_invoices_found' => $overdueInvoices->count(),
+                'overdue_installments_found' => $overdueInstallments->count(),
+                'date' => $today->toDateString(),
+            ]);
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error("Error updating overdue invoices: {$e->getMessage()}");
+            $this->error('Error updating overdue status: ' . $e->getMessage());
+
+            Log::error('Overdue update command failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return Command::FAILURE;
         }
     }
