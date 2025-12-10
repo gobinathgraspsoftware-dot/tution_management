@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\InstallmentPlanRequest;
 use App\Models\Invoice;
 use App\Models\Installment;
+use App\Models\Payment;
 use App\Models\Student;
 use App\Services\InstallmentService;
 use App\Services\PaymentReminderService;
@@ -28,6 +29,8 @@ class InstallmentController extends Controller
 
     /**
      * Display installment plans listing
+     * Route: GET /admin/installments
+     * Name: admin.installments.index
      */
     public function index(Request $request)
     {
@@ -72,6 +75,8 @@ class InstallmentController extends Controller
 
     /**
      * Show form to create installment plan
+     * Route: GET /admin/installments/create?invoice_id=X
+     * Name: admin.installments.create
      */
     public function create(Request $request)
     {
@@ -104,6 +109,8 @@ class InstallmentController extends Controller
 
     /**
      * Store installment plan
+     * Route: POST /admin/installments
+     * Name: admin.installments.store
      */
     public function store(InstallmentPlanRequest $request)
     {
@@ -133,6 +140,8 @@ class InstallmentController extends Controller
 
     /**
      * Display installment plan details
+     * Route: GET /admin/installments/{invoice}
+     * Name: admin.installments.show
      */
     public function show(Invoice $invoice)
     {
@@ -157,6 +166,8 @@ class InstallmentController extends Controller
 
     /**
      * Update individual installment
+     * Route: PATCH /admin/installments/installment/{installment}
+     * Name: admin.installments.update-installment
      */
     public function updateInstallment(Request $request, Installment $installment)
     {
@@ -184,6 +195,8 @@ class InstallmentController extends Controller
 
     /**
      * Cancel installment plan
+     * Route: DELETE /admin/installments/{invoice}/cancel
+     * Name: admin.installments.cancel
      */
     public function cancel(Invoice $invoice)
     {
@@ -200,6 +213,8 @@ class InstallmentController extends Controller
 
     /**
      * Record payment for specific installment
+     * Route: POST /admin/installments/installment/{installment}/payment
+     * Name: admin.installments.record-payment
      */
     public function recordPayment(Request $request, Installment $installment)
     {
@@ -214,7 +229,7 @@ class InstallmentController extends Controller
             DB::beginTransaction();
 
             // Create payment record
-            $payment = \App\Models\Payment::create([
+            $payment = Payment::create([
                 'invoice_id' => $installment->invoice_id,
                 'student_id' => $installment->invoice->student_id,
                 'amount' => $request->amount,
@@ -241,6 +256,8 @@ class InstallmentController extends Controller
 
     /**
      * Send reminder for specific installment
+     * Route: POST /admin/installments/installment/{installment}/reminder
+     * Name: admin.installments.send-reminder
      */
     public function sendReminder(Installment $installment)
     {
@@ -265,6 +282,8 @@ class InstallmentController extends Controller
 
     /**
      * Get student's installment history
+     * Route: GET /admin/installments/student/{student}/history
+     * Name: admin.installments.student-history
      */
     public function studentHistory(Student $student)
     {
@@ -276,6 +295,8 @@ class InstallmentController extends Controller
 
     /**
      * Overdue installments list
+     * Route: GET /admin/installments/overdue
+     * Name: admin.installments.overdue
      */
     public function overdue()
     {
@@ -291,6 +312,8 @@ class InstallmentController extends Controller
 
     /**
      * Bulk send reminders for overdue installments
+     * Route: POST /admin/installments/bulk-reminder
+     * Name: admin.installments.bulk-reminder
      */
     public function bulkReminder(Request $request)
     {
@@ -331,6 +354,8 @@ class InstallmentController extends Controller
 
     /**
      * Update overdue status (can be called via scheduler)
+     * Route: POST /admin/installments/update-overdue-status
+     * Name: admin.installments.update-overdue-status
      */
     public function updateOverdueStatus()
     {
@@ -344,6 +369,8 @@ class InstallmentController extends Controller
 
     /**
      * Export installments
+     * Route: GET /admin/installments/export
+     * Name: admin.installments.export
      */
     public function export(Request $request)
     {

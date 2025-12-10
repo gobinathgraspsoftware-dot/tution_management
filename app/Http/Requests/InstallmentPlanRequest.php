@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class InstallmentPlanRequest extends FormRequest
 {
@@ -12,70 +11,22 @@ class InstallmentPlanRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('manage-installments');
+        return auth()->user()->can('manage-installments');
     }
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'invoice_id' => [
-                'required',
-                'exists:invoices,id',
-                Rule::exists('invoices', 'id')->where(function ($query) {
-                    $query->whereIn('status', ['pending', 'partial', 'overdue'])
-                          ->where('is_installment', false);
-                }),
-            ],
-            'number_of_installments' => [
-                'required',
-                'integer',
-                'min:2',
-                'max:12',
-            ],
-            'start_date' => [
-                'required',
-                'date',
-                'after_or_equal:today',
-            ],
-            'interval_days' => [
-                'nullable',
-                'integer',
-                'min:7',
-                'max:90',
-            ],
-            'custom_amounts' => [
-                'nullable',
-                'array',
-                function ($attribute, $value, $fail) {
-                    if ($value && count($value) !== (int) $this->input('number_of_installments')) {
-                        $fail('The number of custom amounts must match the number of installments.');
-                    }
-
-                    // Validate each amount is numeric and positive
-                    if ($value) {
-                        foreach ($value as $index => $amount) {
-                            if (!is_numeric($amount) || $amount <= 0) {
-                                $fail("Custom amount at position " . ($index + 1) . " must be a positive number.");
-                            }
-                        }
-                    }
-                },
-            ],
-            'custom_amounts.*' => [
-                'nullable',
-                'numeric',
-                'min:0.01',
-            ],
-            'notes' => [
-                'nullable',
-                'string',
-                'max:500',
-            ],
+            'invoice_id' => 'required|exists:invoices,id',
+            'number_of_installments' => 'required|integer|min:2|max:12',
+            'start_date' => 'required|date|after_or_equal:today',
+            'interval_days' => 'nullable|integer|min:1|max:90',
+            'custom_amounts' => 'nullable|array',
+            'custom_amounts.*' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
         ];
     }
 
@@ -86,15 +37,16 @@ class InstallmentPlanRequest extends FormRequest
     {
         return [
             'invoice_id.required' => 'Please select an invoice.',
-            'invoice_id.exists' => 'The selected invoice is not valid or already has an installment plan.',
+            'invoice_id.exists' => 'The selected invoice does not exist.',
             'number_of_installments.required' => 'Please specify the number of installments.',
             'number_of_installments.min' => 'Minimum 2 installments are required.',
             'number_of_installments.max' => 'Maximum 12 installments are allowed.',
             'start_date.required' => 'Please specify the start date.',
-            'start_date.after_or_equal' => 'Start date must be today or later.',
-            'interval_days.min' => 'Minimum interval between installments is 7 days.',
-            'interval_days.max' => 'Maximum interval between installments is 90 days.',
-            'custom_amounts.array' => 'Custom amounts must be provided as an array.',
+            'start_date.after_or_equal' => 'Start date must be today or in the future.',
+            'interval_days.min' => 'Interval must be at least 1 day.',
+            'interval_days.max' => 'Interval cannot exceed 90 days.',
+            'custom_amounts.*.numeric' => 'All custom amounts must be numeric values.',
+            'custom_amounts.*.min' => 'Custom amounts cannot be negative.',
         ];
     }
 
@@ -107,7 +59,7 @@ class InstallmentPlanRequest extends FormRequest
             'invoice_id' => 'invoice',
             'number_of_installments' => 'number of installments',
             'start_date' => 'start date',
-            'interval_days' => 'interval days',
+            'interval_days' => 'interval',
             'custom_amounts' => 'custom amounts',
         ];
     }
@@ -117,25 +69,18 @@ class InstallmentPlanRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // Set default interval if not provided
-        if (!$this->has('interval_days')) {
-            $this->merge(['interval_days' => 30]);
+        // If custom interval is set and interval_days is 'custom', use custom value
+        if ($this->interval_days === 'custom' && $this->custom_interval) {
+            $this->merge([
+                'interval_days' => (int) $this->custom_interval,
+            ]);
         }
 
-        // Clean up custom amounts
-        if ($this->has('custom_amounts') && is_array($this->custom_amounts)) {
-            $cleanAmounts = array_map(function ($amount) {
-                return is_numeric($amount) ? floatval($amount) : null;
-            }, $this->custom_amounts);
-
-            // Remove null values and reindex
-            $cleanAmounts = array_values(array_filter($cleanAmounts, fn($v) => $v !== null));
-
-            if (empty($cleanAmounts)) {
-                $this->merge(['custom_amounts' => null]);
-            } else {
-                $this->merge(['custom_amounts' => $cleanAmounts]);
-            }
+        // Default interval to 30 days if not set
+        if (!$this->interval_days) {
+            $this->merge([
+                'interval_days' => 30,
+            ]);
         }
     }
 
@@ -145,28 +90,29 @@ class InstallmentPlanRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (!$validator->errors()->any() && $this->invoice_id) {
+            // Validate custom amounts total if provided
+            if ($this->has('custom_amounts') && is_array($this->custom_amounts)) {
                 $invoice = \App\Models\Invoice::find($this->invoice_id);
-
+                
                 if ($invoice) {
-                    // Check if invoice balance is sufficient for installments
-                    $balance = $invoice->total_amount - $invoice->paid_amount;
+                    $customTotal = array_sum(array_map('floatval', $this->custom_amounts));
+                    $balance = $invoice->balance;
 
-                    if ($balance <= 0) {
-                        $validator->errors()->add('invoice_id', 'This invoice has no outstanding balance.');
+                    if (abs($customTotal - $balance) > 0.01) {
+                        $validator->errors()->add(
+                            'custom_amounts',
+                            "Custom amounts total (RM " . number_format($customTotal, 2) . 
+                            ") must equal the invoice balance (RM " . number_format($balance, 2) . ")."
+                        );
                     }
+                }
 
-                    // Check if custom amounts total matches balance
-                    if ($this->custom_amounts && is_array($this->custom_amounts)) {
-                        $totalCustom = array_sum($this->custom_amounts);
-                        if (abs($totalCustom - $balance) > 0.01) {
-                            $validator->errors()->add(
-                                'custom_amounts',
-                                "Custom amounts total (RM" . number_format($totalCustom, 2) .
-                                ") must equal invoice balance (RM" . number_format($balance, 2) . ")."
-                            );
-                        }
-                    }
+                // Validate number of custom amounts matches number of installments
+                if (count($this->custom_amounts) != $this->number_of_installments) {
+                    $validator->errors()->add(
+                        'custom_amounts',
+                        'Number of custom amounts must match the number of installments.'
+                    );
                 }
             }
         });

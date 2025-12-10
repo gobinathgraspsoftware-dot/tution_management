@@ -615,63 +615,57 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::prefix('installments')->name('installments.')->group(function () {
-            // Main installment routes
-            Route::get('/', [InstallmentController::class, 'index'])
-                ->name('index');
+            // IMPORTANT: Specific routes MUST come BEFORE parameterized routes
 
-            Route::get('/create/{invoice}', [InstallmentController::class, 'create'])
-                ->name('create');
+            // Overdue installments list
+            Route::get('/overdue', [InstallmentController::class, 'overdue'])
+                ->name('overdue');
 
-            Route::post('/store/{invoice}', [InstallmentController::class, 'store'])
-                ->name('store');
-
-            Route::get('/{installment}', [InstallmentController::class, 'show'])
-                ->name('show');
-
-            Route::get('/{installment}/edit', [InstallmentController::class, 'edit'])
-                ->name('edit');
-
-            Route::put('/{installment}', [InstallmentController::class, 'update'])
-                ->name('update');
-
-            Route::delete('/{installment}', [InstallmentController::class, 'destroy'])
-                ->name('destroy');
-
-            // Invoice installment plan management
-            Route::get('/invoice/{invoice}', [InstallmentController::class, 'invoicePlan'])
-                ->name('invoice-plan');
-
-            Route::post('/invoice/{invoice}/setup', [InstallmentController::class, 'setupPlan'])
-                ->name('setup-plan');
-
-            Route::delete('/invoice/{invoice}/cancel', [InstallmentController::class, 'cancelPlan'])
-                ->name('cancel-plan');
-
-            // Payment operations
-            Route::get('/{installment}/pay', [InstallmentController::class, 'payForm'])
-                ->name('pay-form');
-
-            Route::post('/{installment}/pay', [InstallmentController::class, 'recordPayment'])
-                ->name('record-payment');
-
-            // Student installment view
-            Route::get('/student/{student}', [InstallmentController::class, 'studentInstallments'])
-                ->name('student');
-
-            // Reports
-            Route::get('/reports/overdue', [InstallmentController::class, 'overdueReport'])
-                ->name('overdue-report');
-
-            Route::get('/reports/upcoming', [InstallmentController::class, 'upcomingReport'])
-                ->name('upcoming-report');
-
-            // Export
+            // Export installments
             Route::get('/export', [InstallmentController::class, 'export'])
                 ->name('export');
 
-            // AJAX endpoints
-            Route::get('/ajax/calculate', [InstallmentController::class, 'calculateInstallments'])
-                ->name('ajax.calculate');
+            // Create installment plan form (uses ?invoice_id= query param)
+            Route::get('/create', [InstallmentController::class, 'create'])
+                ->name('create');
+
+            // Store new installment plan
+            Route::post('/', [InstallmentController::class, 'store'])
+                ->name('store');
+
+            // Bulk send reminders for multiple installments
+            Route::post('/bulk-reminder', [InstallmentController::class, 'bulkReminder'])
+                ->name('bulk-reminder');
+
+            // Student installment history
+            Route::get('/student/{student}/history', [InstallmentController::class, 'studentHistory'])
+                ->name('student-history');
+
+            // Update overdue status (for scheduler/AJAX)
+            Route::post('/update-overdue-status', [InstallmentController::class, 'updateOverdueStatus'])
+                ->name('update-overdue-status');
+
+            // Main listing
+            Route::get('/', [InstallmentController::class, 'index'])
+                ->name('index');
+
+            // Show installment plan details (by invoice)
+            Route::get('/{invoice}', [InstallmentController::class, 'show'])
+                ->name('show');
+
+            // Cancel installment plan
+            Route::delete('/{invoice}/cancel', [InstallmentController::class, 'cancel'])
+                ->name('cancel');
+
+            // Individual installment operations (use 'installment' prefix to differentiate)
+            Route::patch('/installment/{installment}', [InstallmentController::class, 'updateInstallment'])
+                ->name('update-installment');
+
+            Route::post('/installment/{installment}/payment', [InstallmentController::class, 'recordPayment'])
+                ->name('record-payment');
+
+            Route::post('/installment/{installment}/reminder', [InstallmentController::class, 'sendReminder'])
+                ->name('send-reminder');
         });
 
         /*

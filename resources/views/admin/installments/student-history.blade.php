@@ -63,9 +63,11 @@
                         </a>
                     </div>
                     <div class="col-6">
+                        @if(Route::has('admin.arrears.student'))
                         <a href="{{ route('admin.arrears.student', $student) }}" class="btn btn-sm btn-outline-danger w-100">
                             <i class="fas fa-exclamation-circle me-1"></i> Arrears
                         </a>
+                        @endif
                     </div>
                 </div>
             </div>

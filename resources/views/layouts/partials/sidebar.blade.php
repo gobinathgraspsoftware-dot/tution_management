@@ -161,36 +161,14 @@
 <a href="{{ route('admin.billing.subscription-alerts') }}" class="menu-item {{ request()->routeIs('admin.billing.subscription-alerts') ? 'active' : '' }}">
     <i class="fas fa-bell"></i> Subscription Alerts
 </a>
-{{-- Installments Menu --}}
-@if(Route::has('admin.installments.index'))
-<div class="menu-item-group">
-    <a href="#installmentsSubmenu" class="menu-item d-flex justify-content-between align-items-center"
-       data-bs-toggle="collapse" aria-expanded="{{ request()->routeIs('admin.installments.*') ? 'true' : 'false' }}">
-        <span><i class="fas fa-calendar-check me-2"></i> Installments</span>
-        <i class="fas fa-chevron-down small"></i>
-    </a>
-    <div class="collapse {{ request()->routeIs('admin.installments.*') ? 'show' : '' }}" id="installmentsSubmenu">
-        <a href="{{ route('admin.installments.index') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.installments.index') ? 'active' : '' }}">
-            <i class="fas fa-list me-2"></i> All Installments
-        </a>
-        @if(Route::has('admin.installments.overdue-report'))
-        <a href="{{ route('admin.installments.overdue-report') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.installments.overdue-report') ? 'active' : '' }}">
-            <i class="fas fa-exclamation-triangle me-2"></i> Overdue
-        </a>
-        @endif
-        @if(Route::has('admin.installments.upcoming-report'))
-        <a href="{{ route('admin.installments.upcoming-report') }}"
-           class="menu-item ps-4 {{ request()->routeIs('admin.installments.upcoming-report') ? 'active' : '' }}">
-            <i class="fas fa-clock me-2"></i> Upcoming Due
-        </a>
-        @endif
-    </div>
-</div>
-@endif
 {{-- End: Financial Section --}}
 
+{{-- Start: Installments Menu --}}
+<div class="menu-section-title">Installments</div>
+<a href="{{ route('admin.installments.index') }}" class="menu-item ps-4 {{ request()->routeIs('admin.installments.index') ? 'active' : '' }}">
+    <i class="fas fa-list me-2"></i> All Installments
+</a>
+{{-- End: Installments Menu --}}
 
 {{-- Payment Reminders Menu --}}
 @if(Route::has('admin.payment-reminders.index'))

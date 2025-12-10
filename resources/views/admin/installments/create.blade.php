@@ -159,12 +159,10 @@
 
                     <hr>
 
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ route('admin.installments.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i> Cancel
-                        </a>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ route('admin.installments.index') }}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-check me-1"></i> Create Installment Plan
+                            <i class="fas fa-save me-1"></i> Create Installment Plan
                         </button>
                     </div>
                 </form>

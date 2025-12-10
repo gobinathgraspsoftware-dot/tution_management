@@ -312,7 +312,8 @@ document.getElementById('paymentModal').addEventListener('show.bs.modal', functi
     document.getElementById('modalBalance').textContent = parseFloat(balance).toFixed(2);
     document.getElementById('paymentAmount').max = balance;
     document.getElementById('paymentAmount').value = balance;
-    document.getElementById('paymentForm').action = '{{ url("admin/installments") }}/' + installmentId + '/payment';
+    // CORRECTED URL: /admin/installments/installment/{id}/payment
+    document.getElementById('paymentForm').action = '{{ url("admin/installments/installment") }}/' + installmentId + '/payment';
 });
 </script>
 @endpush

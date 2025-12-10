@@ -212,7 +212,10 @@
                             <td class="text-success">RM {{ number_format($totalPaid, 2) }}</td>
                             <td class="text-danger">RM {{ number_format($totalAmount - $totalPaid, 2) }}</td>
                             <td style="min-width: 150px;">
-                                <x-installment-progress :progress="$progress" :paid="$invoice->installments->where('status', 'paid')->count()" :total="$invoice->installments->count()" />
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $progress }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ $invoice->installments->where('status', 'paid')->count() }}/{{ $invoice->installments->count() }} paid</small>
                             </td>
                             <td>
                                 @if($nextDue)

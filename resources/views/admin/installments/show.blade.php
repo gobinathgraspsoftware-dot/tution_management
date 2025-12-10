@@ -545,7 +545,8 @@ document.getElementById('paymentModal').addEventListener('show.bs.modal', functi
     document.getElementById('modalBalance').textContent = parseFloat(balance).toFixed(2);
     document.getElementById('paymentAmount').max = balance;
     document.getElementById('paymentAmount').value = balance;
-    document.getElementById('paymentForm').action = '{{ url("admin/installments") }}/' + installmentId + '/payment';
+    // CORRECTED URL: /admin/installments/installment/{id}/payment
+    document.getElementById('paymentForm').action = '{{ url("admin/installments/installment") }}/' + installmentId + '/payment';
 });
 
 // Edit Modal
@@ -557,14 +558,16 @@ document.getElementById('editModal').addEventListener('show.bs.modal', function(
 
     document.getElementById('editAmount').value = amount;
     document.getElementById('editDueDate').value = dueDate;
-    document.getElementById('editForm').action = '{{ url("admin/installments") }}/' + installmentId;
+    // CORRECTED URL: /admin/installments/installment/{id} (PATCH)
+    document.getElementById('editForm').action = '{{ url("admin/installments/installment") }}/' + installmentId;
 });
 
 // Send Reminder
 function sendReminder(installmentId) {
     if (confirm('Send payment reminder for this installment?')) {
         const form = document.getElementById('reminderForm');
-        form.action = '{{ url("admin/installments") }}/' + installmentId + '/reminder';
+        // CORRECTED URL: /admin/installments/installment/{id}/reminder
+        form.action = '{{ url("admin/installments/installment") }}/' + installmentId + '/reminder';
         form.submit();
     }
 }
