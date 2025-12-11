@@ -56,6 +56,8 @@ use App\Http\Controllers\Teacher\TeacherClassController;
 use App\Http\Controllers\Teacher\TeacherStudentController;
 use App\Http\Controllers\Teacher\TeacherDocumentController as TeacherOwnDocumentController;
 use App\Http\Controllers\Admin\TeacherDocumentController;
+use App\Http\Controllers\Admin\TeacherPayslipController;
+use App\Http\Controllers\Teacher\PayslipController;
 
 /*
 |--------------------------------------------------------------------------
@@ -735,6 +737,19 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
                 ->name('schedule.quick-add');
         });
 
+        // Teacher Payslip Management (Chat 20)
+        Route::prefix('teacher-payslips')->name('teacher-payslips.')->group(function () {
+            Route::get('/', [TeacherPayslipController::class, 'index'])->name('index')->middleware('permission:view-teacher-salary');
+            Route::get('/create', [TeacherPayslipController::class, 'create'])->name('create')->middleware('permission:generate-teacher-payslip');
+            Route::post('/', [TeacherPayslipController::class, 'store'])->name('store')->middleware('permission:generate-teacher-payslip');
+            Route::get('/export', [TeacherPayslipController::class, 'export'])->name('export')->middleware('permission:view-teacher-salary');
+            Route::post('/calculate-preview', [TeacherPayslipController::class, 'calculatePreview'])->name('calculate-preview')->middleware('permission:generate-teacher-payslip');
+            Route::get('/{payslip}', [TeacherPayslipController::class, 'show'])->name('show')->middleware('permission:view-teacher-salary');
+            Route::get('/{payslip}/print', [TeacherPayslipController::class, 'print'])->name('print')->middleware('permission:view-teacher-salary');
+            Route::put('/{payslip}/update-status', [TeacherPayslipController::class, 'updateStatus'])->name('update-status')->middleware('permission:manage-teacher-salary');
+            Route::delete('/{payslip}', [TeacherPayslipController::class, 'destroy'])->name('destroy')->middleware('permission:manage-teacher-salary');
+        });
+
     });
 
     /*
@@ -834,6 +849,14 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::delete('/{document}', [TeacherOwnDocumentController::class, 'destroy'])->name('destroy');
         });
         Route::resource('materials', TeacherMaterialController::class);
+
+        // Teacher Payslips (Chat 20)
+        Route::prefix('payslips')->name('payslips.')->group(function () {
+            Route::get('/', [PayslipController::class, 'index'])->name('index');
+            Route::get('/{payslip}', [PayslipController::class, 'show'])->name('show');
+            Route::get('/{payslip}/print', [PayslipController::class, 'print'])->name('print');
+        });
+
     });
 
     /*

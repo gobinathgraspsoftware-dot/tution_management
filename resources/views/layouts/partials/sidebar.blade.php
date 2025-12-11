@@ -53,6 +53,12 @@
     <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
 @endcan
 @endcanany
+<div class="menu-section-title">Teacher Salary</div>
+@if(Route::has('admin.teacher-payslips.index'))
+<a href="{{ route('admin.teacher-payslips.index') }}" class="menu-item {{ request()->routeIs('admin.teacher-payslips.*') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice-dollar"></i> Teacher Payslips
+</a>
+@endif
 {{-- End: Attendance Management --}}
 
 {{-- Start: Reports Management --}}
@@ -436,6 +442,13 @@
 @else
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
+</a>
+@endif
+
+<div class="menu-section-title">Salary</div>
+@if(Route::has('teacher.payslips.index'))
+<a href="{{ route('teacher.payslips.index') }}" class="menu-item {{ request()->routeIs('teacher.payslips.*') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice-dollar"></i> My Payslips
 </a>
 @endif
 
