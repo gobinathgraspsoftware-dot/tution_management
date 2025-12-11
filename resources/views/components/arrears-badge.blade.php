@@ -1,12 +1,12 @@
-{{-- 
+{{--
     Arrears Badge Component
-    
+
     Usage:
     <x-arrears-badge :amount="$arrearsAmount" />
     <x-arrears-badge :amount="$amount" :days="$daysOverdue" />
     <x-arrears-badge :invoice="$invoice" />
     <x-arrears-badge :student="$student" />
-    
+
     Props:
     - amount: decimal - The arrears amount (optional)
     - days: integer - Number of days overdue (optional)
@@ -28,7 +28,8 @@
     'showDays' => true,
     'size' => 'md',
     'style' => 'badge',
-    'icon' => true
+    'icon' => true,
+    'status', 'days' => 0
 ])
 
 @php
@@ -45,20 +46,20 @@
         $days = $oldestOverdue ? \Carbon\Carbon::parse($oldestOverdue->due_date)->diffInDays(now()) : 0;
     } elseif ($invoice) {
         $amount = $invoice->balance ?? 0;
-        $days = ($invoice->due_date && $invoice->due_date < now()) 
-                ? \Carbon\Carbon::parse($invoice->due_date)->diffInDays(now()) 
+        $days = ($invoice->due_date && $invoice->due_date < now())
+                ? \Carbon\Carbon::parse($invoice->due_date)->diffInDays(now())
                 : 0;
     }
-    
+
     $amount = $amount ?? 0;
     $days = $days ?? 0;
-    
+
     // Determine severity level
     $severity = 'none';
     $severityColor = 'secondary';
     $severityIcon = 'fa-check-circle';
     $severityLabel = 'No Arrears';
-    
+
     if ($amount > 0) {
         if ($days > 90) {
             $severity = 'critical';
@@ -87,7 +88,7 @@
             $severityLabel = 'Pending';
         }
     }
-    
+
     // Size classes
     $sizeClasses = [
         'sm' => ['badge' => 'badge-sm', 'text' => 'small', 'padding' => 'px-2 py-1'],
@@ -95,6 +96,39 @@
         'lg' => ['badge' => 'badge-lg', 'text' => 'fs-6', 'padding' => 'px-4 py-2'],
     ];
     $currentSize = $sizeClasses[$size] ?? $sizeClasses['md'];
+
+    $badgeClass = 'bg-secondary';
+    $badgeText = 'Unknown';
+
+    // Determine badge based on status and days overdue
+    if ($status === 'paid') {
+        $badgeClass = 'bg-success';
+        $badgeText = 'Paid';
+    } elseif ($status === 'cancelled') {
+        $badgeClass = 'bg-dark';
+        $badgeText = 'Cancelled';
+    } elseif ($days > 90) {
+        $badgeClass = 'bg-danger';
+        $badgeText = 'Critical - ' . $days . ' days';
+    } elseif ($days > 60) {
+        $badgeClass = 'bg-danger';
+        $badgeText = 'High Risk - ' . $days . ' days';
+    } elseif ($days > 30) {
+        $badgeClass = 'bg-warning text-dark';
+        $badgeText = 'Medium Risk - ' . $days . ' days';
+    } elseif ($days > 0) {
+        $badgeClass = 'bg-info';
+        $badgeText = 'Overdue - ' . $days . ' days';
+    } elseif ($status === 'partial') {
+        $badgeClass = 'bg-warning text-dark';
+        $badgeText = 'Partial Payment';
+    } elseif ($status === 'pending') {
+        $badgeClass = 'bg-primary';
+        $badgeText = 'Pending';
+    } elseif ($status === 'overdue') {
+        $badgeClass = 'bg-danger';
+        $badgeText = 'Overdue';
+    }
 @endphp
 
 @if($severity !== 'none')
@@ -115,7 +149,7 @@
                 {{ $severityLabel }}
             @endif
         </span>
-        
+
     @elseif($style === 'pill')
         {{-- Pill Style --}}
         <span {{ $attributes->merge(['class' => "badge rounded-pill bg-{$severityColor} {$currentSize['badge']} {$currentSize['text']}"]) }}
@@ -130,7 +164,7 @@
                 <span class="ms-1">({{ $days }}d)</span>
             @endif
         </span>
-        
+
     @elseif($style === 'card')
         {{-- Card Style --}}
         <div {{ $attributes->merge(['class' => "arrears-badge-card border-start border-4 border-{$severityColor} bg-{$severityColor} bg-opacity-10 rounded {$currentSize['padding']}"]) }}>
@@ -162,7 +196,7 @@
                 @endif
             </div>
         </div>
-        
+
     @elseif($style === 'inline')
         {{-- Inline Style --}}
         <span {{ $attributes->merge(['class' => "text-{$severityColor} {$currentSize['text']}"]) }}
@@ -177,20 +211,20 @@
                 <span class="text-muted">({{ $days }}d overdue)</span>
             @endif
         </span>
-        
+
     @elseif($style === 'indicator')
         {{-- Simple Indicator Dot --}}
         <span {{ $attributes->merge(['class' => "arrears-indicator"]) }}
               title="{{ $severityLabel }}: RM {{ number_format($amount, 2) }} ({{ $days }} days overdue)">
-            <span class="indicator-dot bg-{{ $severityColor }}" 
-                  style="display: inline-block; width: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }}; 
-                         height: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }}; 
+            <span class="indicator-dot bg-{{ $severityColor }}"
+                  style="display: inline-block; width: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }};
+                         height: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }};
                          border-radius: 50%;
                          {{ $severity === 'critical' ? 'animation: pulse-danger 1.5s infinite;' : '' }}">
             </span>
         </span>
     @endif
-    
+
 @else
     {{-- No Arrears State --}}
     @if($style === 'badge')
@@ -223,9 +257,9 @@
         </div>
     @elseif($style === 'indicator')
         <span {{ $attributes->merge(['class' => "arrears-indicator"]) }} title="No Arrears">
-            <span class="indicator-dot bg-success" 
-                  style="display: inline-block; width: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }}; 
-                         height: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }}; 
+            <span class="indicator-dot bg-success"
+                  style="display: inline-block; width: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }};
+                         height: {{ $size === 'sm' ? '8px' : ($size === 'lg' ? '16px' : '12px') }};
                          border-radius: 50%;">
             </span>
         </span>
@@ -237,21 +271,21 @@
         font-size: 0.7rem;
         padding: 0.2rem 0.4rem;
     }
-    
+
     .badge-lg {
         font-size: 0.9rem;
         padding: 0.5rem 0.8rem;
     }
-    
+
     .arrears-badge-card {
         transition: all 0.2s ease;
     }
-    
+
     .arrears-badge-card:hover {
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    
+
     @keyframes pulse-danger {
         0% {
             box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
@@ -263,7 +297,7 @@
             box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
         }
     }
-    
+
     .arrears-indicator .indicator-dot {
         vertical-align: middle;
     }

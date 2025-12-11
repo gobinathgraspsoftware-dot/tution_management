@@ -143,13 +143,16 @@ class ArrearsService
 
     /**
      * Get students with arrears
+     * FIXED: Two-step approach to avoid GROUP BY issues
      */
     public function getStudentsWithArrears(array $filters = []): Collection
     {
-        $query = Student::select('students.*')
-            ->with(['user', 'parent.user', 'enrollments.class', 'enrollments.package'])
+        // Step 1: Get aggregated data with only student ID
+        $query = DB::table('students')
+            ->select('students.id')
             ->join('invoices', 'students.id', '=', 'invoices.student_id')
             ->whereIn('invoices.status', ['pending', 'partial', 'overdue'])
+            ->whereNull('students.deleted_at')
             ->groupBy('students.id')
             ->selectRaw('SUM(invoices.total_amount - invoices.paid_amount) as total_arrears')
             ->selectRaw('COUNT(invoices.id) as unpaid_invoice_count')
@@ -157,17 +160,35 @@ class ArrearsService
             ->having('total_arrears', '>', 0)
             ->orderBy('total_arrears', 'desc');
 
+        // Apply filters to aggregation query
         if (!empty($filters['min_arrears'])) {
             $query->having('total_arrears', '>=', $filters['min_arrears']);
         }
 
-        if (!empty($filters['class_id'])) {
-            $query->whereHas('enrollments', function($q) use ($filters) {
-                $q->where('class_id', $filters['class_id']);
-            });
+        $results = $query->get();
+
+        if ($results->isEmpty()) {
+            return collect([]);
         }
 
-        return $query->get();
+        // Step 2: Load full Student models with relationships
+        $studentIds = $results->pluck('id');
+        $students = Student::with(['user', 'parent.user', 'enrollments.class', 'enrollments.package'])
+            ->whereIn('id', $studentIds)
+            ->get()
+            ->keyBy('id');
+
+        // Step 3: Merge aggregated data with student models
+        return $results->map(function($data) use ($students) {
+            $student = $students->get($data->id);
+            if ($student) {
+                $student->total_arrears = $data->total_arrears;
+                $student->unpaid_invoice_count = $data->unpaid_invoice_count;
+                $student->oldest_due_date = $data->oldest_due_date;
+                return $student;
+            }
+            return null;
+        })->filter();
     }
 
     /**
@@ -209,40 +230,88 @@ class ArrearsService
 
     /**
      * Get arrears by class
+     * FIXED: Two-step approach to avoid GROUP BY issues with all class columns
      */
     public function getArrearsByClass(): Collection
     {
-        return ClassModel::select('classes.*')
+        // Step 1: Get aggregated data with only class ID
+        $classData = DB::table('classes')
+            ->select('classes.id')
             ->join('enrollments', 'classes.id', '=', 'enrollments.class_id')
             ->join('invoices', 'enrollments.id', '=', 'invoices.enrollment_id')
             ->whereIn('invoices.status', ['pending', 'partial', 'overdue'])
+            ->whereNull('classes.deleted_at')
             ->groupBy('classes.id')
             ->selectRaw('SUM(invoices.total_amount - invoices.paid_amount) as total_arrears')
             ->selectRaw('COUNT(DISTINCT invoices.student_id) as students_with_arrears')
-            ->selectRaw('COUNT(invoices.id) as unpaid_invoices')
             ->having('total_arrears', '>', 0)
             ->orderBy('total_arrears', 'desc')
             ->get();
+
+        if ($classData->isEmpty()) {
+            return collect([]);
+        }
+
+        // Step 2: Load full ClassModel instances with relationships
+        $classIds = $classData->pluck('id');
+        $classes = ClassModel::whereIn('id', $classIds)
+            ->get()
+            ->keyBy('id');
+
+        // Step 3: Merge aggregated data with class models
+        return $classData->map(function($data) use ($classes) {
+            $class = $classes->get($data->id);
+            if ($class) {
+                $class->total_arrears = $data->total_arrears;
+                $class->students_with_arrears = $data->students_with_arrears;
+                return $class;
+            }
+            return null;
+        })->filter();
     }
 
     /**
      * Get arrears by subject
+     * FIXED: Two-step approach to avoid GROUP BY issues with all subject columns
      */
     public function getArrearsBySubject(): Collection
     {
-        return DB::table('subjects')
-            ->select('subjects.*')
+        // Step 1: Get aggregated data with only subject ID
+        $subjectData = DB::table('subjects')
+            ->select('subjects.id')
             ->join('package_subject', 'subjects.id', '=', 'package_subject.subject_id')
             ->join('packages', 'package_subject.package_id', '=', 'packages.id')
             ->join('enrollments', 'packages.id', '=', 'enrollments.package_id')
             ->join('invoices', 'enrollments.id', '=', 'invoices.enrollment_id')
             ->whereIn('invoices.status', ['pending', 'partial', 'overdue'])
+            ->whereNull('subjects.deleted_at')
             ->groupBy('subjects.id')
             ->selectRaw('SUM(invoices.total_amount - invoices.paid_amount) as total_arrears')
             ->selectRaw('COUNT(DISTINCT invoices.student_id) as students_with_arrears')
             ->having('total_arrears', '>', 0)
             ->orderBy('total_arrears', 'desc')
             ->get();
+
+        if ($subjectData->isEmpty()) {
+            return collect([]);
+        }
+
+        // Step 2: Load full Subject models
+        $subjectIds = $subjectData->pluck('id');
+        $subjects = Subject::whereIn('id', $subjectIds)
+            ->get()
+            ->keyBy('id');
+
+        // Step 3: Merge aggregated data with subject models
+        return $subjectData->map(function($data) use ($subjects) {
+            $subject = $subjects->get($data->id);
+            if ($subject) {
+                $subject->total_arrears = $data->total_arrears;
+                $subject->students_with_arrears = $data->students_with_arrears;
+                return $subject;
+            }
+            return null;
+        })->filter();
     }
 
     /**
@@ -254,7 +323,7 @@ class ArrearsService
         $endDate = $today->copy()->addDays($daysAhead);
 
         // Upcoming invoice dues
-        $upcomingInvoices = Invoice::with(['student.user', 'enrollment.package'])
+        $upcomingInvoices = Invoice::with(['student.user', 'student.parent.user', 'enrollment.package'])
             ->whereIn('status', ['pending', 'partial'])
             ->whereBetween('due_date', [$today, $endDate])
             ->orderBy('due_date', 'asc')
@@ -373,6 +442,7 @@ class ArrearsService
         return [
             'total_arrears' => Invoice::unpaid()->sum(DB::raw('total_amount - paid_amount')),
             'overdue_invoices' => Invoice::overdue()->count(),
+            'overdue_count' => Invoice::overdue()->count(),
             'students_with_arrears' => Invoice::unpaid()->distinct('student_id')->count('student_id'),
             'due_this_week' => Invoice::unpaid()
                 ->whereBetween('due_date', [$today, $today->copy()->endOfWeek()])
@@ -384,7 +454,10 @@ class ArrearsService
                 ])
                 ->sum(DB::raw('total_amount - paid_amount')),
             'collection_rate' => $this->calculateCollectionRate(),
-            'arrears_by_age' => $this->getArrearsByAge(),
+            'by_age' => $this->getArrearsByAge(),
+            'critical_count' => Invoice::overdue()
+                ->where('due_date', '<', now()->subDays(90))
+                ->count(),
         ];
     }
 
