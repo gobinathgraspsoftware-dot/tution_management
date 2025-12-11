@@ -429,21 +429,121 @@
 </a>
 
 <div class="menu-section-title">Teaching</div>
+@if(Route::has('teacher.attendance.index'))
+<a href="{{ route('teacher.attendance.index') }}" class="menu-item {{ request()->routeIs('teacher.attendance.*') ? 'active' : '' }}">
+    <i class="fas fa-check-square"></i> Attendance
+</a>
+@else
 <a href="#" class="menu-item">
     <i class="fas fa-check-square"></i> Attendance
 </a>
-<a href="{{ route('teacher.materials.index') }}" class="menu-item {{ request()->routeIs('teacher.materials.*') ? 'active' : '' }}">
-    <i class="fas fa-upload"></i> My Materials
+@endif
+
+@if(Route::has('teacher.materials.index'))
+<a href="{{ route('teacher.materials.index') }}" class="menu-item {{ request()->routeIs('teacher.materials.index') || request()->routeIs('teacher.materials.show') || request()->routeIs('teacher.materials.edit') ? 'active' : '' }}">
+    <i class="fas fa-file-alt"></i> My Materials
 </a>
-<a href="{{ route('teacher.materials.create') }}" class="menu-item">
-    <i class="fas fa-plus-circle"></i> Upload Material
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-file-alt"></i> My Materials
 </a>
+@endif
+
+@if(Route::has('teacher.materials.create'))
+<a href="{{ route('teacher.materials.create') }}" class="menu-item {{ request()->routeIs('teacher.materials.create') ? 'active' : '' }}">
+    <i class="fas fa-file-upload"></i> Upload Materials
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-file-upload"></i> Upload Materials
+</a>
+@endif
+
+<div class="menu-section-title">My Classes</div>
+@if(Route::has('teacher.classes.index'))
+<a href="{{ route('teacher.classes.index') }}" class="menu-item {{ request()->routeIs('teacher.classes.*') ? 'active' : '' }}">
+    <i class="fas fa-school"></i> My Classes
+</a>
+@else
 <a href="#" class="menu-item">
     <i class="fas fa-school"></i> My Classes
 </a>
+@endif
+
+@if(Route::has('teacher.schedule.index'))
+<a href="{{ route('teacher.schedule.index') }}" class="menu-item {{ request()->routeIs('teacher.schedule.*') ? 'active' : '' }}">
+    <i class="fas fa-calendar-alt"></i> My Schedule
+</a>
+@else
 <a href="#" class="menu-item">
     <i class="fas fa-calendar-alt"></i> My Schedule
 </a>
+@endif
+
+@if(Route::has('teacher.students.index'))
+<a href="{{ route('teacher.students.index') }}" class="menu-item {{ request()->routeIs('teacher.students.*') ? 'active' : '' }}">
+    <i class="fas fa-users"></i> My Students
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-users"></i> My Students
+</a>
+@endif
+
+<div class="menu-section-title">Assessment</div>
+@if(Route::has('teacher.exams.index'))
+<a href="{{ route('teacher.exams.index') }}" class="menu-item {{ request()->routeIs('teacher.exams.*') ? 'active' : '' }}">
+    <i class="fas fa-file-signature"></i> Exams
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-file-signature"></i> Exams
+</a>
+@endif
+
+
+@if(Route::has('teacher.results.index'))
+<a href="{{ route('teacher.results.index') }}" class="menu-item {{ request()->routeIs('teacher.results.*') ? 'active' : '' }}">
+    <i class="fas fa-chart-bar"></i> Results
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-chart-bar"></i> Results
+</a>
+@endif
+
+<div class="menu-section-title">Documents</div>
+@if(Route::has('teacher.documents.index'))
+<a href="{{ route('teacher.documents.index') }}" class="menu-item {{ request()->routeIs('teacher.documents.*') ? 'active' : '' }}">
+    <i class="fas fa-folder-open"></i> My Documents
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-folder-open"></i> My Documents
+</a>
+@endif
+
+<div class="menu-section-title">Other</div>
+@if(Route::has('teacher.announcements.index'))
+<a href="{{ route('teacher.announcements.index') }}" class="menu-item {{ request()->routeIs('teacher.announcements.*') ? 'active' : '' }}">
+    <i class="fas fa-bullhorn"></i> Announcements
+</a>
+@else
+<a href="#" class="menu-item">
+    <i class="fas fa-bullhorn"></i> Announcements
+</a>
+@endif
+
+<div class="menu-section-title">Account</div>
+@if(Route::has('teacher.profile.index'))
+<a href="{{ route('teacher.profile.index') }}" class="menu-item {{ request()->routeIs('teacher.profile.*') ? 'active' : '' }}">
+    <i class="fas fa-user"></i> My Profile
+</a>
+@else
+<a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+    <i class="fas fa-user"></i> My Profile
+</a>
+@endif
 
 <div class="menu-section-title">Content</div>
 <a href="#" class="menu-item">

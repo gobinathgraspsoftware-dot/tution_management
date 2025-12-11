@@ -50,6 +50,12 @@ use App\Http\Controllers\OnlinePaymentController;
 use App\Http\Controllers\Admin\InstallmentController;
 use App\Http\Controllers\Admin\PaymentReminderController;
 use App\Http\Controllers\Admin\ArrearsController;
+use App\Http\Controllers\Teacher\TeacherProfileController;
+use App\Http\Controllers\Teacher\TeacherScheduleController;
+use App\Http\Controllers\Teacher\TeacherClassController;
+use App\Http\Controllers\Teacher\TeacherStudentController;
+use App\Http\Controllers\Teacher\TeacherDocumentController as TeacherOwnDocumentController;
+use App\Http\Controllers\Admin\TeacherDocumentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -660,60 +666,73 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::prefix('arrears')->name('arrears.')->group(function () {
-            // Main arrears dashboard
-            Route::get('/', [ArrearsController::class, 'index'])
+            Route::get('/', [ArrearsController::class, 'index'])->name('index');
+            Route::get('/student/{student}', [ArrearsController::class, 'student'])->name('student');
+            Route::get('/students-list', [ArrearsController::class, 'studentsWithArrears'])->name('students-list');
+            Route::get('/by-class', [ArrearsController::class, 'byClass'])->name('by-class');
+            Route::get('/by-subject', [ArrearsController::class, 'bySubject'])->name('by-subject');
+            Route::get('/due-report', [ArrearsController::class, 'dueReport'])->name('due-report');
+            Route::get('/forecast', [ArrearsController::class, 'forecast'])->name('forecast');
+            Route::get('/aging-analysis', [ArrearsController::class, 'agingAnalysis'])->name('aging-analysis');
+            Route::post('/send-bulk-reminders', [ArrearsController::class, 'sendBulkReminders'])->name('send-bulk-reminders');
+            Route::post('/flag-student/{student}', [ArrearsController::class, 'flagStudent'])->name('flag-student');
+            Route::get('/export', [ArrearsController::class, 'export'])->name('export');
+            Route::get('/print', [ArrearsController::class, 'print'])->name('print');
+            Route::get('/summary', [ArrearsController::class, 'getSummary'])->name('summary');
+            Route::post('/daily-update', [ArrearsController::class, 'dailyUpdate'])->name('daily-update');
+        });
+
+        // Teacher Document Management (Admin)
+        Route::prefix('teachers/{teacher}/documents')->name('teachers.documents.')->group(function () {
+            Route::get('/', [TeacherDocumentController::class, 'index'])
+                // ->middleware('permission:view-teachers')
                 ->name('index');
 
-            // Student-specific arrears
-            Route::get('/student/{student}', [ArrearsController::class, 'student'])
-                ->name('student');
+            Route::post('/', [TeacherDocumentController::class, 'store'])
+                ->middleware('permission:edit-teachers')
+                ->name('store');
+        });
 
-            // Students with arrears list
-            Route::get('/students-list', [ArrearsController::class, 'studentsWithArrears'])
-                ->name('students-list');
+        // Teacher Document Actions (without teacher prefix - uses document directly)
+        Route::prefix('teachers/documents')->name('teachers.documents.')->group(function () {
+            Route::get('/{document}/download', [TeacherDocumentController::class, 'download'])
+                ->middleware('permission:view-teachers')
+                ->name('download');
 
-            // Arrears by class
-            Route::get('/by-class', [ArrearsController::class, 'byClass'])
-                ->name('by-class');
+            Route::get('/{document}/view', [TeacherDocumentController::class, 'view'])
+                ->middleware('permission:view-teachers')
+                ->name('view');
 
-            // Arrears by subject
-            Route::get('/by-subject', [ArrearsController::class, 'bySubject'])
-                ->name('by-subject');
+            Route::post('/{document}/verify', [TeacherDocumentController::class, 'verify'])
+                ->middleware('permission:edit-teachers')
+                ->name('verify');
 
-            // Due report (upcoming dues)
-            Route::get('/due-report', [ArrearsController::class, 'dueReport'])
-                ->name('due-report');
+            Route::post('/{document}/reject', [TeacherDocumentController::class, 'reject'])
+                ->middleware('permission:edit-teachers')
+                ->name('reject');
 
-            // Collection forecast
-            Route::get('/forecast', [ArrearsController::class, 'forecast'])
-                ->name('forecast');
+            Route::delete('/{document}', [TeacherDocumentController::class, 'destroy'])
+                ->middleware('permission:delete-teachers')
+                ->name('destroy');
 
-            // Aging analysis
-            Route::get('/aging-analysis', [ArrearsController::class, 'agingAnalysis'])
-                ->name('aging-analysis');
+            Route::post('/bulk-verify', [TeacherDocumentController::class, 'bulkVerify'])
+                ->middleware('permission:edit-teachers')
+                ->name('bulk-verify');
+        });
 
-            // Bulk reminder sending
-            Route::post('/send-bulk-reminders', [ArrearsController::class, 'sendBulkReminders'])
-                ->name('send-bulk-reminders');
+        // Teacher Schedule Assignment (Admin)
+        Route::prefix('teachers/{teacher}')->name('teachers.')->group(function () {
+            Route::get('/schedule-assign', [TeacherController::class, 'scheduleAssign'])
+                ->middleware('permission:manage-teacher-schedule')
+                ->name('schedule-assign');
 
-            // Flag student for follow-up
-            Route::post('/flag-student/{student}', [ArrearsController::class, 'flagStudent'])
-                ->name('flag-student');
+            Route::post('/assign-class', [TeacherController::class, 'assignClass'])
+                ->middleware('permission:manage-teacher-schedule')
+                ->name('assign-class');
 
-            // Export & Print
-            Route::get('/export', [ArrearsController::class, 'export'])
-                ->name('export');
-
-            Route::get('/print', [ArrearsController::class, 'print'])
-                ->name('print');
-
-            // API endpoints
-            Route::get('/summary', [ArrearsController::class, 'getSummary'])
-                ->name('summary');
-
-            // Daily update (can be called by scheduler)
-            Route::post('/daily-update', [ArrearsController::class, 'dailyUpdate'])
-                ->name('daily-update');
+            Route::post('/schedule/quick-add', [TeacherController::class, 'quickAddSchedule'])
+                ->middleware('permission:manage-teacher-schedule')
+                ->name('schedule.quick-add');
         });
 
     });
@@ -767,7 +786,53 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
     */
     Route::middleware(['role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'teacherDashboard'])->name('dashboard');
+        // Teacher Profile Management
+        Route::prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', [TeacherProfileController::class, 'index'])->name('index');
+            Route::get('/edit', [TeacherProfileController::class, 'edit'])->name('edit');
+            Route::put('/', [TeacherProfileController::class, 'update'])->name('update');
+            Route::get('/change-password', [TeacherProfileController::class, 'showChangePassword'])->name('change-password');
+            Route::post('/change-password', [TeacherProfileController::class, 'changePassword'])->name('update-password');
+        });
 
+        // Teacher Schedule Management
+        Route::prefix('schedule')->name('schedule.')->group(function () {
+            Route::get('/', [TeacherScheduleController::class, 'index'])->name('index');
+            Route::get('/daily', [TeacherScheduleController::class, 'dailySchedule'])->name('daily');
+            Route::get('/weekly', [TeacherScheduleController::class, 'weeklySchedule'])->name('weekly');
+            Route::get('/monthly', [TeacherScheduleController::class, 'monthlySchedule'])->name('monthly');
+            Route::get('/export', [TeacherScheduleController::class, 'export'])->name('export');
+            Route::get('/sync-calendar', [TeacherScheduleController::class, 'syncCalendar'])->name('sync-calendar');
+            Route::get('/session/{session}', [TeacherScheduleController::class, 'sessionDetails'])->name('session');
+        });
+
+        // Teacher Classes
+        Route::prefix('classes')->name('classes.')->group(function () {
+            Route::get('/', [TeacherClassController::class, 'index'])->name('index');
+            Route::get('/{class}', [TeacherClassController::class, 'show'])->name('show');
+            Route::get('/{class}/schedule', [TeacherClassController::class, 'schedule'])->name('schedule');
+            Route::get('/{class}/students', [TeacherClassController::class, 'students'])->name('students');
+            Route::post('/session/{session}/complete', [TeacherClassController::class, 'completeSession'])->name('session.complete');
+            Route::post('/session/{session}/notes', [TeacherClassController::class, 'addSessionNotes'])->name('session.notes');
+        });
+
+        // Teacher Students
+        Route::prefix('students')->name('students.')->group(function () {
+            Route::get('/', [TeacherStudentController::class, 'index'])->name('index');
+            Route::get('/{student}', [TeacherStudentController::class, 'show'])->name('show');
+            Route::get('/{student}/attendance', [TeacherStudentController::class, 'attendance'])->name('attendance');
+            Route::get('/{student}/results', [TeacherStudentController::class, 'results'])->name('results');
+        });
+
+        // Teacher Documents (Own Documents)
+        Route::prefix('documents')->name('documents.')->group(function () {
+            Route::get('/', [TeacherOwnDocumentController::class, 'index'])->name('index');
+            Route::get('/create', [TeacherOwnDocumentController::class, 'create'])->name('create');
+            Route::post('/', [TeacherOwnDocumentController::class, 'store'])->name('store');
+            Route::get('/{document}', [TeacherOwnDocumentController::class, 'show'])->name('show');
+            Route::get('/{document}/download', [TeacherOwnDocumentController::class, 'download'])->name('download');
+            Route::delete('/{document}', [TeacherOwnDocumentController::class, 'destroy'])->name('destroy');
+        });
         Route::resource('materials', TeacherMaterialController::class);
     });
 
