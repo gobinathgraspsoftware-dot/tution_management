@@ -60,6 +60,10 @@ use App\Http\Controllers\Admin\TeacherPayslipController;
 use App\Http\Controllers\Teacher\PayslipController;
 use App\Http\Controllers\Admin\TeacherPerformanceController;
 use App\Http\Controllers\Teacher\PerformanceController;
+use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\ExpenseCategoryController;
+use App\Http\Controllers\Admin\RevenueController;
+use App\Http\Controllers\Admin\FinancialDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -759,6 +763,42 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/export', [TeacherPerformanceController::class, 'export'])->name('export');
             Route::get('/{teacher}', [TeacherPerformanceController::class, 'show'])->name('show');
             Route::get('/{teacher}/data', [TeacherPerformanceController::class, 'getData'])->name('get-data');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | FINANCIAL MANAGEMENT ROUTES (Chat 21 - Revenue & Expense Tracking)
+        |--------------------------------------------------------------------------
+        */
+        // Expense Management
+        Route::resource('expenses', ExpenseController::class);
+        Route::post('expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
+        Route::post('expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
+        Route::get('expenses/{expense}/download-receipt', [ExpenseController::class, 'downloadReceipt'])->name('expenses.download-receipt');
+        Route::get('expenses-export', [ExpenseController::class, 'export'])->name('expenses.export');
+        Route::post('expenses-generate-recurring', [ExpenseController::class, 'generateRecurring'])->name('expenses.generate-recurring');
+        Route::post('expenses-sync-salaries', [ExpenseController::class, 'syncTeacherSalaries'])->name('expenses.sync-salaries');
+
+        // Expense Categories Management
+        Route::resource('expense-categories', ExpenseCategoryController::class);
+
+        // Revenue Tracking
+        Route::prefix('revenue')->name('revenue.')->group(function () {
+            Route::get('/', [RevenueController::class, 'index'])->name('index');
+            Route::get('/by-category', [RevenueController::class, 'byCategory'])->name('by-category');
+            Route::get('/period-summary', [RevenueController::class, 'getPeriodSummary'])->name('period-summary');
+            Route::get('/export', [RevenueController::class, 'export'])->name('export');
+            Route::get('/chart-data', [RevenueController::class, 'getChartData'])->name('chart-data');
+        });
+
+        // Financial Dashboard
+        Route::prefix('financial')->name('financial.')->group(function () {
+            Route::get('/dashboard', [FinancialDashboardController::class, 'index'])->name('dashboard');
+            Route::get('/profit-loss', [FinancialDashboardController::class, 'profitLoss'])->name('profit-loss');
+            Route::get('/category-breakdown', [FinancialDashboardController::class, 'getCategoryBreakdown'])->name('category-breakdown');
+            Route::get('/cash-flow', [FinancialDashboardController::class, 'getCashFlow'])->name('cash-flow');
+            Route::get('/chart-data', [FinancialDashboardController::class, 'getChartData'])->name('chart-data');
+            Route::get('/export-summary', [FinancialDashboardController::class, 'exportSummary'])->name('export-summary');
         });
 
     });

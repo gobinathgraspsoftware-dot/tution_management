@@ -66,6 +66,30 @@
 @endif
 {{-- End: Attendance Management --}}
 
+{{-- Start: Financial Management --}}
+<div class="menu-section-title">Financial Management</div>
+@if(Route::has('admin.financial.dashboard'))
+<a href="{{ route('admin.financial.dashboard') }}" class="menu-item {{ request()->routeIs('admin.financial.dashboard') ? 'active' : '' }}">
+    <i class="fas fa-chart-line"></i> Financial Dashboard
+</a>
+@endif
+@if(Route::has('admin.revenue.index'))
+<a href="{{ route('admin.revenue.index') }}" class="menu-item {{ request()->routeIs('admin.revenue.*') ? 'active' : '' }}">
+    <i class="fas fa-dollar-sign"></i> Revenue Tracking
+</a>
+@endif
+@if(Route::has('admin.expenses.index'))
+<a href="{{ route('admin.expenses.index') }}" class="menu-item {{ request()->routeIs('admin.expenses.*') && !request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
+    <i class="fas fa-receipt"></i> Expenses
+</a>
+@endif
+@if(Route::has('admin.expense-categories.index'))
+<a href="{{ route('admin.expense-categories.index') }}" class="menu-item {{ request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
+    <i class="fas fa-tags"></i> Expense Categories
+</a>
+@endif
+{{-- End: Financial Management --}}
+
 {{-- Start: Reports Management --}}
 <div class="menu-section-title">Reports Management</div>
 <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
