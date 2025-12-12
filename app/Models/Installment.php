@@ -68,6 +68,19 @@ class Installment extends Model
         return $query->whereIn('status', ['pending', 'partial', 'overdue']);
     }
 
+    public function scopeDueWithin($query, $days)
+    {
+        return $query->whereBetween('due_date', [
+            now(),
+            now()->addDays($days)
+        ]);
+    }
+
+    public function scopeDueToday($query)
+    {
+        return $query->whereDate('due_date', today());
+    }
+
     // ==========================================
     // ACCESSORS
     // ==========================================
