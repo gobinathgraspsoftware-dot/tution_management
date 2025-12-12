@@ -44,7 +44,7 @@ class RevenueController extends Controller
         $filters['date_to'] = $endDate;
 
         $revenues = $this->revenueService->getFilteredRevenue($filters);
-dd($comparison);
+
         // Get filter options
         $students = Student::approved()
             ->with('user')
@@ -67,6 +67,8 @@ dd($comparison);
 
     /**
      * Display revenue by category breakdown
+     *
+     * ⚠️ FIX: Now passes $comparison variable to view
      */
     public function byCategory(Request $request)
     {
@@ -82,10 +84,14 @@ dd($comparison);
         $totalRevenue = $this->revenueService->getTotalRevenue($startDate, $endDate);
         $topSources = $this->revenueService->getTopRevenueSources($startDate, $endDate, 10);
 
+        // ⚠️ FIX: Add comparison data for trend indicators
+        $comparison = $this->revenueService->getRevenueComparison($startDate, $endDate);
+
         return view('admin.revenue.by-category', compact(
             'byCategory',
             'totalRevenue',
             'topSources',
+            'comparison',
             'startDate',
             'endDate'
         ));
