@@ -58,6 +58,8 @@ use App\Http\Controllers\Teacher\TeacherDocumentController as TeacherOwnDocument
 use App\Http\Controllers\Admin\TeacherDocumentController;
 use App\Http\Controllers\Admin\TeacherPayslipController;
 use App\Http\Controllers\Teacher\PayslipController;
+use App\Http\Controllers\Admin\TeacherPerformanceController;
+use App\Http\Controllers\Teacher\PerformanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -750,6 +752,15 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::delete('/{payslip}', [TeacherPayslipController::class, 'destroy'])->name('destroy')->middleware('permission:manage-teacher-salary');
         });
 
+        Route::prefix('teacher-performance')->name('teacher-performance.')->group(function () {
+            Route::get('/', [TeacherPerformanceController::class, 'index'])->name('index');
+            Route::get('/comparison', [TeacherPerformanceController::class, 'comparison'])->name('comparison');
+            Route::get('/reports', [TeacherPerformanceController::class, 'reports'])->name('reports');
+            Route::get('/export', [TeacherPerformanceController::class, 'export'])->name('export');
+            Route::get('/{teacher}', [TeacherPerformanceController::class, 'show'])->name('show');
+            Route::get('/{teacher}/data', [TeacherPerformanceController::class, 'getData'])->name('get-data');
+        });
+
     });
 
     /*
@@ -855,6 +866,12 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/', [PayslipController::class, 'index'])->name('index');
             Route::get('/{payslip}', [PayslipController::class, 'show'])->name('show');
             Route::get('/{payslip}/print', [PayslipController::class, 'print'])->name('print');
+        });
+
+        Route::prefix('performance')->name('performance.')->group(function () {
+            Route::get('/', [PerformanceController::class, 'index'])->name('index');
+            Route::get('/analytics', [PerformanceController::class, 'analytics'])->name('analytics');
+            Route::get('/data', [PerformanceController::class, 'getData'])->name('get-data');
         });
 
     });

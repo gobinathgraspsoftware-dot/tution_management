@@ -59,6 +59,11 @@
     <i class="fas fa-file-invoice-dollar"></i> Teacher Payslips
 </a>
 @endif
+@if(Route::has('admin.teacher-performance.index'))
+<a href="{{ route('admin.teacher-performance.index') }}" class="menu-item {{ request()->routeIs('admin.teacher-performance.*') ? 'active' : '' }}">
+    <i class="fas fa-chart-line"></i> Teacher Performance
+</a>
+@endif
 {{-- End: Attendance Management --}}
 
 {{-- Start: Reports Management --}}
@@ -451,7 +456,17 @@
     <i class="fas fa-file-invoice-dollar"></i> My Payslips
 </a>
 @endif
-
+<div class="menu-section-title">Performance</div>
+@if(Route::has('teacher.performance.index'))
+<a href="{{ route('teacher.performance.index') }}" class="menu-item {{ request()->routeIs('teacher.performance.index') ? 'active' : '' }}">
+    <i class="fas fa-tachometer-alt"></i> My Performance
+</a>
+@endif
+@if(Route::has('teacher.performance.analytics'))
+<a href="{{ route('teacher.performance.analytics') }}" class="menu-item {{ request()->routeIs('teacher.performance.analytics') ? 'active' : '' }}">
+    <i class="fas fa-chart-bar"></i> Analytics
+</a>
+@endif
 @if(Route::has('teacher.materials.index'))
 <a href="{{ route('teacher.materials.index') }}" class="menu-item {{ request()->routeIs('teacher.materials.index') || request()->routeIs('teacher.materials.show') || request()->routeIs('teacher.materials.edit') ? 'active' : '' }}">
     <i class="fas fa-file-alt"></i> My Materials
