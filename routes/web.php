@@ -64,6 +64,8 @@ use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\ExpenseCategoryController;
 use App\Http\Controllers\Admin\RevenueController;
 use App\Http\Controllers\Admin\FinancialDashboardController;
+use App\Http\Controllers\Admin\SeminarController;
+use App\Http\Controllers\Public\SeminarRegistrationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -119,6 +121,32 @@ Route::middleware('guest')->group(function () {
     Route::get('/reset-password', [ResetPasswordController::class, 'showResetForm'])->name('password.reset.form');
     Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Public seminors
+|--------------------------------------------------------------------------
+*/
+Route::prefix('seminars')->name('public.seminars.')->group(function () {
+    // Browse seminars
+    Route::get('/', [SeminarRegistrationController::class, 'index'])->name('index');
+
+    // View seminar details
+    Route::get('/{seminar}', [SeminarRegistrationController::class, 'show'])->name('show');
+
+    // Registration form
+    Route::get('/{seminar}/register', [SeminarRegistrationController::class, 'register'])->name('register');
+    Route::post('/{seminar}/register', [SeminarRegistrationController::class, 'submitRegistration'])->name('submit');
+
+    // Registration success page
+    Route::get('/registration/success', [SeminarRegistrationController::class, 'success'])->name('success');
+
+    // AJAX endpoints
+    Route::get('/ajax/check-email', [SeminarRegistrationController::class, 'checkEmail'])->name('check-email');
+    Route::get('/ajax/{seminar}/current-fee', [SeminarRegistrationController::class, 'getCurrentFee'])->name('current-fee');
+    Route::get('/ajax/{seminar}/availability', [SeminarRegistrationController::class, 'checkAvailability'])->name('availability');
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -880,6 +908,30 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
             Route::get('/api/chart-data', [FinancialDashboardController::class, 'getChartData'])
                 ->name('api.chart-data');
+        });
+
+        // Seminors
+        Route::prefix('seminars')->name('seminars.')->group(function () {
+            // Seminar CRUD
+            Route::get('/', [SeminarController::class, 'index'])->name('index')->middleware('permission:view-seminars');
+            Route::get('/create', [SeminarController::class, 'create'])->name('create')->middleware('permission:create-seminars');
+            Route::post('/', [SeminarController::class, 'store'])->name('store')->middleware('permission:create-seminars');
+            Route::get('/{seminar}', [SeminarController::class, 'show'])->name('show')->middleware('permission:view-seminar-participants');
+            Route::get('/{seminar}/edit', [SeminarController::class, 'edit'])->name('edit')->middleware('permission:edit-seminars');
+            Route::put('/{seminar}', [SeminarController::class, 'update'])->name('update')->middleware('permission:edit-seminars');
+            Route::delete('/{seminar}', [SeminarController::class, 'destroy'])->name('destroy')->middleware('permission:delete-seminars');
+
+            // Status management
+            Route::post('/{seminar}/update-status', [SeminarController::class, 'updateStatus'])->name('update-status')->middleware('permission:edit-seminars');
+
+            // Participant management
+            Route::get('/{seminar}/participants', [SeminarController::class, 'participants'])->name('participants')->middleware('permission:view-seminar-participants');
+            Route::get('/{seminar}/export-participants', [SeminarController::class, 'exportParticipants'])->name('export-participants')->middleware('permission:export-seminar-participants');
+            Route::post('/{seminar}/participants/{participant}/attendance', [SeminarController::class, 'markAttendance'])->name('participants.attendance')->middleware('permission:manage-seminar-participants');
+            Route::post('/{seminar}/participants/{participant}/payment-status', [SeminarController::class, 'updatePaymentStatus'])->name('participants.payment-status')->middleware('permission:manage-seminar-participants');
+
+            // Bulk actions
+            Route::post('/{seminar}/bulk-notification', [SeminarController::class, 'sendBulkNotification'])->name('bulk-notification')->middleware('permission:manage-seminar-participants');
         });
 
     });

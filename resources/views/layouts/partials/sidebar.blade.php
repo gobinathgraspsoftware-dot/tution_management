@@ -112,6 +112,37 @@
 @endcanany
 {{-- End: Financial Management --}}
 
+{{-- Start: Seminar Management --}}
+<div class="menu-section-title">Seminar Management</div>
+
+{{-- @can('view-seminars') --}}
+<a href="{{ route('admin.seminars.index') }}" class="menu-item {{ request()->routeIs('admin.seminars.*') ? 'active' : '' }}">
+    <i class="fas fa-calendar-alt"></i> Seminars
+</a>
+{{-- @endcan --}}
+
+{{-- @can('view-seminar-participants')
+@if(Route::has('admin.seminars.index'))
+<a href="{{ route('admin.seminars.index', ['status' => 'open']) }}" class="menu-item {{ request()->routeIs('admin.seminars.index') && request('status') == 'open' ? 'active' : '' }}">
+    <i class="fas fa-door-open"></i> Open Seminars
+    @php
+        $openSeminars = \App\Models\Seminar::where('status', 'open')->count();
+    @endphp
+    @if($openSeminars > 0)
+    <span class="badge bg-success text-white ms-auto">{{ $openSeminars }}</span>
+    @endif
+</a>
+@endif
+@endcan --}}
+
+{{-- Public Seminar Page Link --}}
+@if(Route::has('public.seminars.index'))
+<a href="{{ route('public.seminars.index') }}" class="menu-item" target="_blank">
+    <i class="fas fa-external-link-alt"></i> Public Seminar Page
+</a>
+@endif
+{{-- End: Seminar Management --}}
+
 {{-- Start: Reports Management --}}
 <div class="menu-section-title">Reports Management</div>
 <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
