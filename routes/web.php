@@ -66,6 +66,7 @@ use App\Http\Controllers\Admin\RevenueController;
 use App\Http\Controllers\Admin\FinancialDashboardController;
 use App\Http\Controllers\Admin\SeminarController;
 use App\Http\Controllers\Public\SeminarRegistrationController;
+use App\Http\Controllers\Admin\SeminarAccountingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -933,6 +934,89 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             // Bulk actions
             Route::post('/{seminar}/bulk-notification', [SeminarController::class, 'sendBulkNotification'])->name('bulk-notification')->middleware('permission:manage-seminar-participants');
         });
+
+        // Seminar Accounting Dashboard
+        Route::get('/seminars/accounting/dashboard', [SeminarAccountingController::class, 'dashboard'])
+            ->middleware('permission:view-seminar-reports')
+            ->name('seminars.accounting.dashboard');
+
+        // Seminar Expense Management
+        Route::prefix('/seminars/{seminar}/accounting')->name('seminars.accounting.')->group(function () {
+
+            // Expense List & CRUD
+            Route::get('/expenses', [SeminarAccountingController::class, 'expenses'])
+                ->middleware('permission:view-seminar-expenses')
+                ->name('expenses');
+
+            Route::get('/expenses/create', [SeminarAccountingController::class, 'createExpense'])
+                ->middleware('permission:create-seminar-expenses')
+                ->name('expenses.create');
+
+            Route::post('/expenses', [SeminarAccountingController::class, 'storeExpense'])
+                ->middleware('permission:create-seminar-expenses')
+                ->name('expenses.store');
+
+            Route::get('/expenses/{expense}/edit', [SeminarAccountingController::class, 'editExpense'])
+                ->middleware('permission:edit-seminar-expenses')
+                ->name('expenses.edit');
+
+            Route::put('/expenses/{expense}', [SeminarAccountingController::class, 'updateExpense'])
+                ->middleware('permission:edit-seminar-expenses')
+                ->name('expenses.update');
+
+            Route::delete('/expenses/{expense}', [SeminarAccountingController::class, 'destroyExpense'])
+                ->middleware('permission:delete-seminar-expenses')
+                ->name('expenses.destroy');
+
+            // Expense Approval/Rejection
+            Route::post('/expenses/{expense}/approve', [SeminarAccountingController::class, 'approveExpense'])
+                ->middleware('permission:approve-expenses')
+                ->name('expenses.approve');
+
+            Route::post('/expenses/{expense}/reject', [SeminarAccountingController::class, 'rejectExpense'])
+                ->middleware('permission:reject-expenses')
+                ->name('expenses.reject');
+
+            Route::delete('/expenses/{expense}/delete-receipt', [SeminarAccountingController::class, 'deleteReceipt'])
+                ->middleware('permission:edit-seminar-expenses')
+                ->name('expenses.delete-receipt');
+
+            // Export Expenses
+            Route::get('/expenses/export', [SeminarAccountingController::class, 'exportExpensesExcel'])
+                ->middleware('permission:export-expenses')
+                ->name('expenses.export');
+
+            // Financial Report for Single Seminar
+            Route::get('/reports/financial', [SeminarAccountingController::class, 'financialReport'])
+                ->middleware('permission:view-seminar-reports')
+                ->name('reports.financial');
+
+            Route::get('/reports/financial/export-excel', [SeminarAccountingController::class, 'exportFinancialExcel'])
+                ->middleware('permission:export-financial-reports')
+                ->name('reports.financial.export-excel');
+
+            Route::get('/reports/financial/export-pdf', [SeminarAccountingController::class, 'exportFinancialPdf'])
+                ->middleware('permission:export-financial-reports')
+                ->name('reports.financial.export-pdf');
+        });
+
+        // Profitability Report (All Seminars)
+        Route::get('/seminars/accounting/reports/profitability', [SeminarAccountingController::class, 'profitabilityReport'])
+            ->middleware('permission:view-seminar-reports')
+            ->name('seminars.accounting.reports.profitability');
+
+        Route::get('/seminars/accounting/reports/profitability/export-excel', [SeminarAccountingController::class, 'exportProfitabilityExcel'])
+            ->middleware('permission:export-financial-reports')
+            ->name('seminars.accounting.reports.profitability.export-excel');
+
+        Route::get('/seminars/accounting/reports/profitability/export-pdf', [SeminarAccountingController::class, 'exportProfitabilityPdf'])
+            ->middleware('permission:export-financial-reports')
+            ->name('seminars.accounting.reports.profitability.export-pdf');
+
+        // Payment Status Report
+        Route::get('/seminars/accounting/reports/payment-status', [SeminarAccountingController::class, 'paymentStatusReport'])
+            ->middleware('permission:view-seminar-reports')
+            ->name('seminars.accounting.reports.payment-status');
 
     });
 

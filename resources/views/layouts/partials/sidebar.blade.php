@@ -141,6 +141,19 @@
     <i class="fas fa-external-link-alt"></i> Public Seminar Page
 </a>
 @endif
+<!-- Seminar Accounting -->
+@if(Route::has('admin.seminars.accounting.dashboard'))
+<div class="menu-section-title">Seminar Accounting</div>
+<a href="{{ route('admin.seminars.accounting.dashboard') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.dashboard') ? 'active' : '' }}">
+    <i class="fas fa-calendar-alt"></i> Dashboard
+</a>
+<a href="{{ route('admin.seminars.accounting.reports.profitability') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.reports.profitability*') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice-dollar"></i> Profitability Report
+</a>
+<a href="{{ route('admin.seminars.accounting.reports.payment-status') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.reports.payment-status') ? 'active' : '' }}">
+    <i class="fas fa-sync-alt"></i> Payment Status
+</a>
+@endif
 {{-- End: Seminar Management --}}
 
 {{-- Start: Reports Management --}}
