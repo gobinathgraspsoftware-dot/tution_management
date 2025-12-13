@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use App\Services\EmailService;
 use App\Services\SmsService;
 
@@ -26,7 +26,7 @@ class ProcessNotificationQueue extends Command
     protected $smsService;
 
     public function __construct(
-        WhatsappService $whatsappService,
+        WhatsAppService $whatsappService,
         EmailService $emailService,
         SmsService $smsService
     ) {

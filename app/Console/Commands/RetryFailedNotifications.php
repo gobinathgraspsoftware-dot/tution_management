@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use App\Services\EmailService;
 use App\Models\WhatsappQueue;
 use App\Models\EmailQueue;
@@ -27,7 +27,7 @@ class RetryFailedNotifications extends Command
     protected $emailService;
 
     public function __construct(
-        WhatsappService $whatsappService,
+        WhatsAppService $whatsappService,
         EmailService $emailService
     ) {
         parent::__construct();

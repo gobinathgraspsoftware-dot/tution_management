@@ -15,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\StudentApprovalService::class, function ($app) {
             return new \App\Services\StudentApprovalService(
                 $app->make(\App\Services\NotificationService::class),
-                $app->make(\App\Services\WhatsappService::class)
+                $app->make(\App\Services\WhatsAppService::class)
             );
         });
     }

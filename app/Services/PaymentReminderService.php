@@ -19,7 +19,7 @@ class PaymentReminderService
     protected $emailService;
 
     public function __construct(
-        WhatsappService $whatsappService,
+        WhatsAppService $whatsappService,
         EmailService $emailService
     ) {
         $this->whatsappService = $whatsappService;

@@ -12,7 +12,7 @@ use App\Models\ParentModel;
 use App\Models\MessageTemplate;
 use App\Models\Parents;
 use App\Services\NotificationService;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use App\Services\EmailService;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ class NotificationController extends Controller
 
     public function __construct(
         NotificationService $notificationService,
-        WhatsappService $whatsappService,
+        WhatsAppService $whatsappService,
         EmailService $emailService,
         SmsService $smsService
     ) {

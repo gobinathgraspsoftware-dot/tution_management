@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Services\NotificationService;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use App\Services\EmailService;
 use App\Services\SmsService;
 
@@ -16,8 +16,8 @@ class NotificationServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Register WhatsApp Service as singleton
-        $this->app->singleton(WhatsappService::class, function ($app) {
-            return new WhatsappService();
+        $this->app->singleton(WhatsAppService::class, function ($app) {
+            return new WhatsAppService();
         });
 
         // Register Email Service as singleton
@@ -33,7 +33,7 @@ class NotificationServiceProvider extends ServiceProvider
         // Register Notification Service with dependencies
         $this->app->singleton(NotificationService::class, function ($app) {
             return new NotificationService(
-                $app->make(WhatsappService::class),
+                $app->make(WhatsAppService::class),
                 $app->make(EmailService::class),
                 $app->make(SmsService::class)
             );

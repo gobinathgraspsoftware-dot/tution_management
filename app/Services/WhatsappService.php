@@ -7,7 +7,7 @@ use App\Models\NotificationLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class WhatsappService
+class WhatsAppService
 {
     protected $apiUrl;
     protected $instanceId;

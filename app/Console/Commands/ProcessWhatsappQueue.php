@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 
 class ProcessWhatsappQueue extends Command
 {
@@ -21,7 +21,7 @@ class ProcessWhatsappQueue extends Command
 
     protected $whatsappService;
 
-    public function __construct(WhatsappService $whatsappService)
+    public function __construct(WhatsAppService $whatsappService)
     {
         parent::__construct();
         $this->whatsappService = $whatsappService;

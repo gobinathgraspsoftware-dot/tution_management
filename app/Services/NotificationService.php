@@ -17,7 +17,7 @@ class NotificationService
     protected $smsService;
 
     public function __construct(
-        WhatsappService $whatsappService,
+        WhatsAppService $whatsappService,
         EmailService $emailService,
         SmsService $smsService
     ) {

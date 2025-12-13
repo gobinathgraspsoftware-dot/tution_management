@@ -18,7 +18,7 @@ class StudentApprovalService
 
     public function __construct(
         NotificationService $notificationService,
-        WhatsappService $whatsappService
+        WhatsAppService $whatsappService
     ) {
         $this->notificationService = $notificationService;
         $this->whatsappService = $whatsappService;
