@@ -791,14 +791,95 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/chart-data', [RevenueController::class, 'getChartData'])->name('chart-data');
         });
 
-        // Financial Dashboard
+        // Financial Dashboard & Reports
         Route::prefix('financial')->name('financial.')->group(function () {
-            Route::get('/dashboard', [FinancialDashboardController::class, 'index'])->name('dashboard');
-            Route::get('/profit-loss', [FinancialDashboardController::class, 'profitLoss'])->name('profit-loss');
-            Route::get('/category-breakdown', [FinancialDashboardController::class, 'getCategoryBreakdown'])->name('category-breakdown');
-            Route::get('/cash-flow', [FinancialDashboardController::class, 'getCashFlow'])->name('cash-flow');
-            Route::get('/chart-data', [FinancialDashboardController::class, 'getChartData'])->name('chart-data');
-            Route::get('/export-summary', [FinancialDashboardController::class, 'exportSummary'])->name('export-summary');
+
+            // Main Dashboard
+            Route::get('/dashboard', [FinancialDashboardController::class, 'index'])
+                ->name('dashboard')
+                ->middleware('permission:view-financial-dashboard');
+
+            // Reports Index
+            Route::get('/reports', [FinancialDashboardController::class, 'reports'])
+                ->name('reports')
+                ->middleware('permission:view-financial-dashboard');
+
+            // Specific Reports
+            Route::prefix('reports')->name('reports.')->group(function () {
+
+                // Profit & Loss Statement
+                Route::get('/profit-loss', [FinancialDashboardController::class, 'profitLoss'])
+                    ->name('profit-loss')
+                    ->middleware('permission:view-profit-loss-reports');
+
+                // Category Revenue Analysis
+                Route::get('/category-revenue', [FinancialDashboardController::class, 'categoryRevenue'])
+                    ->name('category-revenue')
+                    ->middleware('permission:view-category-revenue');
+
+                // Cash Flow Analysis
+                Route::get('/cash-flow', [FinancialDashboardController::class, 'cashFlow'])
+                    ->name('cash-flow')
+                    ->middleware('permission:view-financial-dashboard');
+            });
+
+            // Excel Exports
+            Route::prefix('export')->name('export.')->group(function () {
+
+                // Comprehensive Report
+                Route::get('/comprehensive', [FinancialDashboardController::class, 'exportComprehensive'])
+                    ->name('comprehensive')
+                    ->middleware('permission:export-financial-reports');
+
+                // Profit & Loss Excel
+                Route::get('/profit-loss', [FinancialDashboardController::class, 'exportProfitLoss'])
+                    ->name('profit-loss')
+                    ->middleware('permission:export-financial-reports');
+
+                // Category Revenue Excel
+                Route::get('/category-revenue', [FinancialDashboardController::class, 'exportCategoryRevenue'])
+                    ->name('category-revenue')
+                    ->middleware('permission:export-financial-reports');
+
+                // Cash Flow Excel
+                Route::get('/cash-flow', [FinancialDashboardController::class, 'exportCashFlow'])
+                    ->name('cash-flow')
+                    ->middleware('permission:export-financial-reports');
+
+                // Legacy CSV Export
+                Route::get('/summary', [FinancialDashboardController::class, 'exportSummary'])
+                    ->name('summary')
+                    ->middleware('permission:export-financial-reports');
+            });
+
+            // PDF Downloads
+            Route::prefix('download')->name('download.')->group(function () {
+
+                // Profit & Loss PDF
+                Route::get('/profit-loss-pdf', [FinancialDashboardController::class, 'downloadProfitLossPdf'])
+                    ->name('profit-loss-pdf')
+                    ->middleware('permission:export-financial-reports');
+
+                // Comprehensive PDF
+                Route::get('/comprehensive-pdf', [FinancialDashboardController::class, 'downloadComprehensivePdf'])
+                    ->name('comprehensive-pdf')
+                    ->middleware('permission:export-financial-reports');
+
+                // Category Revenue PDF
+                Route::get('/category-revenue-pdf', [FinancialDashboardController::class, 'downloadCategoryRevenuePdf'])
+                    ->name('category-revenue-pdf')
+                    ->middleware('permission:export-financial-reports');
+            });
+
+            // AJAX Endpoints
+            Route::get('/api/category-breakdown', [FinancialDashboardController::class, 'getCategoryBreakdown'])
+                ->name('api.category-breakdown');
+
+            Route::get('/api/cash-flow', [FinancialDashboardController::class, 'getCashFlow'])
+                ->name('api.cash-flow');
+
+            Route::get('/api/chart-data', [FinancialDashboardController::class, 'getChartData'])
+                ->name('api.chart-data');
         });
 
     });

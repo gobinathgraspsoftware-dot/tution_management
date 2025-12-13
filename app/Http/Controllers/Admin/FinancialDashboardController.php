@@ -4,16 +4,27 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\FinancialDashboardService;
+use App\Services\FinancialReportService;
+use App\Exports\FinancialReportExport;
+use App\Exports\CategoryRevenueExport;
+use App\Exports\ProfitLossExport;
+use App\Exports\CashFlowExport;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class FinancialDashboardController extends Controller
 {
     protected $dashboardService;
+    protected $reportService;
 
-    public function __construct(FinancialDashboardService $dashboardService)
-    {
+    public function __construct(
+        FinancialDashboardService $dashboardService,
+        FinancialReportService $reportService
+    ) {
         $this->dashboardService = $dashboardService;
+        $this->reportService = $reportService;
     }
 
     /**
@@ -36,6 +47,25 @@ class FinancialDashboardController extends Controller
     }
 
     /**
+     * Show reports index page
+     */
+    public function reports(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $summary = $this->reportService->getFinancialSummary($startDate, $endDate);
+        $healthMetrics = $this->reportService->getFinancialHealthMetrics($startDate, $endDate);
+
+        return view('admin.financial.reports.index', compact('summary', 'healthMetrics', 'startDate', 'endDate'));
+    }
+
+    /**
      * Get profit/loss statement
      */
     public function profitLoss(Request $request)
@@ -49,8 +79,62 @@ class FinancialDashboardController extends Controller
             : now()->endOfMonth();
 
         $statement = $this->dashboardService->getProfitLossStatement($startDate, $endDate);
+        $analysis = $this->reportService->getProfitLossAnalysis($startDate, $endDate);
 
-        return response()->json($statement);
+        // Check if this is an AJAX request
+        if ($request->ajax()) {
+            return response()->json($statement);
+        }
+
+        return view('admin.financial.reports.profit-loss', compact('statement', 'analysis', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Show category-based revenue report
+     */
+    public function categoryRevenue(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $revenueBreakdown = $this->reportService->getRevenueBreakdown($startDate, $endDate);
+        $categoryData = $this->dashboardService->getCategoryBreakdown($startDate, $endDate);
+
+        return view('admin.financial.reports.category-revenue', compact(
+            'revenueBreakdown',
+            'categoryData',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+    /**
+     * Show cash flow analysis
+     */
+    public function cashFlow(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $cashFlowData = $this->reportService->getCashFlowData($startDate, $endDate);
+        $trends = $this->reportService->getTrendAnalysis($startDate, $endDate);
+
+        return view('admin.financial.reports.cash-flow', compact(
+            'cashFlowData',
+            'trends',
+            'startDate',
+            'endDate'
+        ));
     }
 
     /**
@@ -72,7 +156,7 @@ class FinancialDashboardController extends Controller
     }
 
     /**
-     * Get cash flow analysis
+     * Get cash flow analysis (AJAX)
      */
     public function getCashFlow(Request $request)
     {
@@ -132,7 +216,182 @@ class FinancialDashboardController extends Controller
     }
 
     /**
-     * Export financial summary
+     * Export comprehensive financial report (Excel)
+     */
+    public function exportComprehensive(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $reportData = $this->reportService->generateComprehensiveReport($startDate, $endDate);
+
+        $filename = 'financial_report_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.xlsx';
+
+        return Excel::download(new FinancialReportExport($reportData), $filename);
+    }
+
+    /**
+     * Export profit & loss statement (Excel)
+     */
+    public function exportProfitLoss(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $statement = $this->dashboardService->getProfitLossStatement($startDate, $endDate);
+        $period = [
+            'start' => $startDate->format('d M Y'),
+            'end' => $endDate->format('d M Y'),
+        ];
+
+        $filename = 'profit_loss_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.xlsx';
+
+        return Excel::download(new ProfitLossExport($statement, $period), $filename);
+    }
+
+    /**
+     * Export category revenue report (Excel)
+     */
+    public function exportCategoryRevenue(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $categoryData = $this->dashboardService->getCategoryBreakdown($startDate, $endDate);
+        $period = [
+            'start' => $startDate->format('d M Y'),
+            'end' => $endDate->format('d M Y'),
+        ];
+
+        // Prepare data for export
+        $exportData = [];
+        foreach ($categoryData['revenue'] as $revenue) {
+            $exportData[] = [
+                'category' => $revenue->category ?? 'Other',
+                'amount' => $revenue->total,
+                'count' => $revenue->count ?? 0,
+            ];
+        }
+
+        $filename = 'category_revenue_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.xlsx';
+
+        return Excel::download(new CategoryRevenueExport($exportData, $period), $filename);
+    }
+
+    /**
+     * Export cash flow report (Excel)
+     */
+    public function exportCashFlow(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $cashFlowData = $this->reportService->getCashFlowData($startDate, $endDate);
+        $period = [
+            'start' => $startDate->format('d M Y'),
+            'end' => $endDate->format('d M Y'),
+        ];
+
+        $filename = 'cash_flow_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.xlsx';
+
+        return Excel::download(new CashFlowExport($cashFlowData, $period), $filename);
+    }
+
+    /**
+     * Download profit & loss as PDF
+     */
+    public function downloadProfitLossPdf(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $statement = $this->dashboardService->getProfitLossStatement($startDate, $endDate);
+        $analysis = $this->reportService->getProfitLossAnalysis($startDate, $endDate);
+
+        $pdf = Pdf::loadView('admin.financial.pdf.profit-loss', compact('statement', 'analysis', 'startDate', 'endDate'));
+
+        $filename = 'profit_loss_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Download comprehensive report as PDF
+     */
+    public function downloadComprehensivePdf(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $reportData = $this->reportService->generateComprehensiveReport($startDate, $endDate);
+
+        $pdf = Pdf::loadView('admin.financial.pdf.comprehensive', compact('reportData', 'startDate', 'endDate'));
+
+        $filename = 'financial_report_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Download category revenue as PDF
+     */
+    public function downloadCategoryRevenuePdf(Request $request)
+    {
+        $startDate = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)
+            : now()->endOfMonth();
+
+        $revenueBreakdown = $this->reportService->getRevenueBreakdown($startDate, $endDate);
+        $categoryData = $this->dashboardService->getCategoryBreakdown($startDate, $endDate);
+
+        $pdf = Pdf::loadView('admin.financial.pdf.category-revenue', compact(
+            'revenueBreakdown',
+            'categoryData',
+            'startDate',
+            'endDate'
+        ));
+
+        $filename = 'category_revenue_' . $startDate->format('Ymd') . '_' . $endDate->format('Ymd') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Export financial summary as CSV (Legacy support)
      */
     public function exportSummary(Request $request)
     {

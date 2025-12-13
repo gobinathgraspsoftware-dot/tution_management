@@ -67,27 +67,49 @@
 {{-- End: Attendance Management --}}
 
 {{-- Start: Financial Management --}}
+@canany(['view-financial-dashboard', 'view-revenue-reports', 'view-expense-reports'])
 <div class="menu-section-title">Financial Management</div>
-@if(Route::has('admin.financial.dashboard'))
-<a href="{{ route('admin.financial.dashboard') }}" class="menu-item {{ request()->routeIs('admin.financial.dashboard') ? 'active' : '' }}">
-    <i class="fas fa-chart-line"></i> Financial Dashboard
+
+@can('view-financial-dashboard')
+<a href="{{ route('admin.financial.dashboard') }}"
+   class="menu-item {{ request()->routeIs('admin.financial.dashboard') ? 'active' : '' }}">
+    <i class="fas fa-chart-line"></i>
+    <span>Financial Dashboard</span>
 </a>
-@endif
-@if(Route::has('admin.revenue.index'))
-<a href="{{ route('admin.revenue.index') }}" class="menu-item {{ request()->routeIs('admin.revenue.*') ? 'active' : '' }}">
-    <i class="fas fa-dollar-sign"></i> Revenue Tracking
+@endcan
+
+@can('view-revenue-reports')
+<a href="{{ route('admin.financial.reports') }}"
+   class="menu-item {{ request()->routeIs('admin.financial.reports') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice-dollar"></i>
+    <span>Financial Reports</span>
 </a>
-@endif
-@if(Route::has('admin.expenses.index'))
-<a href="{{ route('admin.expenses.index') }}" class="menu-item {{ request()->routeIs('admin.expenses.*') && !request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
-    <i class="fas fa-receipt"></i> Expenses
+@endcan
+
+@can('view-profit-loss-reports')
+<a href="{{ route('admin.financial.reports.profit-loss') }}"
+   class="menu-item {{ request()->routeIs('admin.financial.reports.profit-loss') ? 'active' : '' }}">
+    <i class="fas fa-balance-scale"></i>
+    <span>Profit & Loss</span>
 </a>
-@endif
-@if(Route::has('admin.expense-categories.index'))
-<a href="{{ route('admin.expense-categories.index') }}" class="menu-item {{ request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
-    <i class="fas fa-tags"></i> Expense Categories
+@endcan
+
+@can('view-category-revenue')
+<a href="{{ route('admin.financial.reports.category-revenue') }}"
+   class="menu-item {{ request()->routeIs('admin.financial.reports.category-revenue') ? 'active' : '' }}">
+    <i class="fas fa-chart-pie"></i>
+    <span>Revenue by Category</span>
 </a>
-@endif
+@endcan
+
+@can('view-financial-dashboard')
+<a href="{{ route('admin.financial.reports.cash-flow') }}"
+   class="menu-item {{ request()->routeIs('admin.financial.reports.cash-flow') ? 'active' : '' }}">
+    <i class="fas fa-exchange-alt"></i>
+    <span>Cash Flow</span>
+</a>
+@endcan
+@endcanany
 {{-- End: Financial Management --}}
 
 {{-- Start: Reports Management --}}
