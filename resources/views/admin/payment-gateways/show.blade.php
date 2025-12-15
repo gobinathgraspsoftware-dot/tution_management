@@ -27,6 +27,7 @@
                                 'toyyibpay' => 'fas fa-money-bill-wave text-primary',
                                 'senangpay' => 'fas fa-credit-card text-success',
                                 'billplz' => 'fas fa-file-invoice-dollar text-info',
+                                'eghl' => 'fas fa-globe text-warning',
                             ];
                             $icon = $icons[$paymentGateway->gateway_name] ?? 'fas fa-credit-card text-secondary';
                         @endphp

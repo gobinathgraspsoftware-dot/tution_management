@@ -11,6 +11,7 @@ use App\Services\Gateways\BaseGateway;
 use App\Services\Gateways\ToyyibPayGateway;
 use App\Services\Gateways\SenangPayGateway;
 use App\Services\Gateways\BillplzGateway;
+use App\Services\Gateways\EghlGateway;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -29,6 +30,7 @@ class PaymentGatewayService
         'toyyibpay' => ToyyibPayGateway::class,
         'senangpay' => SenangPayGateway::class,
         'billplz' => BillplzGateway::class,
+        'eghl' => EghlGateway::class,
     ];
 
     /**
@@ -245,21 +247,15 @@ class PaymentGatewayService
                 'callback_data' => $result['raw_data'],
             ]);
 
-            // If payment successful, create payment record and update invoice
-            if ($result['success'] && $result['status'] === 'completed') {
+            // Process successful payment
+            if ($result['status'] === 'completed') {
                 $this->processSuccessfulPayment($transaction, $result);
             }
-
-            // Log activity
-            $this->logActivity('payment_callback_processed', $transaction, [
-                'gateway' => $gatewayName,
-                'status' => $result['status'],
-            ]);
 
             return [
                 'success' => true,
                 'transaction' => $transaction,
-                'result' => $result,
+                'status' => $result['status'],
             ];
 
         } catch (\Exception $e) {

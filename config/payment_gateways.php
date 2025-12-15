@@ -42,7 +42,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may configure all of the payment gateways supported by your
-    | application. Supported gateways: toyyibpay, senangpay, billplz
+    | application. Supported gateways: toyyibpay, senangpay, billplz, eghl
     |
     */
 
@@ -82,6 +82,18 @@ return [
             'supported_methods' => ['fpx'],
             'fee_percentage' => env('BILLPLZ_FEE_PERCENT', 1.0),
             'fee_fixed' => env('BILLPLZ_FEE_FIXED', 0.00),
+        ],
+
+        'eghl' => [
+            'name' => 'eGHL',
+            'description' => 'eGHL Payment Gateway - Multi-currency support',
+            'class' => \App\Services\Gateways\EghlGateway::class,
+            'sandbox_url' => 'https://test2pay.ghl.com',
+            'production_url' => 'https://pay.ghl.com',
+            'supported_currencies' => ['MYR', 'USD', 'SGD', 'THB', 'IDR', 'CNY'],
+            'supported_methods' => ['fpx', 'card', 'ewallet', 'unionpay', 'alipay'],
+            'fee_percentage' => env('EGHL_FEE_PERCENT', 2.5),
+            'fee_fixed' => env('EGHL_FEE_FIXED', 0.00),
         ],
 
     ],
