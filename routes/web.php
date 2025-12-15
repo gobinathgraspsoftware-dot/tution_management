@@ -650,6 +650,10 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/{paymentGateway}/set-default', [PaymentGatewayConfigController::class, 'setDefault'])
                 // ->middleware('permission:edit-payment-gateway-configs')
                 ->name('set-default');
+
+            Route::post('/transactions/{transaction}/refresh', [PaymentGatewayConfigController::class, 'refreshTransaction'])
+                // ->middleware('permission:edit-payment-gateway-configs')
+                ->name('transactions.refresh');
         });
 
         /*

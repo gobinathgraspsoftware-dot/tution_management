@@ -171,7 +171,9 @@
                     <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Monthly Statistics</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="monthlyChart" height="250"></canvas>
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -246,16 +248,30 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Global chart instance variable
+var monthlyChartInstance = null;
+
 $(document).ready(function() {
-    var ctx = document.getElementById('monthlyChart').getContext('2d');
+    // Destroy existing chart if it exists
+    if (monthlyChartInstance) {
+        monthlyChartInstance.destroy();
+    }
+
+    var canvas = document.getElementById('monthlyChart');
+    if (!canvas) {
+        console.error('Chart canvas not found');
+        return;
+    }
+
+    var ctx = canvas.getContext('2d');
 
     var monthlyStats = @json($monthlyStats);
     var labels = Object.keys(monthlyStats);
     var successData = labels.map(function(month) { return monthlyStats[month].completed || 0; });
     var failedData = labels.map(function(month) { return monthlyStats[month].failed || 0; });
-    var amountData = labels.map(function(month) { return monthlyStats[month].total_amount || 0; });
 
-    new Chart(ctx, {
+    // Create new chart instance
+    monthlyChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -279,21 +295,56 @@ $(document).ready(function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 1
+                        stepSize: 1,
+                        precision: 0
                     }
                 }
             },
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    }
                 }
             }
         }
     });
+});
+
+// Clean up chart on page unload/navigation
+$(window).on('beforeunload', function() {
+    if (monthlyChartInstance) {
+        monthlyChartInstance.destroy();
+        monthlyChartInstance = null;
+    }
+});
+
+// Also clean up on page hide (for back/forward navigation)
+$(window).on('pagehide', function() {
+    if (monthlyChartInstance) {
+        monthlyChartInstance.destroy();
+        monthlyChartInstance = null;
+    }
 });
 </script>
 @endpush

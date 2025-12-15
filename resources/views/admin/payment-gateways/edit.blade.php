@@ -25,7 +25,16 @@
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
-                            <i class="fas fa-credit-card me-2"></i>
+                            @php
+                                $icons = [
+                                    'toyyibpay' => 'fas fa-money-bill-wave text-primary',
+                                    'senangpay' => 'fas fa-credit-card text-success',
+                                    'billplz' => 'fas fa-file-invoice-dollar text-info',
+                                    'eghl' => 'fas fa-globe text-warning',
+                                ];
+                                $icon = $icons[$paymentGateway->gateway_name] ?? 'fas fa-credit-card';
+                            @endphp
+                            <i class="{{ $icon }} me-2"></i>
                             {{ $gatewayInfo['name'] ?? ucfirst($paymentGateway->gateway_name) }}
                         </h5>
                         <span class="badge {{ $paymentGateway->is_active ? 'bg-success' : 'bg-secondary' }}">
@@ -62,20 +71,47 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="api_secret" class="form-label">API Secret</label>
+                                <label for="api_secret" class="form-label">
+                                    @if($paymentGateway->gateway_name === 'eghl')
+                                        Service ID (Password)
+                                    @else
+                                        API Secret
+                                    @endif
+                                </label>
                                 <input type="password" class="form-control @error('api_secret') is-invalid @enderror"
                                        id="api_secret" name="api_secret" placeholder="••••••••">
-                                <div class="form-text">Leave empty to keep current value</div>
+                                <div class="form-text">
+                                    @if($paymentGateway->gateway_name === 'eghl')
+                                        Your EGHL Service ID - leave empty to keep current value
+                                    @else
+                                        Leave empty to keep current value
+                                    @endif
+                                </div>
                                 @error('api_secret')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="merchant_id" class="form-label">Merchant ID</label>
+                                <label for="merchant_id" class="form-label">
+                                    Merchant ID
+                                    @if(in_array($paymentGateway->gateway_name, ['senangpay', 'eghl']))
+                                        <span class="text-danger">*</span>
+                                    @endif
+                                </label>
                                 <input type="text" class="form-control @error('merchant_id') is-invalid @enderror"
                                        id="merchant_id" name="merchant_id"
-                                       value="{{ old('merchant_id', $paymentGateway->merchant_id) }}">
+                                       value="{{ old('merchant_id', $paymentGateway->merchant_id) }}"
+                                       @if(in_array($paymentGateway->gateway_name, ['senangpay', 'eghl'])) required @endif>
+                                <div class="form-text">
+                                    @if($paymentGateway->gateway_name === 'eghl')
+                                        Required - Your EGHL Merchant ID
+                                    @elseif($paymentGateway->gateway_name === 'senangpay')
+                                        Required - Your SenangPay Merchant ID
+                                    @else
+                                        Optional
+                                    @endif
+                                </div>
                                 @error('merchant_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -158,6 +194,48 @@
                                 @error('configuration.collection_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if($paymentGateway->gateway_name === 'eghl')
+                <!-- EGHL Specific Settings -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-globe me-2"></i>eGHL Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="eghl_currencies" class="form-label">Supported Currencies</label>
+                                @php
+                                    $supportedCurrencies = $paymentGateway->supported_currencies ?? ['MYR'];
+                                @endphp
+                                <select class="form-select @error('supported_currencies') is-invalid @enderror"
+                                        id="eghl_currencies" name="supported_currencies[]" multiple>
+                                    <option value="MYR" {{ in_array('MYR', $supportedCurrencies) ? 'selected' : '' }}>MYR - Malaysian Ringgit</option>
+                                    <option value="USD" {{ in_array('USD', $supportedCurrencies) ? 'selected' : '' }}>USD - US Dollar</option>
+                                    <option value="SGD" {{ in_array('SGD', $supportedCurrencies) ? 'selected' : '' }}>SGD - Singapore Dollar</option>
+                                    <option value="THB" {{ in_array('THB', $supportedCurrencies) ? 'selected' : '' }}>THB - Thai Baht</option>
+                                    <option value="IDR" {{ in_array('IDR', $supportedCurrencies) ? 'selected' : '' }}>IDR - Indonesian Rupiah</option>
+                                    <option value="CNY" {{ in_array('CNY', $supportedCurrencies) ? 'selected' : '' }}>CNY - Chinese Yuan</option>
+                                </select>
+                                <div class="form-text">Hold Ctrl/Cmd to select multiple currencies</div>
+                                @error('supported_currencies')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Available Payment Methods</label>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success me-2"></i>Credit/Debit Cards (Visa, Mastercard, Amex, UnionPay)</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>FPX Online Banking</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>E-Wallets (Touch 'n Go, Boost, GrabPay, etc.)</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Alipay (for Chinese customers)</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -316,7 +394,7 @@ $(document).ready(function() {
         resultDiv.hide();
 
         $.ajax({
-            url: '{{ route("admin.payment-gateways.test-connection", $paymentGateway) }}',
+            url: '{{ route("admin.payment-gateways.test", $paymentGateway) }}',
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'

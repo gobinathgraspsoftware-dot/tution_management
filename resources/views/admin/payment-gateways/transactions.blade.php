@@ -96,13 +96,16 @@
         <div class="gateway-icon me-3 p-3 rounded-circle" style="background: {{ $paymentGateway->is_active ? '#e8f5e9' : '#ffebee' }};">
             @switch($paymentGateway->gateway_name)
                 @case('toyyibpay')
-                    <i class="fas fa-credit-card fa-lg" style="color: #1a237e;"></i>
+                    <i class="fas fa-money-bill-wave fa-lg" style="color: #1a237e;"></i>
                     @break
                 @case('senangpay')
                     <i class="fas fa-credit-card fa-lg" style="color: #00bcd4;"></i>
                     @break
                 @case('billplz')
-                    <i class="fas fa-credit-card fa-lg" style="color: #ff5722;"></i>
+                    <i class="fas fa-file-invoice-dollar fa-lg" style="color: #ff5722;"></i>
+                    @break
+                @case('eghl')
+                    <i class="fas fa-globe fa-lg" style="color: #ff9800;"></i>
                     @break
                 @default
                     <i class="fas fa-credit-card fa-lg"></i>
