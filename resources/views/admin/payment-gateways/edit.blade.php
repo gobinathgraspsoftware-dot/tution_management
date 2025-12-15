@@ -49,6 +49,7 @@
                     </div>
                 </div>
 
+                @if($paymentGateway->gateway_name !== 'eghl')
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-key me-2"></i>API Credentials</h5>
@@ -71,22 +72,10 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="api_secret" class="form-label">
-                                    @if($paymentGateway->gateway_name === 'eghl')
-                                        Service ID (Password)
-                                    @else
-                                        API Secret
-                                    @endif
-                                </label>
+                                <label for="api_secret" class="form-label">API Secret</label>
                                 <input type="password" class="form-control @error('api_secret') is-invalid @enderror"
                                        id="api_secret" name="api_secret" placeholder="••••••••">
-                                <div class="form-text">
-                                    @if($paymentGateway->gateway_name === 'eghl')
-                                        Your EGHL Service ID - leave empty to keep current value
-                                    @else
-                                        Leave empty to keep current value
-                                    @endif
-                                </div>
+                                <div class="form-text">Leave empty to keep current value</div>
                                 @error('api_secret')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -95,18 +84,16 @@
                             <div class="col-md-6 mb-3">
                                 <label for="merchant_id" class="form-label">
                                     Merchant ID
-                                    @if(in_array($paymentGateway->gateway_name, ['senangpay', 'eghl']))
+                                    @if($paymentGateway->gateway_name === 'senangpay')
                                         <span class="text-danger">*</span>
                                     @endif
                                 </label>
                                 <input type="text" class="form-control @error('merchant_id') is-invalid @enderror"
                                        id="merchant_id" name="merchant_id"
                                        value="{{ old('merchant_id', $paymentGateway->merchant_id) }}"
-                                       @if(in_array($paymentGateway->gateway_name, ['senangpay', 'eghl'])) required @endif>
+                                       @if($paymentGateway->gateway_name === 'senangpay') required @endif>
                                 <div class="form-text">
-                                    @if($paymentGateway->gateway_name === 'eghl')
-                                        Required - Your EGHL Merchant ID
-                                    @elseif($paymentGateway->gateway_name === 'senangpay')
+                                    @if($paymentGateway->gateway_name === 'senangpay')
                                         Required - Your SenangPay Merchant ID
                                     @else
                                         Optional
@@ -129,6 +116,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 @if($paymentGateway->gateway_name === 'toyyibpay')
                 <!-- ToyyibPay Specific Settings -->
@@ -204,10 +192,69 @@
                 <!-- EGHL Specific Settings -->
                 <div class="card mb-4">
                     <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0"><i class="fas fa-globe me-2"></i>eGHL Settings</h5>
+                        <h5 class="mb-0"><i class="fas fa-globe me-2"></i>eGHL Configuration</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="eghl_merchant_id" class="form-label">Merchant ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('configuration.merchant_id') is-invalid @enderror"
+                                       id="eghl_merchant_id" name="configuration[merchant_id]"
+                                       value="{{ old('configuration.merchant_id', $paymentGateway->configuration['merchant_id'] ?? '') }}"
+                                       placeholder="e.g., DEMO0001">
+                                <div class="form-text">Your EGHL Merchant ID</div>
+                                @error('configuration.merchant_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="eghl_merchant_password" class="form-label">Merchant Password</label>
+                                <input type="password" class="form-control @error('configuration.merchant_password') is-invalid @enderror"
+                                       id="eghl_merchant_password" name="configuration[merchant_password]"
+                                       placeholder="••••••••">
+                                <div class="form-text">Your EGHL Service ID / Password (leave empty to keep current)</div>
+                                @error('configuration.merchant_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="eghl_merchant_registered_name" class="form-label">Merchant Registered Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('configuration.merchant_registered_name') is-invalid @enderror"
+                                       id="eghl_merchant_registered_name" name="configuration[merchant_registered_name]"
+                                       value="{{ old('configuration.merchant_registered_name', $paymentGateway->configuration['merchant_registered_name'] ?? '') }}"
+                                       placeholder="Your Company Name">
+                                <div class="form-text">Your registered business name with EGHL</div>
+                                @error('configuration.merchant_registered_name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="eghl_sandbox_url" class="form-label">Sandbox URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control @error('configuration.sandbox_url') is-invalid @enderror"
+                                       id="eghl_sandbox_url" name="configuration[sandbox_url]"
+                                       value="{{ old('configuration.sandbox_url', $paymentGateway->configuration['sandbox_url'] ?? 'https://test2pay.ghl.com/IPGSG/Payment.aspx') }}"
+                                       required>
+                                <div class="form-text">EGHL sandbox/development payment URL</div>
+                                @error('configuration.sandbox_url')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="eghl_production_url" class="form-label">Production URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control @error('configuration.production_url') is-invalid @enderror"
+                                       id="eghl_production_url" name="configuration[production_url]"
+                                       value="{{ old('configuration.production_url', $paymentGateway->configuration['production_url'] ?? 'https://pay.ghl.com/IPGSG/Payment.aspx') }}"
+                                       required>
+                                <div class="form-text">EGHL production/live payment URL</div>
+                                @error('configuration.production_url')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
                             <div class="col-md-12 mb-3">
                                 <label for="eghl_currencies" class="form-label">Supported Currencies</label>
                                 @php
@@ -394,7 +441,7 @@ $(document).ready(function() {
         resultDiv.hide();
 
         $.ajax({
-            url: '{{ route("admin.payment-gateways.test", $paymentGateway) }}',
+            url: '{{ route("admin.payment-gateways.test-connection", $paymentGateway) }}',
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'

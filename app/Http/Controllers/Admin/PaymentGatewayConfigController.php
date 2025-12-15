@@ -100,16 +100,24 @@ class PaymentGatewayConfigController extends Controller
                 ->with('error', 'This payment gateway is already configured.');
         }
 
+        // Prepare configuration data
+        $configuration = $validated['configuration'] ?? [];
+        
+        // For EGHL, encrypt merchant_password if provided
+        if ($validated['gateway_name'] === 'eghl' && !empty($configuration['merchant_password'])) {
+            $configuration['merchant_password'] = Crypt::encryptString($configuration['merchant_password']);
+        }
+
         // Encrypt sensitive data
         $gatewayConfig = PaymentGatewayConfig::create([
             'gateway_name' => $validated['gateway_name'],
             'is_active' => $validated['is_active'] ?? false,
             'is_sandbox' => $validated['is_sandbox'] ?? true,
-            'api_key' => $validated['api_key'] ? Crypt::encryptString($validated['api_key']) : null,
-            'api_secret' => $validated['api_secret'] ? Crypt::encryptString($validated['api_secret']) : null,
+            'api_key' => !empty($validated['api_key']) ? Crypt::encryptString($validated['api_key']) : null,
+            'api_secret' => !empty($validated['api_secret']) ? Crypt::encryptString($validated['api_secret']) : null,
             'merchant_id' => $validated['merchant_id'] ?? null,
-            'webhook_secret' => $validated['webhook_secret'] ? Crypt::encryptString($validated['webhook_secret']) : null,
-            'configuration' => $validated['configuration'] ?? [],
+            'webhook_secret' => !empty($validated['webhook_secret']) ? Crypt::encryptString($validated['webhook_secret']) : null,
+            'configuration' => $configuration,
             'supported_currencies' => $validated['supported_currencies'] ?? ['MYR'],
             'transaction_fee_percentage' => $validated['transaction_fee_percentage'] ?? 0,
             'transaction_fee_fixed' => $validated['transaction_fee_fixed'] ?? 0,
@@ -177,11 +185,28 @@ class PaymentGatewayConfigController extends Controller
     {
         $validated = $request->validated();
 
+        // Prepare configuration data
+        $configuration = $validated['configuration'] ?? [];
+        
+        // For EGHL, handle merchant_password encryption
+        if ($paymentGateway->gateway_name === 'eghl') {
+            // If password is provided, encrypt it
+            if (!empty($configuration['merchant_password'])) {
+                $configuration['merchant_password'] = Crypt::encryptString($configuration['merchant_password']);
+            } else {
+                // Keep existing password if not provided
+                $existingConfig = $paymentGateway->configuration ?? [];
+                if (isset($existingConfig['merchant_password'])) {
+                    $configuration['merchant_password'] = $existingConfig['merchant_password'];
+                }
+            }
+        }
+
         $updateData = [
             'is_active' => $validated['is_active'] ?? false,
             'is_sandbox' => $validated['is_sandbox'] ?? true,
             'merchant_id' => $validated['merchant_id'] ?? null,
-            'configuration' => $validated['configuration'] ?? [],
+            'configuration' => $configuration,
             'supported_currencies' => $validated['supported_currencies'] ?? ['MYR'],
             'transaction_fee_percentage' => $validated['transaction_fee_percentage'] ?? 0,
             'transaction_fee_fixed' => $validated['transaction_fee_fixed'] ?? 0,

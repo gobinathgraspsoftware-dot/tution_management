@@ -53,54 +53,104 @@
                     </div>
                 </div>
 
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-key me-2"></i>API Credentials</h5>
+                <!-- EGHL Specific Settings -->
+                <div class="card mb-4 gateway-config" id="eghl-config" style="display: none;">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-globe me-2"></i>eGHL Configuration</h5>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> Enter your EGHL merchant credentials below.
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="api_key" class="form-label">API Key / User Secret Key <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control @error('api_key') is-invalid @enderror"
-                                       id="api_key" name="api_key" value="{{ old('api_key') }}" required>
-                                <div class="form-text">Your gateway API key or user secret key</div>
-                                @error('api_key')
+                                <label for="eghl_merchant_id" class="form-label">Merchant ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('configuration.merchant_id') is-invalid @enderror"
+                                       id="eghl_merchant_id" name="configuration[merchant_id]"
+                                       value="{{ old('configuration.merchant_id') }}"
+                                       placeholder="e.g., DEMO0001">
+                                <div class="form-text">Your EGHL Merchant ID</div>
+                                @error('configuration.merchant_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="api_secret" class="form-label">
-                                    <span id="api_secret_label">API Secret</span> <span class="text-danger">*</span>
-                                </label>
-                                <input type="password" class="form-control @error('api_secret') is-invalid @enderror"
-                                       id="api_secret" name="api_secret" value="{{ old('api_secret') }}" required>
-                                <div class="form-text" id="api_secret_help">Your gateway API secret or secret key</div>
-                                @error('api_secret')
+                                <label for="eghl_merchant_password" class="form-label">Merchant Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control @error('configuration.merchant_password') is-invalid @enderror"
+                                       id="eghl_merchant_password" name="configuration[merchant_password]"
+                                       value="{{ old('configuration.merchant_password') }}"
+                                       placeholder="••••••••">
+                                <div class="form-text">Your EGHL Service ID / Password</div>
+                                @error('configuration.merchant_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="eghl_merchant_registered_name" class="form-label">Merchant Registered Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('configuration.merchant_registered_name') is-invalid @enderror"
+                                       id="eghl_merchant_registered_name" name="configuration[merchant_registered_name]"
+                                       value="{{ old('configuration.merchant_registered_name') }}"
+                                       placeholder="Your Company Name">
+                                <div class="form-text">Your registered business name with EGHL</div>
+                                @error('configuration.merchant_registered_name')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="merchant_id" class="form-label">
-                                    <span id="merchant_id_label">Merchant ID</span>
-                                </label>
-                                <input type="text" class="form-control @error('merchant_id') is-invalid @enderror"
-                                       id="merchant_id" name="merchant_id" value="{{ old('merchant_id') }}">
-                                <div class="form-text" id="merchant_id_help">Required for SenangPay and EGHL</div>
-                                @error('merchant_id')
+                                <label for="eghl_sandbox_url" class="form-label">Sandbox URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control @error('configuration.sandbox_url') is-invalid @enderror"
+                                       id="eghl_sandbox_url" name="configuration[sandbox_url]"
+                                       value="{{ old('configuration.sandbox_url', 'https://test2pay.ghl.com/IPGSG/Payment.aspx') }}"
+                                       required>
+                                <div class="form-text">EGHL sandbox/development payment URL</div>
+                                @error('configuration.sandbox_url')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="webhook_secret" class="form-label">Webhook Secret</label>
-                                <input type="password" class="form-control @error('webhook_secret') is-invalid @enderror"
-                                       id="webhook_secret" name="webhook_secret" value="{{ old('webhook_secret') }}">
-                                <div class="form-text">For verifying webhook signatures</div>
-                                @error('webhook_secret')
+                                <label for="eghl_production_url" class="form-label">Production URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control @error('configuration.production_url') is-invalid @enderror"
+                                       id="eghl_production_url" name="configuration[production_url]"
+                                       value="{{ old('configuration.production_url', 'https://pay.ghl.com/IPGSG/Payment.aspx') }}"
+                                       required>
+                                <div class="form-text">EGHL production/live payment URL</div>
+                                @error('configuration.production_url')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="eghl_currencies" class="form-label">Supported Currencies</label>
+                                <select class="form-select @error('supported_currencies') is-invalid @enderror"
+                                        id="eghl_currencies" name="supported_currencies[]" multiple>
+                                    <option value="MYR" selected>MYR - Malaysian Ringgit</option>
+                                    <option value="USD">USD - US Dollar</option>
+                                    <option value="SGD">SGD - Singapore Dollar</option>
+                                    <option value="THB">THB - Thai Baht</option>
+                                    <option value="IDR">IDR - Indonesian Rupiah</option>
+                                    <option value="CNY">CNY - Chinese Yuan</option>
+                                </select>
+                                <div class="form-text">Hold Ctrl/Cmd to select multiple currencies. MYR is selected by default.</div>
+                                @error('supported_currencies')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Available Payment Methods</label>
+                                <div class="form-text mb-2">EGHL supports:</div>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success me-2"></i>Credit/Debit Cards (Visa, Mastercard, Amex, UnionPay)</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>FPX Online Banking</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>E-Wallets (Touch 'n Go, Boost, GrabPay, etc.)</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Alipay (for Chinese customers)</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -169,49 +219,6 @@
                                 @error('configuration.collection_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- EGHL Specific Settings -->
-                <div class="card mb-4 gateway-config" id="eghl-config" style="display: none;">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0"><i class="fas fa-globe me-2"></i>eGHL Settings</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Note:</strong> For EGHL, the API Secret field should contain your <strong>Service ID</strong> (also called Password),
-                            and Merchant ID is required.
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label for="eghl_currencies" class="form-label">Supported Currencies</label>
-                                <select class="form-select @error('supported_currencies') is-invalid @enderror"
-                                        id="eghl_currencies" name="supported_currencies[]" multiple>
-                                    <option value="MYR" selected>MYR - Malaysian Ringgit</option>
-                                    <option value="USD">USD - US Dollar</option>
-                                    <option value="SGD">SGD - Singapore Dollar</option>
-                                    <option value="THB">THB - Thai Baht</option>
-                                    <option value="IDR">IDR - Indonesian Rupiah</option>
-                                    <option value="CNY">CNY - Chinese Yuan</option>
-                                </select>
-                                <div class="form-text">Hold Ctrl/Cmd to select multiple currencies. MYR is selected by default.</div>
-                                @error('supported_currencies')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Available Payment Methods</label>
-                                <div class="form-text mb-2">EGHL supports:</div>
-                                <ul class="list-unstyled">
-                                    <li><i class="fas fa-check text-success me-2"></i>Credit/Debit Cards (Visa, Mastercard, Amex, UnionPay)</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>FPX Online Banking</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>E-Wallets (Touch 'n Go, Boost, GrabPay, etc.)</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Alipay (for Chinese customers)</li>
-                                </ul>
                             </div>
                         </div>
                     </div>
@@ -317,27 +324,6 @@ $(document).ready(function() {
         // Show selected gateway config
         if (selectedGateway) {
             $('#' + selectedGateway + '-config').show();
-
-            // Update labels based on gateway
-            if (selectedGateway === 'eghl') {
-                $('#api_secret_label').text('Service ID (Password)');
-                $('#api_secret_help').text('Your EGHL Service ID - this is different from your login password');
-                $('#merchant_id_label').text('Merchant ID');
-                $('#merchant_id_help').text('Required - Your EGHL Merchant ID');
-                $('#merchant_id').prop('required', true);
-            } else {
-                $('#api_secret_label').text('API Secret');
-                $('#api_secret_help').text('Your gateway API secret or secret key');
-                $('#merchant_id_label').text('Merchant ID');
-
-                if (selectedGateway === 'senangpay') {
-                    $('#merchant_id_help').text('Required - Your SenangPay Merchant ID');
-                    $('#merchant_id').prop('required', true);
-                } else {
-                    $('#merchant_id_help').text('Optional - Required for some gateways');
-                    $('#merchant_id').prop('required', false);
-                }
-            }
         }
     }
 

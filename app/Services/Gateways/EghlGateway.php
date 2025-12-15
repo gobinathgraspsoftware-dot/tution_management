@@ -16,15 +16,58 @@ class EghlGateway extends BaseGateway
     }
 
     /**
-     * Get the API base URL
+     * Get the API base URL - dynamically from configuration
      */
     public function getBaseUrl(): string
     {
+        // Get from configuration (database) first, then fallback to config file
         if ($this->isSandbox) {
-            return config('payment_gateways.gateways.eghl.sandbox_url', 'https://test2pay.ghl.com');
+            return $this->config->configuration['sandbox_url'] ?? 
+                   config('payment_gateways.gateways.eghl.sandbox_url', 'https://test2pay.ghl.com/IPGSG/Payment.aspx');
         }
         
-        return config('payment_gateways.gateways.eghl.production_url', 'https://pay.ghl.com');
+        return $this->config->configuration['production_url'] ?? 
+               config('payment_gateways.gateways.eghl.production_url', 'https://pay.ghl.com/IPGSG/Payment.aspx');
+    }
+
+    /**
+     * Get Merchant ID - dynamically from configuration
+     */
+    protected function getMerchantId(): string
+    {
+        return $this->config->configuration['merchant_id'] ?? 
+               $this->config->merchant_id ?? 
+               config('variables.eghl_online_merchant_id', '');
+    }
+
+    /**
+     * Get Merchant Password (Service ID) - dynamically from configuration
+     */
+    protected function getMerchantPassword(): string
+    {
+        $password = $this->config->configuration['merchant_password'] ?? 
+                   config('variables.eghl_online_merchant_password', '');
+        
+        // Decrypt if encrypted
+        if (!empty($password)) {
+            try {
+                return \Crypt::decryptString($password);
+            } catch (\Exception $e) {
+                // If decryption fails, return as-is (might be plain text from config)
+                return $password;
+            }
+        }
+        
+        return '';
+    }
+
+    /**
+     * Get Merchant Registered Name - dynamically from configuration
+     */
+    protected function getMerchantRegisteredName(): string
+    {
+        return $this->config->configuration['merchant_registered_name'] ?? 
+               config('variables.eghl_online_merchant_registered_name', 'Your Company Name');
     }
 
     /**
@@ -33,7 +76,14 @@ class EghlGateway extends BaseGateway
     public function createPayment(Invoice $invoice, array $customerData): array
     {
         $merchantId = $this->getMerchantId();
-        $password = $this->getApiSecret(); // Service ID in EGHL
+        $password = $this->getMerchantPassword();
+
+        if (empty($merchantId) || empty($password)) {
+            return [
+                'success' => false,
+                'message' => 'EGHL merchant credentials not configured',
+            ];
+        }
 
         $transactionId = $invoice->invoice_number . '_' . time();
         $amount = number_format($invoice->balance, 2, '.', '');
@@ -55,6 +105,7 @@ class EghlGateway extends BaseGateway
             'OrderNumber' => $invoice->invoice_number,
             'PaymentDesc' => $this->buildDescription($invoice),
             'MerchantReturnURL' => route('payment.callback', ['gateway' => 'eghl']),
+            'MerchantName' => $this->getMerchantRegisteredName(),
             'Amount' => $amount,
             'CurrencyCode' => $currencyCode,
             'CustIP' => request()->ip(),
@@ -67,13 +118,22 @@ class EghlGateway extends BaseGateway
         // Generate hash for security
         $params['HashValue'] = $this->generateHash($params, $merchantId, $password);
 
-        // Build payment URL
-        $paymentUrl = $this->getBaseUrl() . '/IPGSG/Payment.aspx';
+        // Build full payment URL - dynamically from configuration
+        $paymentUrl = $this->getBaseUrl();
+        
+        // Remove query parameters if already in URL
+        if (strpos($paymentUrl, '?') !== false) {
+            $paymentUrl = strtok($paymentUrl, '?');
+        }
+        
         $fullPaymentUrl = $paymentUrl . '?' . http_build_query($params);
 
         $this->log('Payment URL generated', [
             'payment_id' => $transactionId,
             'amount' => $amount,
+            'merchant_id' => $merchantId,
+            'payment_url' => $paymentUrl,
+            'sandbox' => $this->isSandbox,
         ]);
 
         return [
@@ -92,7 +152,7 @@ class EghlGateway extends BaseGateway
      */
     public function getPaymentUrl(string $billCode): string
     {
-        return $this->getBaseUrl() . '/IPGSG/Payment.aspx';
+        return $this->getBaseUrl();
     }
 
     /**
@@ -100,169 +160,179 @@ class EghlGateway extends BaseGateway
      */
     public function verifyCallback(array $data): bool
     {
-        // EGHL sends hash in the callback
-        $receivedHash = $data['HashValue'] ?? $data['HashValue2'] ?? '';
-        
-        if (empty($receivedHash)) {
-            $this->log('No hash value in callback', [], 'warning');
+        if (!isset($data['HashValue'])) {
+            $this->log('Callback verification failed: HashValue missing', $data);
             return false;
         }
 
-        $password = $this->getApiSecret();
         $merchantId = $this->getMerchantId();
+        $password = $this->getMerchantPassword();
 
-        // Generate expected hash
-        $expectedHash = $this->generateCallbackHash($data, $password);
+        $receivedHash = $data['HashValue'];
+        $calculatedHash = $this->generateCallbackHash($data, $merchantId, $password);
 
-        $isValid = hash_equals(strtoupper($expectedHash), strtoupper($receivedHash));
-
-        if (!$isValid) {
-            $this->log('Hash verification failed', [
-                'expected' => $expectedHash,
+        if ($receivedHash !== $calculatedHash) {
+            $this->log('Callback verification failed: Hash mismatch', [
                 'received' => $receivedHash,
-            ], 'warning');
+                'calculated' => $calculatedHash,
+            ]);
+            return false;
         }
 
-        return $isValid;
+        $this->log('Callback verified successfully');
+        return true;
     }
 
     /**
-     * Process callback data and return standardized result
+     * Process callback from EGHL
      */
     public function processCallback(array $data): array
     {
-        $transactionType = $data['TransactionType'] ?? '';
-        $paymentId = $data['PaymentID'] ?? '';
-        $serviceId = $data['ServiceID'] ?? '';
-        $paymentMethod = $data['PymtMethod'] ?? '';
-        $amount = $data['Amount'] ?? 0;
-        $currencyCode = $data['CurrencyCode'] ?? 'MYR';
-        $txnStatus = $data['TxnStatus'] ?? '';
-        $txnMessage = $data['TxnMessage'] ?? '';
-        $authCode = $data['AuthCode'] ?? '';
-        $issuingBank = $data['IssuingBank'] ?? '';
+        $this->log('Processing callback', $data);
 
-        // Determine status
-        // 0 = Success, 1 = Failed, 2 = Pending
-        $status = match ($txnStatus) {
+        // Extract transaction details
+        $transactionId = $data['TxnID'] ?? null;
+        $paymentId = $data['PaymentID'] ?? null;
+        $status = $data['TxnStatus'] ?? null;
+        $amount = $data['Amount'] ?? null;
+        $authCode = $data['AuthCode'] ?? null;
+        $message = $data['TxnMessage'] ?? '';
+
+        // Map EGHL status to our status
+        // TxnStatus: 0 = Success, 1 = Failed, 2 = Pending
+        $mappedStatus = match($status) {
             '0' => 'completed',
             '2' => 'pending',
             default => 'failed',
         };
 
-        $this->log('Processing callback', [
-            'payment_id' => $paymentId,
-            'txn_status' => $txnStatus,
-            'status' => $status,
-            'message' => $txnMessage,
-        ]);
-
         return [
-            'success' => $txnStatus === '0',
-            'status' => $status,
-            'transaction_id' => $paymentId,
-            'gateway_transaction_id' => $authCode,
-            'reference_number' => $data['OrderNumber'] ?? null,
-            'gateway_status' => $txnStatus,
-            'message' => $txnMessage,
-            'payment_method' => $paymentMethod,
-            'issuing_bank' => $issuingBank,
+            'success' => $status === '0',
+            'transaction_id' => $transactionId,
+            'payment_id' => $paymentId,
+            'status' => $mappedStatus,
+            'amount' => $amount,
+            'currency' => $data['CurrencyCode'] ?? 'MYR',
+            'reference' => $authCode,
+            'message' => $message,
             'raw_data' => $data,
         ];
     }
 
     /**
-     * Get transaction status from gateway
+     * Get transaction status
      */
     public function getTransactionStatus(string $transactionId): array
     {
         $merchantId = $this->getMerchantId();
-        $password = $this->getApiSecret();
+        $password = $this->getMerchantPassword();
 
-        // EGHL Query API
-        $queryParams = [
+        // Build query parameters
+        $params = [
+            'MerchantID' => $merchantId,
             'ServiceID' => $password,
             'PaymentID' => $transactionId,
-            'MerchantID' => $merchantId,
         ];
 
-        // Generate hash for query
-        $hashString = $password . $merchantId . $transactionId;
-        $queryParams['HashValue'] = hash('sha256', $hashString);
+        // Generate hash
+        $hashString = $password . $merchantId . $password . $transactionId;
+        $params['HashValue'] = hash('sha256', $hashString);
 
-        $queryUrl = $this->getBaseUrl() . '/IPGSG/Payment/Query.aspx';
-        
-        $response = $this->makeRequest('POST', '/IPGSG/Payment/Query.aspx', $queryParams);
+        // Query URL - dynamically based on mode
+        $queryUrl = $this->isSandbox 
+            ? config('payment_gateways.gateways.eghl.query_url_sandbox')
+            : config('payment_gateways.gateways.eghl.query_url_production');
 
-        if (!$response['success']) {
+        try {
+            $response = $this->makeRequest($queryUrl, $params, 'GET');
+            
+            $status = $response['TxnStatus'] ?? null;
+            
+            return [
+                'success' => true,
+                'status' => match($status) {
+                    '0' => 'completed',
+                    '2' => 'pending',
+                    default => 'failed',
+                },
+                'transaction_id' => $transactionId,
+                'data' => $response,
+            ];
+        } catch (\Exception $e) {
+            $this->log('Transaction status query failed', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+            ]);
+
             return [
                 'success' => false,
                 'status' => 'unknown',
-                'error' => 'Failed to retrieve transaction status',
+                'message' => $e->getMessage(),
             ];
         }
-
-        $data = $response['data'];
-        $txnStatus = $data['TxnStatus'] ?? '';
-
-        $status = match ($txnStatus) {
-            '0' => 'completed',
-            '2' => 'pending',
-            default => 'failed',
-        };
-
-        return [
-            'success' => true,
-            'status' => $status,
-            'gateway_status' => $txnStatus,
-            'amount' => $data['Amount'] ?? 0,
-            'transaction_id' => $data['PaymentID'] ?? null,
-            'auth_code' => $data['AuthCode'] ?? null,
-            'data' => $data,
-        ];
     }
 
     /**
-     * Generate hash for payment request
+     * Generate payment hash
      */
     protected function generateHash(array $params, string $merchantId, string $password): string
     {
-        // EGHL hash format: 
-        // Hash(password + MerchantID + ServiceID + PaymentID + MerchantReturnURL + Amount + CurrencyCode + CustIP + PageTimeout)
+        // EGHL Hash = SHA256(ServiceID + MerchantID + ServiceID + PaymentID + 
+        //                    MerchantReturnURL + Amount + CurrencyCode + CustIP + PageTimeout)
         
-        $hashString = 
-            $password .
-            $merchantId .
-            $params['ServiceID'] .
-            $params['PaymentID'] .
-            $params['MerchantReturnURL'] .
-            $params['Amount'] .
-            $params['CurrencyCode'] .
-            $params['CustIP'] .
-            $params['PageTimeout'];
+        $hashString = $password . 
+                     $merchantId . 
+                     $password . 
+                     $params['PaymentID'] . 
+                     $params['MerchantReturnURL'] . 
+                     $params['Amount'] . 
+                     $params['CurrencyCode'] . 
+                     $params['CustIP'] . 
+                     $params['PageTimeout'];
 
         return hash('sha256', $hashString);
     }
 
     /**
-     * Generate hash for callback verification
+     * Generate callback hash for verification
      */
-    protected function generateCallbackHash(array $data, string $password): string
+    protected function generateCallbackHash(array $data, string $merchantId, string $password): string
     {
-        // EGHL callback hash format:
-        // Hash(password + TxnID + ServiceID + PaymentID + TxnStatus + Amount + CurrencyCode + AuthCode)
+        // EGHL Callback Hash = SHA256(ServiceID + TxnID + ServiceID + PaymentID + 
+        //                             TxnStatus + Amount + CurrencyCode + AuthCode)
         
-        $hashString = 
-            $password .
-            ($data['TxnID'] ?? '') .
-            ($data['ServiceID'] ?? '') .
-            ($data['PaymentID'] ?? '') .
-            ($data['TxnStatus'] ?? '') .
-            ($data['Amount'] ?? '') .
-            ($data['CurrencyCode'] ?? '') .
-            ($data['AuthCode'] ?? '');
+        $hashString = $password . 
+                     ($data['TxnID'] ?? '') . 
+                     $password . 
+                     ($data['PaymentID'] ?? '') . 
+                     ($data['TxnStatus'] ?? '') . 
+                     ($data['Amount'] ?? '') . 
+                     ($data['CurrencyCode'] ?? '') . 
+                     ($data['AuthCode'] ?? '');
 
         return hash('sha256', $hashString);
+    }
+
+    /**
+     * Format phone number for EGHL (needs country code)
+     */
+    protected function formatPhone(?string $phone): string
+    {
+        if (empty($phone)) {
+            return '60123456789'; // Default Malaysian number
+        }
+
+        // Remove all non-numeric characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Add Malaysian country code if not present
+        if (!str_starts_with($phone, '60')) {
+            // Remove leading 0 if present
+            $phone = ltrim($phone, '0');
+            $phone = '60' . $phone;
+        }
+
+        return $phone;
     }
 
     /**
@@ -270,118 +340,108 @@ class EghlGateway extends BaseGateway
      */
     protected function buildDescription(Invoice $invoice): string
     {
-        $studentName = $invoice->student->user->name ?? 'Student';
-        return "Tuition fee payment for {$studentName} - Invoice #{$invoice->invoice_number}";
+        return "Payment for Invoice #{$invoice->invoice_number}";
     }
 
     /**
-     * Format phone number for EGHL
+     * Test connection to EGHL
      */
-    protected function formatPhone(?string $phone): string
+    public function testConnection(): array
     {
-        if (!$phone) {
-            return '';
+        $merchantId = $this->getMerchantId();
+        $password = $this->getMerchantPassword();
+        $merchantName = $this->getMerchantRegisteredName();
+        $sandboxUrl = $this->config->configuration['sandbox_url'] ?? config('payment_gateways.gateways.eghl.sandbox_url');
+        $productionUrl = $this->config->configuration['production_url'] ?? config('payment_gateways.gateways.eghl.production_url');
+
+        if (empty($merchantId)) {
+            return [
+                'success' => false,
+                'message' => 'Merchant ID is not configured',
+            ];
         }
 
-        // Remove non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        // EGHL accepts Malaysian format: 60123456789
-        if (!str_starts_with($phone, '60')) {
-            // If starts with 0, replace with 60
-            if (str_starts_with($phone, '0')) {
-                $phone = '60' . substr($phone, 1);
-            } else {
-                $phone = '60' . $phone;
-            }
+        if (empty($password)) {
+            return [
+                'success' => false,
+                'message' => 'Merchant Password (Service ID) is not configured',
+            ];
         }
-
-        return $phone;
-    }
-
-    /**
-     * Get available payment methods
-     */
-    public function getPaymentMethods(): array
-    {
-        // Query payment method endpoint
-        $response = $this->makeRequest('GET', '/IPGSG/Payment/Methods.aspx', [
-            'ServiceID' => $this->getApiSecret(),
-        ]);
-
-        if ($response['success'] && isset($response['data'])) {
-            return $response['data'];
-        }
-
-        // Default payment methods if query fails
-        return [
-            'credit_card' => 'Credit/Debit Card',
-            'fpx' => 'FPX Online Banking',
-            'ewallet' => 'E-Wallet',
-        ];
-    }
-
-    /**
-     * Override makeRequest to handle EGHL's response format
-     */
-    protected function makeRequest(string $method, string $endpoint, array $data = [], array $headers = []): array
-    {
-        $url = $this->getBaseUrl() . $endpoint;
-
-        $defaultHeaders = [
-            'Accept' => 'application/x-www-form-urlencoded',
-            'Content-Type' => 'application/x-www-form-urlencoded',
-        ];
-
-        $headers = array_merge($defaultHeaders, $headers);
 
         try {
-            $client = new \GuzzleHttp\Client([
-                'timeout' => 30,
-                'verify' => !$this->isSandbox,
-            ]);
-
-            $options = [
-                'headers' => $headers,
-            ];
-
-            if (strtoupper($method) === 'GET') {
-                $options['query'] = $data;
-            } else {
-                $options['form_params'] = $data;
-            }
-
-            $response = $client->request($method, $url, $options);
-            $body = $response->getBody()->getContents();
-
-            $this->log("API Request to {$endpoint}", [
-                'method' => $method,
-                'response_code' => $response->getStatusCode(),
-            ]);
-
-            // EGHL returns query string format or XML
-            // Try to parse as query string first
-            parse_str($body, $parsed);
+            // Get current URL based on mode
+            $currentUrl = $this->getBaseUrl();
             
+            // Simple validation that credentials are set
             return [
                 'success' => true,
-                'status_code' => $response->getStatusCode(),
-                'data' => $parsed ?: $body,
-                'raw' => $body,
+                'message' => 'EGHL credentials configured successfully',
+                'details' => [
+                    'merchant_id' => $merchantId,
+                    'merchant_name' => $merchantName,
+                    'mode' => $this->isSandbox ? 'Sandbox (Development)' : 'Production (Live)',
+                    'current_url' => $currentUrl,
+                    'sandbox_url' => $sandboxUrl,
+                    'production_url' => $productionUrl,
+                ],
             ];
-
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            $this->log("API Request failed to {$endpoint}", [
-                'method' => $method,
+        } catch (\Exception $e) {
+            $this->log('Connection test failed', [
                 'error' => $e->getMessage(),
-            ], 'error');
+            ]);
 
             return [
                 'success' => false,
-                'status_code' => $e->getCode(),
-                'error' => $e->getMessage(),
-                'data' => null,
+                'message' => 'Connection test failed: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Make HTTP request
+     */
+    protected function makeRequest(string $url, array $data, string $method = 'POST'): array
+    {
+        $ch = curl_init();
+
+        if ($method === 'GET') {
+            $url .= '?' . http_build_query($data);
+            curl_setopt($ch, CURLOPT_HTTPGET, true);
+        } else {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, !$this->isSandbox);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+
+        curl_close($ch);
+
+        if ($error) {
+            throw new \Exception('cURL Error: ' . $error);
+        }
+
+        if ($httpCode !== 200) {
+            throw new \Exception('HTTP Error: ' . $httpCode);
+        }
+
+        // Parse response (EGHL returns URL encoded data)
+        parse_str($response, $parsedResponse);
+
+        return $parsedResponse;
+    }
+
+    /**
+     * Log for debugging
+     */
+    protected function log(string $message, array $context = []): void
+    {
+        \Log::info('[EGHL Gateway] ' . $message, $context);
     }
 }

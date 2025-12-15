@@ -12,7 +12,7 @@ class PaymentGatewayConfigRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()->can('manage-payment-gateway');
+        return true; // Authorization handled by middleware
     }
 
     /**
@@ -20,58 +20,109 @@ class PaymentGatewayConfigRequest extends FormRequest
      */
     public function rules(): array
     {
-        $rules = [
-            'is_active' => 'boolean',
-            'is_sandbox' => 'boolean',
-            'merchant_id' => 'nullable|string|max:255',
+        $gatewayName = $this->input('gateway_name');
+        $isEghl = $gatewayName === 'eghl';
+
+        return [
+            // Gateway basic info
+            'gateway_name' => ['required', 'string', Rule::in(['toyyibpay', 'senangpay', 'billplz', 'eghl'])],
+            
+            // API Credentials - NOT required for EGHL (uses configuration instead)
+            'api_key' => $isEghl ? 'nullable|string' : 'required|string|max:255',
+            'api_secret' => $isEghl ? 'nullable|string' : 'required|string|max:255',
+            'merchant_id' => [
+                Rule::requiredIf(function () use ($gatewayName) {
+                    return in_array($gatewayName, ['senangpay']);
+                }),
+                'nullable',
+                'string',
+                'max:255'
+            ],
+            'webhook_secret' => 'nullable|string|max:255',
+            
+            // Status flags
+            'is_active' => 'nullable|boolean',
+            'is_sandbox' => 'nullable|boolean',
+            
+            // Currencies
+            'supported_currencies' => 'nullable|array',
+            'supported_currencies.*' => 'string|max:3',
+            
+            // Fees
             'transaction_fee_percentage' => 'nullable|numeric|min:0|max:100',
             'transaction_fee_fixed' => 'nullable|numeric|min:0',
-            'supported_currencies' => 'nullable|array',
-            'supported_currencies.*' => 'string|size:3',
+            
+            // Configuration (for EGHL and other gateway-specific settings)
             'configuration' => 'nullable|array',
-        ];
-
-        // For create, require gateway_name and credentials
-        if ($this->isMethod('POST')) {
-            $rules['gateway_name'] = [
-                'required',
+            
+            // EGHL-specific configuration fields (required when gateway is eghl)
+            'configuration.merchant_id' => $isEghl ? 'required|string|max:255' : 'nullable|string|max:255',
+            'configuration.merchant_password' => [
+                Rule::requiredIf(function () use ($isEghl) {
+                    return $isEghl && $this->isMethod('POST'); // Required on create, optional on update
+                }),
+                'nullable',
                 'string',
-                'max:50',
-                Rule::in(array_keys(config('payment_gateways.gateways', []))),
-                Rule::unique('payment_gateway_configs', 'gateway_name'),
-            ];
-            $rules['api_key'] = 'required|string|max:500';
-            $rules['api_secret'] = 'required|string|max:500';
-            $rules['webhook_secret'] = 'nullable|string|max:500';
-        } else {
-            // For update, credentials are optional
-            $rules['api_key'] = 'nullable|string|max:500';
-            $rules['api_secret'] = 'nullable|string|max:500';
-            $rules['webhook_secret'] = 'nullable|string|max:500';
-        }
-
-        // Gateway-specific rules
-        $gatewayName = $this->input('gateway_name') ?? $this->route('paymentGateway')?->gateway_name;
-
-        if ($gatewayName === 'toyyibpay') {
-            $rules['configuration.category_code'] = $this->isMethod('POST')
-                ? 'required|string|max:50'
-                : 'nullable|string|max:50';
-            $rules['configuration.payment_channel'] = 'nullable|in:0,1,2';
-            $rules['configuration.charge_to_customer'] = 'nullable|in:0,1,2';
-        }
-
-        if ($gatewayName === 'billplz') {
-            $rules['configuration.collection_id'] = $this->isMethod('POST')
-                ? 'required|string|max:50'
-                : 'nullable|string|max:50';
-        }
-
-        return $rules;
+                'max:255'
+            ],
+            'configuration.merchant_registered_name' => $isEghl ? 'required|string|max:255' : 'nullable|string|max:255',
+            'configuration.sandbox_url' => $isEghl ? 'required|url|max:500' : 'nullable|url|max:500',
+            'configuration.production_url' => $isEghl ? 'required|url|max:500' : 'nullable|url|max:500',
+            
+            // ToyyibPay-specific configuration
+            'configuration.category_code' => [
+                Rule::requiredIf($gatewayName === 'toyyibpay'),
+                'nullable',
+                'string'
+            ],
+            'configuration.payment_channel' => 'nullable|in:0,1,2',
+            'configuration.charge_to_customer' => 'nullable|in:0,1,2',
+            
+            // Billplz-specific configuration
+            'configuration.collection_id' => [
+                Rule::requiredIf($gatewayName === 'billplz'),
+                'nullable',
+                'string'
+            ],
+        ];
     }
 
     /**
-     * Get custom attributes for validator errors.
+     * Get custom validation messages.
+     */
+    public function messages(): array
+    {
+        return [
+            'gateway_name.required' => 'Please select a payment gateway.',
+            'gateway_name.in' => 'Invalid payment gateway selected.',
+            
+            'api_key.required' => 'The API key is required to configure this gateway.',
+            'api_secret.required' => 'The API secret is required to configure this gateway.',
+            
+            'configuration.merchant_id.required' => 'Merchant ID is required for EGHL.',
+            'configuration.merchant_password.required' => 'Merchant Password is required for EGHL.',
+            'configuration.merchant_registered_name.required' => 'Merchant Registered Name is required for EGHL.',
+            'configuration.sandbox_url.required' => 'Sandbox URL is required for EGHL.',
+            'configuration.sandbox_url.url' => 'Sandbox URL must be a valid URL.',
+            'configuration.production_url.required' => 'Production URL is required for EGHL.',
+            'configuration.production_url.url' => 'Production URL must be a valid URL.',
+            
+            'configuration.category_code.required' => 'Category code is required for ToyyibPay.',
+            'configuration.collection_id.required' => 'Collection ID is required for Billplz.',
+            
+            'merchant_id.required' => 'Merchant ID is required for this gateway.',
+            
+            'supported_currencies.*.max' => 'Currency code must be 3 characters.',
+            'transaction_fee_percentage.numeric' => 'Transaction fee percentage must be a number.',
+            'transaction_fee_percentage.min' => 'Transaction fee percentage cannot be negative.',
+            'transaction_fee_percentage.max' => 'Transaction fee percentage cannot exceed 100.',
+            'transaction_fee_fixed.numeric' => 'Fixed transaction fee must be a number.',
+            'transaction_fee_fixed.min' => 'Fixed transaction fee cannot be negative.',
+        ];
+    }
+
+    /**
+     * Get custom attribute names for validator errors.
      */
     public function attributes(): array
     {
@@ -79,33 +130,22 @@ class PaymentGatewayConfigRequest extends FormRequest
             'gateway_name' => 'payment gateway',
             'api_key' => 'API key',
             'api_secret' => 'API secret',
-            'webhook_secret' => 'webhook secret',
             'merchant_id' => 'merchant ID',
+            'webhook_secret' => 'webhook secret',
             'is_active' => 'active status',
             'is_sandbox' => 'sandbox mode',
-            'transaction_fee_percentage' => 'fee percentage',
-            'transaction_fee_fixed' => 'fixed fee',
+            'supported_currencies' => 'supported currencies',
+            'transaction_fee_percentage' => 'transaction fee percentage',
+            'transaction_fee_fixed' => 'fixed transaction fee',
+            'configuration.merchant_id' => 'merchant ID',
+            'configuration.merchant_password' => 'merchant password',
+            'configuration.merchant_registered_name' => 'merchant registered name',
+            'configuration.sandbox_url' => 'sandbox URL',
+            'configuration.production_url' => 'production URL',
             'configuration.category_code' => 'category code',
-            'configuration.collection_id' => 'collection ID',
             'configuration.payment_channel' => 'payment channel',
-        ];
-    }
-
-    /**
-     * Get custom error messages.
-     */
-    public function messages(): array
-    {
-        return [
-            'gateway_name.required' => 'Please select a payment gateway.',
-            'gateway_name.in' => 'The selected payment gateway is not supported.',
-            'gateway_name.unique' => 'This payment gateway is already configured.',
-            'api_key.required' => 'The API key is required to configure this gateway.',
-            'api_secret.required' => 'The API secret is required to configure this gateway.',
-            'configuration.category_code.required' => 'Category code is required for ToyyibPay.',
-            'configuration.collection_id.required' => 'Collection ID is required for Billplz.',
-            'transaction_fee_percentage.max' => 'Fee percentage cannot exceed 100%.',
-            'supported_currencies.*.size' => 'Currency code must be exactly 3 characters (e.g., MYR).',
+            'configuration.charge_to_customer' => 'charge to customer',
+            'configuration.collection_id' => 'collection ID',
         ];
     }
 
@@ -115,32 +155,18 @@ class PaymentGatewayConfigRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // Convert checkbox values to boolean
-        if ($this->has('is_active')) {
-            $this->merge([
-                'is_active' => filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN),
-            ]);
-        }
+        $this->merge([
+            'is_active' => $this->has('is_active'),
+            'is_sandbox' => $this->has('is_sandbox'),
+        ]);
 
-        if ($this->has('is_sandbox')) {
-            $this->merge([
-                'is_sandbox' => filter_var($this->is_sandbox, FILTER_VALIDATE_BOOLEAN),
-            ]);
-        }
-
-        // Ensure supported_currencies is an array
-        if ($this->has('supported_currencies') && is_string($this->supported_currencies)) {
-            $this->merge([
-                'supported_currencies' => array_filter(
-                    array_map('trim', explode(',', $this->supported_currencies))
-                ),
-            ]);
-        }
-
-        // Set default supported currency if not provided
-        if (!$this->has('supported_currencies') || empty($this->supported_currencies)) {
-            $this->merge([
-                'supported_currencies' => ['MYR'],
-            ]);
+        // If EGHL, encrypt the password in configuration before storing
+        if ($this->input('gateway_name') === 'eghl' && $this->has('configuration.merchant_password')) {
+            $config = $this->input('configuration', []);
+            if (!empty($config['merchant_password'])) {
+                $config['merchant_password'] = encrypt($config['merchant_password']);
+                $this->merge(['configuration' => $config]);
+            }
         }
     }
 }

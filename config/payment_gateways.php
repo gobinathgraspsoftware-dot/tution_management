@@ -86,17 +86,42 @@ return [
 
         'eghl' => [
             'name' => 'eGHL',
-            'description' => 'eGHL Payment Gateway - Multi-currency support',
+            'description' => 'Multi-currency payment gateway for Asia Pacific',
             'class' => \App\Services\Gateways\EghlGateway::class,
-            'sandbox_url' => 'https://test2pay.ghl.com',
-            'production_url' => 'https://pay.ghl.com',
-            'supported_currencies' => ['MYR', 'USD', 'SGD', 'THB', 'IDR', 'CNY'],
+            'sandbox_url' => 'https://test2pay.ghl.com/IPGSG/Payment.aspx',
+            'production_url' => 'https://pay.ghl.com/IPGSG/Payment.aspx',
+            'query_url_sandbox' => 'https://test2pay.ghl.com/IPGSG/Payment.aspx',
+            'query_url_production' => 'https://pay.ghl.com/IPGSG/Payment.aspx',
             'supported_methods' => ['fpx', 'card', 'ewallet', 'unionpay', 'alipay'],
-            'fee_percentage' => env('EGHL_FEE_PERCENT', 2.5),
-            'fee_fixed' => env('EGHL_FEE_FIXED', 0.00),
+            'supported_currencies' => ['MYR', 'USD', 'SGD', 'THB', 'IDR', 'CNY'],
+            'default_fee_percent' => env('EGHL_FEE_PERCENT', 2.5),
+            'default_fee_fixed' => env('EGHL_FEE_FIXED', 0.00),
+
+            // Field mapping for admin form - these are editable
+            'config_fields' => [
+                'merchant_id' => 'Merchant ID',
+                'merchant_password' => 'Merchant Password (Service ID)',
+                'merchant_registered_name' => 'Merchant Registered Name',
+                'sandbox_url' => 'Sandbox URL (Development)',
+                'production_url' => 'Production URL (Live)',
+            ],
         ],
 
     ],
+
+    // Default gateway settings
+    'default_gateway' => env('DEFAULT_PAYMENT_GATEWAY', 'toyyibpay'),
+
+    // Global settings
+    'currency' => 'MYR',
+    'currency_symbol' => 'RM',
+
+    // Payment timeout (in minutes)
+    'payment_timeout' => 60,
+
+    // Callback/Webhook retry settings
+    'callback_retry_attempts' => 3,
+    'callback_retry_delay' => 5, // seconds
 
     /*
     |--------------------------------------------------------------------------
