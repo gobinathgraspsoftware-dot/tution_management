@@ -174,10 +174,10 @@
                             </td>
                             <td>
                                 @if($enrollment->package)
-                                    <span class="badge badge-info">Package</span>
+                                    <span class="badge bg-info">Package</span>
                                     {{ $enrollment->package->name }}
                                 @else
-                                    <span class="badge badge-secondary">Class</span>
+                                    <span class="badge bg-secondary">Class</span>
                                     {{ $enrollment->class->name }}
                                     <br><small class="text-muted">{{ $enrollment->class->subject->name }}</small>
                                 @endif
@@ -187,9 +187,9 @@
                                 @if($enrollment->end_date)
                                     {{ $enrollment->end_date->format('d M Y') }}
                                     @if($enrollment->end_date->isPast() && $enrollment->status == 'active')
-                                        <span class="badge badge-danger">Expired</span>
+                                        <span class="badge bg-danger">Expired</span>
                                     @elseif($enrollment->days_remaining <= 30 && $enrollment->status == 'active')
-                                        <span class="badge badge-warning">{{ $enrollment->days_remaining }} days left</span>
+                                        <span class="badge bg-warning">{{ $enrollment->days_remaining }} days left</span>
                                     @endif
                                 @else
                                     <span class="text-muted">-</span>
@@ -199,15 +199,15 @@
                             <td>Day {{ $enrollment->payment_cycle_day }}</td>
                             <td>
                                 @if($enrollment->status == 'active')
-                                    <span class="badge badge-success">Active</span>
+                                    <span class="badge bg-success">Active</span>
                                 @elseif($enrollment->status == 'suspended')
-                                    <span class="badge badge-warning">Suspended</span>
+                                    <span class="badge bg-warning">Suspended</span>
                                 @elseif($enrollment->status == 'expired')
-                                    <span class="badge badge-danger">Expired</span>
+                                    <span class="badge bg-danger">Expired</span>
                                 @elseif($enrollment->status == 'cancelled')
-                                    <span class="badge badge-dark">Cancelled</span>
+                                    <span class="badge bg-dark">Cancelled</span>
                                 @elseif($enrollment->status == 'trial')
-                                    <span class="badge badge-info">Trial</span>
+                                    <span class="badge bg-info">Trial</span>
                                 @endif
                             </td>
                             <td>
