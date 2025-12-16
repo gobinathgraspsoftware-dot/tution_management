@@ -47,6 +47,29 @@
     @canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
     </div>
 </div>
+
+{{-- Start: Enrollment Management --}}
+@if(Route::has('admin.enrollments.index'))
+<div class="menu-dropdown">
+    <a href="#admin_enrollment_collapse" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Enrollments
+    </a>
+    <div class="collapse" id="admin_enrollment_collapse">
+        @can('view-enrollments')
+            <a class="menu-item {{ request()->routeIs('admin.enrollments.index') ? 'active' : '' }}" href="{{ route('admin.enrollments.index') }}">
+                <i class="fas fa-list"></i> All Enrollments
+            </a>
+        @endcan
+        @can('create-enrollments')
+            <a class="menu-item {{ request()->routeIs('admin.enrollments.create') ? 'active' : '' }}" href="{{ route('admin.enrollments.create') }}">
+                <i class="fas fa-plus"></i> New Enrollment
+            </a>
+        @endcan
+    </div>
+</div>
+@endif
+{{-- End: Enrollment Management --}}
+
 <!-- Attendance Management -->
 <div class="menu-dropdown">
     <a href="#section3" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -647,6 +670,22 @@
 
     </div>
 </div>
+
+{{-- Start: Enrollment Management --}}
+@if(Route::has('staff.enrollments.index'))
+<div class="menu-dropdown">
+    <a href="#staff_enrollment_collapse" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Enrollments
+    </a>
+    <div class="collapse" id="staff_enrollment_collapse">
+        <a class="menu-item {{ request()->routeIs('staff.enrollments.index') ? 'active' : '' }}" href="{{ route('staff.enrollments.index') }}">
+            <i class="fas fa-fw fa-user-graduate"></i> All Enrollments
+        </a>
+    </div>
+</div>
+@endif
+{{-- End: Enrollment Management --}}
+
 <!-- Operations -->
 <div class="menu-dropdown">
     <a href="#section27" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -1007,6 +1046,22 @@
     {{-- Start: Financial Section --}}
     </div>
 </div>
+
+{{-- Start: Enrollment Management --}}
+@if(Route::has('parent.enrollments.index'))
+<div class="menu-dropdown">
+    <a href="#parent_enrollment_collapse" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Enrollments
+    </a>
+    <div class="collapse" id="parent_enrollment_collapse">
+        <a class="menu-item {{ request()->routeIs('parent.enrollments.index') ? 'active' : '' }}" href="{{ route('parent.enrollments.index') }}">
+            <i class="fas fa-fw fa-user-graduate"></i> All Enrollments
+        </a>
+    </div>
+</div>
+@endif
+{{-- End: Enrollment Management --}}
+
 <!-- Financial -->
 <div class="menu-dropdown">
     <a href="#section45" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -1160,6 +1215,28 @@
 
     </div>
 </div>
+
+{{-- Start: Enrollment Management --}}
+@if(Route::has('student.enrollments.my-enrollments'))
+<div class="menu-dropdown">
+    <a href="#student_enrollment_collapse" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Enrollments
+    </a>
+    <div class="collapse" id="student_enrollment_collapse">
+        <a class="menu-item {{ request()->routeIs('student.enrollments.my-enrollments') ? 'active' : '' }}" href="{{ route('student.enrollments.my-enrollments') }}">
+            <i class="fas fa-list"></i> All Enrollments
+        </a>
+        <a class="menu-item {{ request()->routeIs('student.enrollments.browse-classes') ? 'active' : '' }}" href="{{ route('student.enrollments.browse-classes') }}">
+            <i class="fas fa-search"></i> Browse Classes
+        </a>
+        <a class="menu-item {{ request()->routeIs('student.enrollments.browse-packages') ? 'active' : '' }}" href="{{ route('student.enrollments.browse-packages') }}">
+            <i class="fas fa-search"></i> Browse Packages
+        </a>
+    </div>
+</div>
+@endif
+{{-- End: Enrollment Management --}}
+
 <!-- Learning -->
 <div class="menu-dropdown">
     <a href="#section52" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
