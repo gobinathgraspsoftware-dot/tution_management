@@ -92,7 +92,13 @@
                                     </div>
                                     <div>
                                         <strong>{{ $parent->user->name }}</strong>
-                                        <br><small class="text-muted">{{ ucfirst($parent->relationship) }}</small>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ ucfirst($parent->relationship) }}
+                                            @if($parent->relationship == 'other' && $parent->relationship_description)
+                                                <span class="text-primary">({{ $parent->relationship_description }})</span>
+                                            @endif
+                                        </small>
                                     </div>
                                 </div>
                             </td>
@@ -181,3 +187,13 @@
     'route' => 'admin.parents.destroy'
 ])
 @endsection
+
+@push('scripts')
+<script>
+function confirmDelete(id, name) {
+    if (confirm('Are you sure you want to delete parent: ' + name + '?')) {
+        document.getElementById('delete-form-' + id).submit();
+    }
+}
+</script>
+@endpush

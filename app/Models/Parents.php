@@ -26,12 +26,29 @@ class Parents extends Model
         'emergency_phone',
         'relationship',
         'whatsapp_number',
+        'relationship_description',
         'notification_preference',
     ];
 
     protected $casts = [
         'notification_preference' => 'array',
     ];
+
+    /**
+     * Set emergency contact name to uppercase
+     */
+    public function setEmergencyContactAttribute($value)
+    {
+        $this->attributes['emergency_contact'] = $value ? strtoupper($value) : null;
+    }
+
+    /**
+     * Get emergency contact in uppercase
+     */
+    public function getEmergencyContactAttribute($value)
+    {
+        return $value ? strtoupper($value) : null;
+    }
 
     // Relationships
     public function user()
@@ -58,5 +75,14 @@ class Parents extends Model
     public function getPhoneAttribute()
     {
         return $this->user->phone;
+    }
+
+    /**
+     * Get notification preference for email only
+     */
+    public function getEmailNotificationEnabledAttribute()
+    {
+        $preferences = $this->notification_preference ?? [];
+        return $preferences['email'] ?? true;
     }
 }

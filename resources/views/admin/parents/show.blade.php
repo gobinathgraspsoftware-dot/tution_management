@@ -33,7 +33,12 @@
                     {{ substr($parent->user->name, 0, 1) }}
                 </div>
                 <h4>{{ $parent->user->name }}</h4>
-                <p class="text-muted mb-2">{{ ucfirst($parent->relationship) }}</p>
+                <p class="text-muted mb-2">
+                    {{ ucfirst($parent->relationship) }}
+                    @if($parent->relationship == 'other' && $parent->relationship_description)
+                        <br><small>({{ $parent->relationship_description }})</small>
+                    @endif
+                </p>
                 <span class="badge bg-info">{{ $parent->parent_id }}</span>
 
                 <hr>
@@ -65,19 +70,42 @@
                     </p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label text-muted small mb-1">WhatsApp</label>
-                    <p class="mb-0">
-                        @if($parent->whatsapp_number)
-                        <a href="https://wa.me/{{ $parent->whatsapp_number }}" target="_blank">
-                            <i class="fab fa-whatsapp text-success me-1"></i> {{ $parent->whatsapp_number }}
-                        </a>
-                        @else
-                        N/A
-                        @endif
-                    </p>
+                    <label class="form-label text-muted small mb-1">IC Number</label>
+                    <p class="mb-0">{{ $parent->ic_number }}</p>
                 </div>
+                @if($parent->occupation)
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Occupation</label>
+                    <p class="mb-0">{{ $parent->occupation }}</p>
+                </div>
+                @endif
             </div>
         </div>
+
+        <!-- Emergency Contact -->
+        @if($parent->emergency_contact || $parent->emergency_phone)
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-ambulance me-2"></i> Emergency Contact
+            </div>
+            <div class="card-body">
+                @if($parent->emergency_contact)
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Name</label>
+                    <p class="mb-0">{{ $parent->emergency_contact }}</p>
+                </div>
+                @endif
+                @if($parent->emergency_phone)
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Phone</label>
+                    <p class="mb-0">
+                        <a href="tel:{{ $parent->emergency_phone }}">{{ $parent->emergency_phone }}</a>
+                    </p>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
 
         <!-- Payment Summary -->
         <div class="card mb-4">
@@ -97,125 +125,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="col-md-8">
-        <!-- Personal Information -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-id-card me-2"></i> Personal Information
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted small mb-1">IC Number</label>
-                        <p class="mb-0"><strong>{{ $parent->ic_number }}</strong></p>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted small mb-1">Occupation</label>
-                        <p class="mb-0">{{ $parent->occupation ?? 'N/A' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Address Information -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-map-marker-alt me-2"></i> Address
-            </div>
-            <div class="card-body">
-                <p class="mb-1">{{ $parent->address }}</p>
-                <p class="mb-0 text-muted">{{ $parent->postcode }} {{ $parent->city }}, {{ $parent->state }}</p>
-            </div>
-        </div>
-
-        <!-- Emergency Contact -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-phone-alt me-2"></i> Emergency Contact
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label text-muted small mb-1">Contact Name</label>
-                        <p class="mb-0">{{ $parent->emergency_contact ?? 'N/A' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label text-muted small mb-1">Contact Phone</label>
-                        <p class="mb-0">{{ $parent->emergency_phone ?? 'N/A' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Children -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-child me-2"></i> Children</span>
-                <span class="badge bg-primary">{{ $parent->students->count() }} children</span>
-            </div>
-            <div class="card-body">
-                @if($parent->students->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>School</th>
-                                <th>Grade</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($parent->students as $student)
-                            <tr>
-                                <td><span class="badge bg-info">{{ $student->student_id }}</span></td>
-                                <td>{{ $student->user->name }}</td>
-                                <td>{{ $student->school_name ?? 'N/A' }}</td>
-                                <td>{{ $student->grade_level ?? 'N/A' }}</td>
-                                <td>
-                                    @if($student->approval_status == 'approved')
-                                        <span class="badge bg-success">Approved</span>
-                                    @elseif($student->approval_status == 'pending')
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                    @else
-                                        <span class="badge bg-danger">Rejected</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <a href="{{ route('admin.students.show', $student) }}" class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Enrollments Summary -->
-                @if($parent->students->flatMap->enrollments->count() > 0)
-                <hr>
-                <h6 class="mb-3"><i class="fas fa-graduation-cap me-2"></i> Active Enrollments</h6>
-                @foreach($parent->students as $student)
-                    @if($student->enrollments->count() > 0)
-                    <div class="mb-2">
-                        <strong>{{ $student->user->name }}:</strong>
-                        @foreach($student->enrollments->where('status', 'active') as $enrollment)
-                            <span class="badge bg-secondary">{{ $enrollment->package->name ?? 'N/A' }}</span>
-                        @endforeach
-                    </div>
-                    @endif
-                @endforeach
-                @endif
-                @else
-                <p class="text-muted mb-0 text-center py-3">No children linked yet.</p>
-                @endif
-            </div>
-        </div>
 
         <!-- Notification Preferences -->
         <div class="card mb-4">
@@ -224,56 +133,242 @@
             </div>
             <div class="card-body">
                 @php
-                    $notifPrefs = $parent->notification_preference ?? [];
+                    $emailEnabled = $parent->notification_preference['email'] ?? true;
                 @endphp
-                <div class="d-flex gap-3">
-                    <span class="badge {{ ($notifPrefs['whatsapp'] ?? false) ? 'bg-success' : 'bg-secondary' }} p-2">
-                        <i class="fab fa-whatsapp me-1"></i> WhatsApp
-                    </span>
-                    <span class="badge {{ ($notifPrefs['email'] ?? false) ? 'bg-success' : 'bg-secondary' }} p-2">
-                        <i class="fas fa-envelope me-1"></i> Email
-                    </span>
-                    <span class="badge {{ ($notifPrefs['sms'] ?? false) ? 'bg-success' : 'bg-secondary' }} p-2">
-                        <i class="fas fa-sms me-1"></i> SMS
-                    </span>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-envelope text-primary me-2"></i>
+                    <span>Email Notifications: </span>
+                    @if($emailEnabled)
+                        <span class="badge bg-success ms-2">Enabled</span>
+                    @else
+                        <span class="badge bg-secondary ms-2">Disabled</span>
+                    @endif
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Account Information -->
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <!-- Address Information -->
         <div class="card mb-4">
             <div class="card-header">
-                <i class="fas fa-user-shield me-2"></i> Account Information
+                <i class="fas fa-map-marker-alt me-2"></i> Address Information
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted small mb-1">Last Login</label>
-                        <p class="mb-0">{{ $parent->user->last_login_at?->format('d M Y, h:i A') ?? 'Never' }}</p>
+                <address class="mb-0">
+                    {{ $parent->address }}<br>
+                    {{ $parent->postcode }} {{ $parent->city }}<br>
+                    {{ $parent->state }}
+                </address>
+            </div>
+        </div>
+
+        <!-- Linked Students -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-users me-2"></i> Linked Students
+                <span class="badge bg-primary ms-2">{{ $parent->students->count() }}</span>
+            </div>
+            <div class="card-body">
+                @if($parent->students->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>School</th>
+                                    <th>Enrollments</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($parent->students as $student)
+                                <tr>
+                                    <td>{{ $student->student_id }}</td>
+                                    <td>
+                                        <strong>{{ $student->user->name }}</strong><br>
+                                        <small class="text-muted">{{ $student->user->email }}</small>
+                                    </td>
+                                    <td>{{ $student->school_name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ $student->enrollments->count() }} Classes</span>
+                                    </td>
+                                    <td>
+                                        @if($student->user->status == 'active')
+                                            <span class="badge bg-success">Active</span>
+                                        @else
+                                            <span class="badge bg-danger">Inactive</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @can('view-students')
+                                        <a href="{{ route('admin.students.show', $student) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        @endcan
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted small mb-1">Account Created</label>
-                        <p class="mb-0">{{ $parent->user->created_at->format('d M Y') }}</p>
+                @else
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No students linked to this parent yet.
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted small mb-1">Email Verified</label>
-                        <p class="mb-0">
-                            @if($parent->user->email_verified_at)
-                                <span class="badge bg-success">Verified</span>
-                            @else
-                                <span class="badge bg-warning">Not Verified</span>
-                            @endif
-                        </p>
+                @endif
+            </div>
+        </div>
+
+        <!-- Active Enrollments -->
+        @if($parent->students->count() > 0)
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-graduation-cap me-2"></i> Active Enrollments
+            </div>
+            <div class="card-body">
+                @php
+                    $activeEnrollments = [];
+                    foreach($parent->students as $student) {
+                        foreach($student->enrollments->where('status', 'active') as $enrollment) {
+                            $activeEnrollments[] = $enrollment;
+                        }
+                    }
+                @endphp
+
+                @if(count($activeEnrollments) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Package</th>
+                                    <th>Fee</th>
+                                    <th>Start Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($activeEnrollments as $enrollment)
+                                <tr>
+                                    <td>{{ $enrollment->student->user->name }}</td>
+                                    <td>{{ $enrollment->package->name }}</td>
+                                    <td>RM {{ number_format($enrollment->fee_amount, 2) }}</td>
+                                    <td>{{ $enrollment->enrollment_date->format('d M Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-success">{{ ucfirst($enrollment->status) }}</span>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
+                @else
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No active enrollments at the moment.
+                    </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        <!-- Activity Log -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-history me-2"></i> Recent Activity
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-badge bg-primary">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Parent Account Created</h6>
+                            <p class="text-muted small mb-0">
+                                {{ $parent->created_at->format('d M Y, h:i A') }}
+                                <br><small>{{ $parent->created_at->diffForHumans() }}</small>
+                            </p>
+                        </div>
+                    </div>
+
+                    @if($parent->updated_at != $parent->created_at)
+                    <div class="timeline-item">
+                        <div class="timeline-badge bg-info">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Profile Updated</h6>
+                            <p class="text-muted small mb-0">
+                                {{ $parent->updated_at->format('d M Y, h:i A') }}
+                                <br><small>{{ $parent->updated_at->diffForHumans() }}</small>
+                            </p>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<div class="d-flex justify-content-start gap-2 mb-4">
-    <a href="{{ route('admin.parents.index') }}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Back to List
-    </a>
-</div>
 @endsection
+
+@push('styles')
+<style>
+    .user-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline:before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .timeline-badge {
+        position: absolute;
+        left: -20px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: white;
+    }
+
+    .timeline-content {
+        padding-left: 20px;
+    }
+</style>
+@endpush

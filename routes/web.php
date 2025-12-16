@@ -282,6 +282,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('/teachers-export', [TeacherController::class, 'export'])->name('teachers.export');
 
         // Parent Management
+        Route::get('/parents/postcode-data', [ParentController::class, 'getPostcodeData'])->name('parents.postcode-data');
         Route::resource('parents', ParentController::class);
         Route::patch('/parents/{parent}/toggle-status', [ParentController::class, 'toggleStatus'])->name('parents.toggle-status');
         Route::get('/parents-export', [ParentController::class, 'export'])->name('parents.export');

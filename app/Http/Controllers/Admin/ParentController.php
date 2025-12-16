@@ -8,6 +8,7 @@ use App\Models\Parents;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\ActivityLog;
+use App\Helpers\CountryCodeHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -61,12 +62,12 @@ class ParentController extends Controller
         $unlinkedStudents = Student::whereNull('parent_id')
             ->with('user')
             ->get();
-        // $query = Parents::with(['user', 'students.user']);
-        // $parents = $query->latest()->paginate(15)->withQueryString();
 
-        // $cities = Parents::distinct()->pluck('city')->filter()->values();
+        // Get all countries for dropdown
+        $countries = CountryCodeHelper::getAllCountries();
+        $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
 
-        return view('admin.parents.create', compact('unlinkedStudents'));
+        return view('admin.parents.create', compact('unlinkedStudents', 'countries', 'defaultCountryCode'));
     }
 
     /**
@@ -77,6 +78,7 @@ class ParentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
+            'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'ic_number' => 'required|string|max:20|unique:parents,ic_number',
@@ -85,12 +87,12 @@ class ParentController extends Controller
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'postcode' => 'required|string|max:10',
-            'relationship' => 'required|in:father,mother,guardian',
-            'whatsapp_number' => 'nullable|string|max:20',
+            'relationship' => 'required|in:father,mother,guardian,other',
+            'relationship_description' => 'nullable|string|max:255',
             'emergency_contact' => 'nullable|string|max:255',
+            'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
-            'notification_preference' => 'nullable|array',
-            'notification_preference.*' => 'in:whatsapp,email,sms',
+            'email_notifications' => 'nullable|boolean',
             'status' => 'required|in:active,inactive',
             'link_students' => 'nullable|array',
             'link_students.*' => 'exists:students,id',
@@ -98,11 +100,40 @@ class ParentController extends Controller
 
         DB::beginTransaction();
         try {
+            // Convert name to uppercase
+            $validated['name'] = strtoupper($validated['name']);
+
+            // Convert occupation to uppercase if provided
+            if (!empty($validated['occupation'])) {
+                $validated['occupation'] = strtoupper($validated['occupation']);
+            }
+
+            // Convert address and city to uppercase
+            $validated['address'] = strtoupper($validated['address']);
+            $validated['city'] = strtoupper($validated['city']);
+
+            // Format phone numbers using helper
+            $phoneNumber = CountryCodeHelper::formatPhoneNumber(
+                $validated['country_code'],
+                $validated['phone']
+            );
+
+            // Emergency phone handling
+            if (!empty($validated['emergency_phone'])) {
+                $emergencyCountryCode = $validated['emergency_country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $emergencyPhone = CountryCodeHelper::formatPhoneNumber(
+                    $emergencyCountryCode,
+                    $validated['emergency_phone']
+                );
+            } else {
+                $emergencyPhone = null;
+            }
+
             // Create User account
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'password' => Hash::make($validated['password']),
                 'status' => $validated['status'],
                 'email_verified_at' => now(),
@@ -114,15 +145,10 @@ class ParentController extends Controller
             // Generate parent ID
             $parentId = 'PAR-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
-            // Build notification preferences
-            $notificationPrefs = [];
-            if (isset($validated['notification_preference'])) {
-                foreach (['whatsapp', 'email', 'sms'] as $channel) {
-                    $notificationPrefs[$channel] = in_array($channel, $validated['notification_preference']);
-                }
-            } else {
-                $notificationPrefs = ['whatsapp' => true, 'email' => true, 'sms' => false];
-            }
+            // Build notification preferences (email only)
+            $notificationPrefs = [
+                'email' => $validated['email_notifications'] ?? true,
+            ];
 
             // Create Parent profile
             $parent = Parents::create([
@@ -135,9 +161,9 @@ class ParentController extends Controller
                 'state' => $validated['state'],
                 'postcode' => $validated['postcode'],
                 'relationship' => $validated['relationship'],
-                'whatsapp_number' => $validated['whatsapp_number'] ?? $validated['phone'],
+                'relationship_description' => $validated['relationship_description'],
                 'emergency_contact' => $validated['emergency_contact'],
-                'emergency_phone' => $validated['emergency_phone'],
+                'emergency_phone' => $emergencyPhone,
                 'notification_preference' => $notificationPrefs,
             ]);
 
@@ -203,7 +229,22 @@ class ParentController extends Controller
               ->orWhere('parent_id', $parent->id);
         })->with('user')->get();
 
-        return view('admin.parents.edit', compact('parent', 'availableStudents'));
+        // Extract country code from phone numbers for display using helper
+        $phoneData = CountryCodeHelper::extractCountryCode($parent->user->phone);
+        $emergencyData = CountryCodeHelper::extractCountryCode($parent->emergency_phone);
+
+        // Get all countries for dropdown
+        $countries = CountryCodeHelper::getAllCountries();
+        $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
+
+        return view('admin.parents.edit', compact(
+            'parent',
+            'availableStudents',
+            'phoneData',
+            'emergencyData',
+            'countries',
+            'defaultCountryCode'
+        ));
     }
 
     /**
@@ -214,6 +255,7 @@ class ParentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($parent->user_id)],
+            'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'ic_number' => ['required', 'string', 'max:20', Rule::unique('parents', 'ic_number')->ignore($parent->id)],
@@ -222,12 +264,12 @@ class ParentController extends Controller
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'postcode' => 'required|string|max:10',
-            'relationship' => 'required|in:father,mother,guardian',
-            'whatsapp_number' => 'nullable|string|max:20',
+            'relationship' => 'required|in:father,mother,guardian,other',
+            'relationship_description' => 'nullable|string|max:255',
             'emergency_contact' => 'nullable|string|max:255',
+            'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
-            'notification_preference' => 'nullable|array',
-            'notification_preference.*' => 'in:whatsapp,email,sms',
+            'email_notifications' => 'nullable|boolean',
             'status' => 'required|in:active,inactive',
             'link_students' => 'nullable|array',
             'link_students.*' => 'exists:students,id',
@@ -235,11 +277,40 @@ class ParentController extends Controller
 
         DB::beginTransaction();
         try {
+            // Convert name to uppercase
+            $validated['name'] = strtoupper($validated['name']);
+
+            // Convert occupation to uppercase if provided
+            if (!empty($validated['occupation'])) {
+                $validated['occupation'] = strtoupper($validated['occupation']);
+            }
+
+            // Convert address and city to uppercase
+            $validated['address'] = strtoupper($validated['address']);
+            $validated['city'] = strtoupper($validated['city']);
+
+            // Format phone numbers using helper
+            $phoneNumber = CountryCodeHelper::formatPhoneNumber(
+                $validated['country_code'],
+                $validated['phone']
+            );
+
+            // Emergency phone handling
+            if (!empty($validated['emergency_phone'])) {
+                $emergencyCountryCode = $validated['emergency_country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $emergencyPhone = CountryCodeHelper::formatPhoneNumber(
+                    $emergencyCountryCode,
+                    $validated['emergency_phone']
+                );
+            } else {
+                $emergencyPhone = null;
+            }
+
             // Update User account
             $userData = [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'status' => $validated['status'],
             ];
 
@@ -249,15 +320,10 @@ class ParentController extends Controller
 
             $parent->user->update($userData);
 
-            // Build notification preferences
-            $notificationPrefs = [];
-            if (isset($validated['notification_preference'])) {
-                foreach (['whatsapp', 'email', 'sms'] as $channel) {
-                    $notificationPrefs[$channel] = in_array($channel, $validated['notification_preference']);
-                }
-            } else {
-                $notificationPrefs = $parent->notification_preference ?? ['whatsapp' => true, 'email' => true, 'sms' => false];
-            }
+            // Build notification preferences (email only)
+            $notificationPrefs = [
+                'email' => $validated['email_notifications'] ?? ($parent->notification_preference['email'] ?? true),
+            ];
 
             // Update Parent profile
             $parent->update([
@@ -268,9 +334,9 @@ class ParentController extends Controller
                 'state' => $validated['state'],
                 'postcode' => $validated['postcode'],
                 'relationship' => $validated['relationship'],
-                'whatsapp_number' => $validated['whatsapp_number'] ?? $validated['phone'],
+                'relationship_description' => $validated['relationship_description'],
                 'emergency_contact' => $validated['emergency_contact'],
-                'emergency_phone' => $validated['emergency_phone'],
+                'emergency_phone' => $emergencyPhone,
                 'notification_preference' => $notificationPrefs,
             ]);
 
@@ -355,6 +421,7 @@ class ParentController extends Controller
 
     /**
      * Export parents list to CSV.
+     * IC numbers and phone numbers are exported as text to preserve + symbol
      */
     public function export(Request $request)
     {
@@ -362,12 +429,18 @@ class ParentController extends Controller
 
         $filename = 'parents_export_' . date('Y-m-d_His') . '.csv';
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $callback = function () use ($parents) {
             $file = fopen('php://output', 'w');
+
+            // Add UTF-8 BOM to ensure proper encoding in Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Header row
             fputcsv($file, [
@@ -381,13 +454,15 @@ class ParentController extends Controller
                     $p->parent_id,
                     $p->user->name,
                     $p->user->email,
-                    $p->user->phone,
-                    $p->ic_number,
-                    $p->relationship,
+                    // Prepend tab character to preserve phone format with + symbol
+                    "\t" . $p->user->phone,
+                    // Prepend tab character to preserve IC number format
+                    "\t" . $p->ic_number,
+                    ucfirst($p->relationship) . ($p->relationship_description ? ' (' . $p->relationship_description . ')' : ''),
                     $p->city,
                     $p->state,
                     $p->students->count(),
-                    $p->user->status,
+                    ucfirst($p->user->status),
                 ]);
             }
 
@@ -395,5 +470,31 @@ class ParentController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Get city and state based on postcode (AJAX endpoint)
+     */
+    public function getPostcodeData(Request $request)
+    {
+        $postcode = $request->input('postcode');
+
+        if (empty($postcode)) {
+            return response()->json(['error' => 'Postcode is required'], 400);
+        }
+
+        $postcodeData = config('postcodes.postcodes', []);
+
+        foreach ($postcodeData as $range) {
+            if ($postcode >= $range['min'] && $postcode <= $range['max']) {
+                return response()->json([
+                    'state' => $range['state'],
+                    'cities' => $range['cities'],
+                    'city' => $range['cities'][0] ?? '', // Default to first city
+                ]);
+            }
+        }
+
+        return response()->json(['error' => 'Postcode not found'], 404);
     }
 }
