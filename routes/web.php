@@ -67,6 +67,10 @@ use App\Http\Controllers\Admin\FinancialDashboardController;
 use App\Http\Controllers\Admin\SeminarController;
 use App\Http\Controllers\Public\SeminarRegistrationController;
 use App\Http\Controllers\Admin\SeminarAccountingController;
+use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
+use App\Http\Controllers\Staff\EnrollmentController as StaffEnrollmentController;
+use App\Http\Controllers\Parent\EnrollmentController as ParentEnrollmentController;
+use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1023,24 +1027,24 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             ->name('seminars.accounting.reports.payment-status');
 
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('index');
+            Route::get('/', [AdminEnrollmentController::class, 'index'])->name('index');
             // ->middleware('permission:view-enrollments');
-            Route::get('/create', [\App\Http\Controllers\Admin\EnrollmentController::class, 'create'])->name('create')->middleware('permission:create-enrollments');
-            Route::post('/', [\App\Http\Controllers\Admin\EnrollmentController::class, 'store'])->name('store')->middleware('permission:create-enrollments');
-            Route::get('/{enrollment}', [\App\Http\Controllers\Admin\EnrollmentController::class, 'show'])->name('show')->middleware('permission:view-enrollments');
-            Route::get('/{enrollment}/edit', [\App\Http\Controllers\Admin\EnrollmentController::class, 'edit'])->name('edit')->middleware('permission:edit-enrollments');
-            Route::put('/{enrollment}', [\App\Http\Controllers\Admin\EnrollmentController::class, 'update'])->name('update')->middleware('permission:edit-enrollments');
-            Route::delete('/{enrollment}', [\App\Http\Controllers\Admin\EnrollmentController::class, 'destroy'])->name('destroy')->middleware('permission:delete-enrollments');
+            Route::get('/create', [AdminEnrollmentController::class, 'create'])->name('create')->middleware('permission:create-enrollments');
+            Route::post('/', [AdminEnrollmentController::class, 'store'])->name('store')->middleware('permission:create-enrollments');
+            Route::get('/{enrollment}', [AdminEnrollmentController::class, 'show'])->name('show')->middleware('permission:view-enrollments');
+            Route::get('/{enrollment}/edit', [AdminEnrollmentController::class, 'edit'])->name('edit')->middleware('permission:edit-enrollments');
+            Route::put('/{enrollment}', [AdminEnrollmentController::class, 'update'])->name('update')->middleware('permission:edit-enrollments');
+            Route::delete('/{enrollment}', [AdminEnrollmentController::class, 'destroy'])->name('destroy')->middleware('permission:delete-enrollments');
 
             // Status Management
-            Route::patch('/{enrollment}/cancel', [\App\Http\Controllers\Admin\EnrollmentController::class, 'cancel'])->name('cancel')->middleware('permission:cancel-enrollments');
-            Route::patch('/{enrollment}/suspend', [\App\Http\Controllers\Admin\EnrollmentController::class, 'suspend'])->name('suspend')->middleware('permission:suspend-enrollments');
-            Route::patch('/{enrollment}/resume', [\App\Http\Controllers\Admin\EnrollmentController::class, 'resume'])->name('resume')->middleware('permission:activate-enrollments');
-            Route::post('/{enrollment}/renew', [\App\Http\Controllers\Admin\EnrollmentController::class, 'renew'])->name('renew')->middleware('permission:edit-enrollments');
+            Route::patch('/{enrollment}/cancel', [AdminEnrollmentController::class, 'cancel'])->name('cancel')->middleware('permission:cancel-enrollments');
+            Route::patch('/{enrollment}/suspend', [AdminEnrollmentController::class, 'suspend'])->name('suspend')->middleware('permission:suspend-enrollments');
+            Route::patch('/{enrollment}/resume', [AdminEnrollmentController::class, 'resume'])->name('resume')->middleware('permission:activate-enrollments');
+            Route::post('/{enrollment}/renew', [AdminEnrollmentController::class, 'renew'])->name('renew')->middleware('permission:edit-enrollments');
 
             // AJAX endpoints
-            Route::get('/class/{class}/fee', [\App\Http\Controllers\Admin\EnrollmentController::class, 'getClassFee'])->name('class.fee');
-            Route::get('/package/{package}/details', [\App\Http\Controllers\Admin\EnrollmentController::class, 'getPackageDetails'])->name('package.details');
+            Route::get('/class/{class}/fee', [AdminEnrollmentController::class, 'getClassFee'])->name('class.fee');
+            Route::get('/package/{package}/details', [AdminEnrollmentController::class, 'getPackageDetails'])->name('package.details');
         });
 
     });
@@ -1087,10 +1091,10 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Enrollment Management
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Staff\EnrollmentController::class, 'index'])->name('index')->middleware('permission:view-enrollments');
-            Route::get('/create', [\App\Http\Controllers\Staff\EnrollmentController::class, 'create'])->name('create')->middleware('permission:create-enrollments');
-            Route::post('/', [\App\Http\Controllers\Staff\EnrollmentController::class, 'store'])->name('store')->middleware('permission:create-enrollments');
-            Route::get('/{enrollment}', [\App\Http\Controllers\Staff\EnrollmentController::class, 'show'])->name('show')->middleware('permission:view-enrollments');
+            Route::get('/', [StaffEnrollmentController::class, 'index'])->name('index')->middleware('permission:view-enrollments');
+            Route::get('/create', [StaffEnrollmentController::class, 'create'])->name('create')->middleware('permission:create-enrollments');
+            Route::post('/', [StaffEnrollmentController::class, 'store'])->name('store')->middleware('permission:create-enrollments');
+            Route::get('/{enrollment}', [StaffEnrollmentController::class, 'show'])->name('show')->middleware('permission:view-enrollments');
         });
 
     });
@@ -1216,8 +1220,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Child Enrollments
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Parent\EnrollmentController::class, 'index'])->name('index');
-            Route::get('/{enrollment}', [\App\Http\Controllers\Parent\EnrollmentController::class, 'show'])->name('show');
+            Route::get('/', [ParentEnrollmentController::class, 'index'])->name('index');
+            Route::get('/{enrollment}', [ParentEnrollmentController::class, 'show'])->name('show');
         });
 
     });
@@ -1258,20 +1262,20 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         // Enrollment Routes
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
             // My Enrollments
-            Route::get('/my-enrollments', [\App\Http\Controllers\Student\EnrollmentController::class, 'myEnrollments'])->name('my-enrollments');
-            Route::get('/{enrollment}', [\App\Http\Controllers\Student\EnrollmentController::class, 'show'])->name('show');
+            Route::get('/my-enrollments', [StudentEnrollmentController::class, 'myEnrollments'])->name('my-enrollments');
+            Route::get('/{enrollment}', [StudentEnrollmentController::class, 'show'])->name('show');
 
             // Browse & Enroll
-            Route::get('/browse-classes', [\App\Http\Controllers\Student\EnrollmentController::class, 'browseClasses'])->name('browse-classes');
-            Route::get('/browse-packages', [\App\Http\Controllers\Student\EnrollmentController::class, 'browsePackages'])->name('browse-packages');
+            Route::get('/browse-classes', [StudentEnrollmentController::class, 'browseClasses'])->name('browse-classes');
+            Route::get('/browse-packages', [StudentEnrollmentController::class, 'browsePackages'])->name('browse-packages');
 
             // Class Enrollment
-            Route::get('/enroll-class/{class}', [\App\Http\Controllers\Student\EnrollmentController::class, 'enrollClass'])->name('enroll-class');
-            Route::post('/enroll-class/{class}', [\App\Http\Controllers\Student\EnrollmentController::class, 'storeClassEnrollment'])->name('enroll-class.store');
+            Route::get('/enroll-class/{class}', [StudentEnrollmentController::class, 'enrollClass'])->name('enroll-class');
+            Route::post('/enroll-class/{class}', [StudentEnrollmentController::class, 'storeClassEnrollment'])->name('enroll-class.store');
 
             // Package Enrollment
-            Route::get('/enroll-package/{package}', [\App\Http\Controllers\Student\EnrollmentController::class, 'enrollPackage'])->name('enroll-package');
-            Route::post('/enroll-package/{package}', [\App\Http\Controllers\Student\EnrollmentController::class, 'storePackageEnrollment'])->name('enroll-package.store');
+            Route::get('/enroll-package/{package}', [StudentEnrollmentController::class, 'enrollPackage'])->name('enroll-package');
+            Route::post('/enroll-package/{package}', [StudentEnrollmentController::class, 'storePackageEnrollment'])->name('enroll-package.store');
         });
 
     });
