@@ -25,8 +25,8 @@ class Parents extends Model
         'emergency_contact',
         'emergency_phone',
         'relationship',
-        'whatsapp_number',
         'relationship_description',
+        'whatsapp_number', // KEPT - WhatsApp notification support
         'notification_preference',
     ];
 
@@ -78,8 +78,14 @@ class Parents extends Model
     }
 
     /**
-     * Get notification preference for email only
+     * Get notification preferences for WhatsApp and Email
      */
+    public function getWhatsappNotificationEnabledAttribute()
+    {
+        $preferences = $this->notification_preference ?? [];
+        return $preferences['whatsapp'] ?? true;
+    }
+
     public function getEmailNotificationEnabledAttribute()
     {
         $preferences = $this->notification_preference ?? [];

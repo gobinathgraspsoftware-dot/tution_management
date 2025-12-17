@@ -89,9 +89,12 @@ class ParentController extends Controller
             'postcode' => 'required|string|max:10',
             'relationship' => 'required|in:father,mother,guardian,other',
             'relationship_description' => 'nullable|string|max:255',
+            'whatsapp_country_code' => 'nullable|string|max:5',
+            'whatsapp_number' => 'nullable|string|max:20',
             'emergency_contact' => 'nullable|string|max:255',
             'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
+            'whatsapp_notifications' => 'nullable|boolean',
             'email_notifications' => 'nullable|boolean',
             'status' => 'required|in:active,inactive',
             'link_students' => 'nullable|array',
@@ -117,6 +120,17 @@ class ParentController extends Controller
                 $validated['country_code'],
                 $validated['phone']
             );
+
+            // WhatsApp number handling - if empty, use phone number
+            if (!empty($validated['whatsapp_number'])) {
+                $whatsappCountryCode = $validated['whatsapp_country_code'] ?? $validated['country_code'];
+                $whatsappNumber = CountryCodeHelper::formatPhoneNumber(
+                    $whatsappCountryCode,
+                    $validated['whatsapp_number']
+                );
+            } else {
+                $whatsappNumber = $phoneNumber;
+            }
 
             // Emergency phone handling
             if (!empty($validated['emergency_phone'])) {
@@ -145,8 +159,9 @@ class ParentController extends Controller
             // Generate parent ID
             $parentId = 'PAR-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
-            // Build notification preferences (email only)
+            // Build notification preferences (WhatsApp and Email only, NO SMS)
             $notificationPrefs = [
+                'whatsapp' => $validated['whatsapp_notifications'] ?? true,
                 'email' => $validated['email_notifications'] ?? true,
             ];
 
@@ -162,6 +177,7 @@ class ParentController extends Controller
                 'postcode' => $validated['postcode'],
                 'relationship' => $validated['relationship'],
                 'relationship_description' => $validated['relationship_description'],
+                'whatsapp_number' => $whatsappNumber,
                 'emergency_contact' => $validated['emergency_contact'],
                 'emergency_phone' => $emergencyPhone,
                 'notification_preference' => $notificationPrefs,
@@ -231,6 +247,7 @@ class ParentController extends Controller
 
         // Extract country code from phone numbers for display using helper
         $phoneData = CountryCodeHelper::extractCountryCode($parent->user->phone);
+        $whatsappData = CountryCodeHelper::extractCountryCode($parent->whatsapp_number);
         $emergencyData = CountryCodeHelper::extractCountryCode($parent->emergency_phone);
 
         // Get all countries for dropdown
@@ -241,6 +258,7 @@ class ParentController extends Controller
             'parent',
             'availableStudents',
             'phoneData',
+            'whatsappData',
             'emergencyData',
             'countries',
             'defaultCountryCode'
@@ -266,9 +284,12 @@ class ParentController extends Controller
             'postcode' => 'required|string|max:10',
             'relationship' => 'required|in:father,mother,guardian,other',
             'relationship_description' => 'nullable|string|max:255',
+            'whatsapp_country_code' => 'nullable|string|max:5',
+            'whatsapp_number' => 'nullable|string|max:20',
             'emergency_contact' => 'nullable|string|max:255',
             'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
+            'whatsapp_notifications' => 'nullable|boolean',
             'email_notifications' => 'nullable|boolean',
             'status' => 'required|in:active,inactive',
             'link_students' => 'nullable|array',
@@ -295,6 +316,17 @@ class ParentController extends Controller
                 $validated['phone']
             );
 
+            // WhatsApp number handling
+            if (!empty($validated['whatsapp_number'])) {
+                $whatsappCountryCode = $validated['whatsapp_country_code'] ?? $validated['country_code'];
+                $whatsappNumber = CountryCodeHelper::formatPhoneNumber(
+                    $whatsappCountryCode,
+                    $validated['whatsapp_number']
+                );
+            } else {
+                $whatsappNumber = $phoneNumber;
+            }
+
             // Emergency phone handling
             if (!empty($validated['emergency_phone'])) {
                 $emergencyCountryCode = $validated['emergency_country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
@@ -320,8 +352,9 @@ class ParentController extends Controller
 
             $parent->user->update($userData);
 
-            // Build notification preferences (email only)
+            // Build notification preferences (WhatsApp and Email only, NO SMS)
             $notificationPrefs = [
+                'whatsapp' => $validated['whatsapp_notifications'] ?? ($parent->notification_preference['whatsapp'] ?? true),
                 'email' => $validated['email_notifications'] ?? ($parent->notification_preference['email'] ?? true),
             ];
 
@@ -335,6 +368,7 @@ class ParentController extends Controller
                 'postcode' => $validated['postcode'],
                 'relationship' => $validated['relationship'],
                 'relationship_description' => $validated['relationship_description'],
+                'whatsapp_number' => $whatsappNumber,
                 'emergency_contact' => $validated['emergency_contact'],
                 'emergency_phone' => $emergencyPhone,
                 'notification_preference' => $notificationPrefs,
@@ -444,7 +478,7 @@ class ParentController extends Controller
 
             // Header row
             fputcsv($file, [
-                'Parent ID', 'Name', 'Email', 'Phone', 'IC Number',
+                'Parent ID', 'Name', 'Email', 'Phone', 'WhatsApp', 'IC Number',
                 'Relationship', 'City', 'State', 'Children Count', 'Status'
             ]);
 
@@ -456,6 +490,7 @@ class ParentController extends Controller
                     $p->user->email,
                     // Prepend tab character to preserve phone format with + symbol
                     "\t" . $p->user->phone,
+                    "\t" . ($p->whatsapp_number ?? $p->user->phone),
                     // Prepend tab character to preserve IC number format
                     "\t" . $p->ic_number,
                     ucfirst($p->relationship) . ($p->relationship_description ? ' (' . $p->relationship_description . ')' : ''),

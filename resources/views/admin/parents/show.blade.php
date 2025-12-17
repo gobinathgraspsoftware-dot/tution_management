@@ -70,6 +70,20 @@
                     </p>
                 </div>
                 <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">WhatsApp</label>
+                    <p class="mb-0">
+                        @if($parent->whatsapp_number)
+                        <a href="https://wa.me/{{ str_replace('+', '', $parent->whatsapp_number) }}" target="_blank" class="text-decoration-none">
+                            <i class="fab fa-whatsapp text-success me-1"></i>
+                            <span class="text-dark">{{ $parent->whatsapp_number }}</span>
+                        </a>
+                        @else
+                        <span class="text-muted">N/A</span>
+                        @endif
+                    </p>
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label text-muted small mb-1">IC Number</label>
                     <p class="mb-0">{{ $parent->ic_number }}</p>
                 </div>
@@ -126,25 +140,32 @@
             </div>
         </div>
 
-        <!-- Notification Preferences -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-bell me-2"></i> Notification Preferences
-            </div>
-            <div class="card-body">
+        <!--
                 @php
+                    $whatsappEnabled = $parent->notification_preference['whatsapp'] ?? true;
                     $emailEnabled = $parent->notification_preference['email'] ?? true;
                 @endphp
-                <div class="d-flex align-items-center">
+
+                <div class="mb-2">
+                    <i class="fab fa-whatsapp text-success me-2"></i>
+                    <span>WhatsApp Notifications: </span>
+                    @if($whatsappEnabled)
+                        <span class="badge bg-success">Enabled</span>
+                    @else
+                        <span class="badge bg-secondary">Disabled</span>
+                    @endif
+                </div>
+
+                <div>
                     <i class="fas fa-envelope text-primary me-2"></i>
                     <span>Email Notifications: </span>
                     @if($emailEnabled)
-                        <span class="badge bg-success ms-2">Enabled</span>
+                        <span class="badge bg-success">Enabled</span>
                     @else
-                        <span class="badge bg-secondary ms-2">Disabled</span>
+                        <span class="badge bg-secondary">Disabled</span>
                     @endif
                 </div>
-            </div>
+
         </div>
     </div>
 

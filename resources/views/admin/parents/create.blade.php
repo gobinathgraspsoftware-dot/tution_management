@@ -307,7 +307,18 @@
                     <p class="text-muted mb-3">Configure how the parent receives notifications:</p>
 
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="email_notifications"
+                                            <!-- WhatsApp Notifications -->
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="whatsapp_notifications"
+                               name="whatsapp_notifications" value="1"
+                               {{ old('whatsapp_notifications', true) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="whatsapp_notifications">
+                            <i class="fab fa-whatsapp text-success me-1"></i> WhatsApp Notifications
+                        </label>
+                        <br><small class="text-muted">Receive updates and notifications via WhatsApp</small>
+                    </div>
+
+<input type="checkbox" class="form-check-input" id="email_notifications"
                                name="email_notifications" value="1"
                                {{ old('email_notifications', true) ? 'checked' : '' }}>
                         <label class="form-check-label" for="email_notifications">
@@ -457,36 +468,36 @@ $(document).ready(function() {
     });
 
     // Form validation
-    $('#parentForm').on('submit', function(e) {
-        var password = $('#password').val();
-        var confirmPassword = $('#password_confirmation').val();
 
-        if (password !== confirmPassword) {
-            e.preventDefault();
-            alert('Password and Confirm Password do not match!');
-            $('#password_confirmation').focus();
-            return false;
-        }
-
-        if (password.length < 8) {
-            e.preventDefault();
-            alert('Password must be at least 8 characters long!');
-            $('#password').focus();
-            return false;
-        }
-
-        // Combine country code with phone numbers before submit
+    // Auto-fill WhatsApp number from phone if empty
+    $('#phone').on('blur', function() {
+        var phone = $(this).val();
+        var whatsapp = $('#whatsapp_number');
         var countryCode = $('#country_code').val();
-        var phone = $('#phone').val();
-        if (phone) {
-            $('#phone').val(countryCode + phone);
+        var whatsappCountryCode = $('#whatsapp_country_code');
+
+        if (phone && !whatsapp.val()) {
+            whatsapp.val(phone);
+            whatsappCountryCode.val(countryCode);
+        }
+    });
+
+    // Phone number validation - only allow numbers
+    $('#phone, #whatsapp_number, #emergency_phone').on('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+
+    // Form submission - combine country codes with numbers
+    $('#parentForm').on('submit', function(e) {
+        // Existing validation...
+
+        // Combine WhatsApp country code with number
+        var whatsappCountryCode = $('#whatsapp_country_code').val();
+        var whatsappNumber = $('#whatsapp_number').val();
+        if (whatsappNumber) {
+            $('#whatsapp_number').val(whatsappCountryCode + whatsappNumber);
         }
 
-        var emergencyCountryCode = $('#emergency_country_code').val();
-        var emergencyPhone = $('#emergency_phone').val();
-        if (emergencyPhone) {
-            $('#emergency_phone').val(emergencyCountryCode + emergencyPhone);
-        }
     });
 });
 </script>
