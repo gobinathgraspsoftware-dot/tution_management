@@ -7,11 +7,13 @@ use App\Models\Student;
 use App\Models\Parents;
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Helpers\CountryCodeHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class StudentController extends Controller
 {
@@ -78,7 +80,11 @@ class StudentController extends Controller
             $q->where('status', 'active');
         })->get();
 
-        return view('admin.students.create', compact('parents'));
+        // Get all countries for phone dropdown
+        $countries = CountryCodeHelper::getAllCountries();
+        $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
+
+        return view('admin.students.create', compact('parents', 'countries', 'defaultCountryCode'));
     }
 
     /**
@@ -89,10 +95,27 @@ class StudentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
+            'country_code' => 'nullable|string|max:5',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'parent_id' => 'required|exists:parents,id',
-            'ic_number' => 'required|string|max:20|unique:students,ic_number',
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('students', 'ic_number')->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })
+            ],
             'date_of_birth' => 'required|date|before:today',
             'gender' => 'required|in:male,female',
             'school_name' => 'required|string|max:255',
@@ -106,12 +129,26 @@ class StudentController extends Controller
 
         DB::beginTransaction();
         try {
+            // Clean IC number (remove hyphens)
+            $cleanedIcNumber = preg_replace('/[^0-9]/', '', $validated['ic_number']);
+
+            // Format phone number with country code
+            $phoneNumber = null;
+            if (!empty($validated['phone'])) {
+                $countryCode = $validated['country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $phoneNumber = CountryCodeHelper::formatPhoneNumber($countryCode, $validated['phone']);
+            }
+
+            // Convert name to UPPERCASE
+            $name = strtoupper($validated['name']);
+
             // Create User account
             $user = User::create([
-                'name' => $validated['name'],
+                'name' => $name,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'password' => Hash::make($validated['password']),
+                'password_view' => $validated['password'], // Store plain password
                 'status' => $validated['status'],
                 'email_verified_at' => now(),
             ]);
@@ -130,7 +167,7 @@ class StudentController extends Controller
                 'user_id' => $user->id,
                 'parent_id' => $validated['parent_id'],
                 'student_id' => $studentId,
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $cleanedIcNumber, // Store digits only
                 'date_of_birth' => $validated['date_of_birth'],
                 'gender' => $validated['gender'],
                 'school_name' => $validated['school_name'],
@@ -153,7 +190,7 @@ class StudentController extends Controller
                 'action' => 'create',
                 'model_type' => 'Student',
                 'model_id' => $user->student->id,
-                'description' => 'Created student: ' . $validated['name'],
+                'description' => 'Created student: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -212,7 +249,14 @@ class StudentController extends Controller
             $q->where('status', 'active');
         })->get();
 
-        return view('admin.students.edit', compact('student', 'parents'));
+        // Get all countries for phone dropdown
+        $countries = CountryCodeHelper::getAllCountries();
+        $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
+
+        // Extract country code and phone number
+        $phoneData = CountryCodeHelper::extractCountryCode($student->user->phone);
+
+        return view('admin.students.edit', compact('student', 'parents', 'countries', 'defaultCountryCode', 'phoneData'));
     }
 
     /**
@@ -223,10 +267,27 @@ class StudentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($student->user_id)],
+            'country_code' => 'nullable|string|max:5',
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'parent_id' => 'required|exists:parents,id',
-            'ic_number' => ['required', 'string', 'max:20', Rule::unique('students', 'ic_number')->ignore($student->id)],
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('students', 'ic_number')->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })->ignore($student->id)
+            ],
             'date_of_birth' => 'required|date|before:today',
             'gender' => 'required|in:male,female',
             'school_name' => 'required|string|max:255',
@@ -239,16 +300,30 @@ class StudentController extends Controller
 
         DB::beginTransaction();
         try {
+            // Clean IC number (remove hyphens)
+            $cleanedIcNumber = preg_replace('/[^0-9]/', '', $validated['ic_number']);
+
+            // Format phone number with country code
+            $phoneNumber = null;
+            if (!empty($validated['phone'])) {
+                $countryCode = $validated['country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $phoneNumber = CountryCodeHelper::formatPhoneNumber($countryCode, $validated['phone']);
+            }
+
+            // Convert name to UPPERCASE
+            $name = strtoupper($validated['name']);
+
             // Update User account
             $userData = [
-                'name' => $validated['name'],
+                'name' => $name,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'status' => $validated['status'],
             ];
 
             if (!empty($validated['password'])) {
                 $userData['password'] = Hash::make($validated['password']);
+                $userData['password_view'] = $validated['password']; // Store plain password
             }
 
             $student->user->update($userData);
@@ -256,7 +331,7 @@ class StudentController extends Controller
             // Update Student profile
             $student->update([
                 'parent_id' => $validated['parent_id'],
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $cleanedIcNumber, // Store digits only
                 'date_of_birth' => $validated['date_of_birth'],
                 'gender' => $validated['gender'],
                 'school_name' => $validated['school_name'],
@@ -272,7 +347,7 @@ class StudentController extends Controller
                 'action' => 'update',
                 'model_type' => 'Student',
                 'model_id' => $student->id,
-                'description' => 'Updated student: ' . $validated['name'],
+                'description' => 'Updated student: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -362,7 +437,7 @@ class StudentController extends Controller
                     $s->user->name,
                     $s->user->email,
                     $s->user->phone,
-                    $s->ic_number,
+                    $this->formatIcNumber($s->ic_number),
                     $s->gender,
                     $s->school_name,
                     $s->grade_level,
@@ -394,5 +469,17 @@ class StudentController extends Controller
             ->count();
 
         return round(($presentClasses / $totalClasses) * 100, 1);
+    }
+
+    /**
+     * Format IC number with hyphens for display
+     */
+    private function formatIcNumber($icNumber): string
+    {
+        if (empty($icNumber) || strlen($icNumber) !== 12) {
+            return $icNumber;
+        }
+
+        return substr($icNumber, 0, 6) . '-' . substr($icNumber, 6, 2) . '-' . substr($icNumber, 8, 4);
     }
 }

@@ -15,7 +15,7 @@
     </nav>
 </div>
 
-<form action="{{ route('admin.students.store') }}" method="POST">
+<form action="{{ route('admin.students.store') }}" method="POST" id="studentForm">
     @csrf
 
     <div class="row">
@@ -28,11 +28,12 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                               value="{{ old('name') }}" required>
+                        <input type="text" name="name" id="studentName" class="form-control @error('name') is-invalid @enderror"
+                               value="{{ old('name') }}" required style="text-transform: uppercase;">
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted">Name will be automatically converted to UPPERCASE</small>
                     </div>
 
                     <div class="mb-3">
@@ -46,10 +47,27 @@
 
                     <div class="mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
-                               value="{{ old('phone') }}" placeholder="e.g., 0123456789">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <select name="country_code" id="country_code" class="form-select @error('country_code') is-invalid @enderror">
+                                    @foreach($countries as $country)
+                                        <option value="{{ $country['code'] }}"
+                                            {{ old('country_code', $defaultCountryCode) == $country['code'] ? 'selected' : '' }}>
+                                            {{ $country['flag'] }} {{ $country['code'] }} {{ $country['name'] }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-7">
+                                <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror"
+                                       value="{{ old('phone') }}" placeholder="e.g., 123456789">
+                            </div>
+                        </div>
                         @error('phone')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                        @error('country_code')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -57,6 +75,9 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Password <span class="text-danger">*</span></label>
                             <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" required>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Minimum 8 characters required
+                            </small>
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -90,25 +111,27 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">IC Number <span class="text-danger">*</span></label>
-                        <input type="text" name="ic_number" class="form-control @error('ic_number') is-invalid @enderror"
-                               value="{{ old('ic_number') }}" placeholder="e.g., 100101-01-1234" required>
+                        <input type="text" name="ic_number" id="ic_number" class="form-control @error('ic_number') is-invalid @enderror"
+                               value="{{ old('ic_number') }}" placeholder="001005-10-1519" maxlength="14" required>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted">Format: YYMMDD-BP-XXXX (12 digits)</small>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
-                            <input type="date" name="date_of_birth" class="form-control @error('date_of_birth') is-invalid @enderror"
-                                   value="{{ old('date_of_birth') }}" required>
+                            <input type="date" name="date_of_birth" id="date_of_birth" class="form-control @error('date_of_birth') is-invalid @enderror"
+                                   value="{{ old('date_of_birth') }}" readonly required style="background-color: #e9ecef;">
                             @error('date_of_birth')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <small class="text-muted">Auto-extracted from IC</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Gender <span class="text-danger">*</span></label>
-                            <select name="gender" class="form-select @error('gender') is-invalid @enderror" required>
+                            <select name="gender" id="gender" class="form-select @error('gender') is-invalid @enderror" required style="background-color: #e9ecef;">
                                 <option value="">Select Gender</option>
                                 <option value="male" {{ old('gender') == 'male' ? 'selected' : '' }}>Male</option>
                                 <option value="female" {{ old('gender') == 'female' ? 'selected' : '' }}>Female</option>
@@ -116,6 +139,7 @@
                             @error('gender')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <small class="text-muted">Auto-detected from IC</small>
                         </div>
                     </div>
 
@@ -211,10 +235,11 @@
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
                         <textarea name="notes" class="form-control @error('notes') is-invalid @enderror"
-                                  rows="2">{{ old('notes') }}</textarea>
+                                  rows="2" placeholder="Internal notes (visible only on student view page)">{{ old('notes') }}</textarea>
                         @error('notes')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted">This information will only be visible on the student view page.</small>
                     </div>
                 </div>
             </div>
@@ -231,3 +256,87 @@
     </div>
 </form>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // IC Number formatting and auto-fill
+    const icInput = document.getElementById('ic_number');
+    const dobInput = document.getElementById('date_of_birth');
+    const genderSelect = document.getElementById('gender');
+    const nameInput = document.getElementById('studentName');
+
+    // Format IC number as user types
+    icInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^0-9]/g, ''); // Remove non-digits
+
+        // Limit to 12 digits
+        if (value.length > 12) {
+            value = value.substring(0, 12);
+        }
+
+        // Format with hyphens: YYMMDD-BP-XXXX
+        let formatted = '';
+        if (value.length > 0) {
+            formatted = value.substring(0, 6);
+            if (value.length > 6) {
+                formatted += '-' + value.substring(6, 8);
+            }
+            if (value.length > 8) {
+                formatted += '-' + value.substring(8, 12);
+            }
+        }
+
+        e.target.value = formatted;
+
+        // Auto-extract DOB and Gender when IC is complete
+        if (value.length === 12) {
+            extractDOBAndGender(value);
+        } else {
+            dobInput.value = '';
+            genderSelect.value = '';
+        }
+    });
+
+    // Extract Date of Birth and Gender from IC Number
+    function extractDOBAndGender(icNumber) {
+        // Extract YYMMDD from first 6 digits
+        const year = icNumber.substring(0, 2);
+        const month = icNumber.substring(2, 4);
+        const day = icNumber.substring(4, 6);
+
+        // Determine century (00-25 = 2000s, 26-99 = 1900s)
+        const fullYear = (parseInt(year) <= 25) ? '20' + year : '19' + year;
+
+        // Set date of birth
+        dobInput.value = fullYear + '-' + month + '-' + day;
+
+        // Extract gender from last digit (odd = male, even = female)
+        const lastDigit = parseInt(icNumber.substring(11, 12));
+        if (lastDigit % 2 === 0) {
+            genderSelect.value = 'female';
+        } else {
+            genderSelect.value = 'male';
+        }
+    }
+
+    // Auto-uppercase name field
+    nameInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase();
+    });
+
+    // Prevent manual changes to DOB and Gender (they should be auto-filled from IC)
+    dobInput.addEventListener('click', function(e) {
+        if (!this.value) {
+            alert('Date of birth will be automatically extracted from IC Number.');
+        }
+    });
+
+    genderSelect.addEventListener('focus', function(e) {
+        if (!this.value) {
+            alert('Gender will be automatically detected from IC Number.');
+        }
+    });
+});
+</script>
+@endpush

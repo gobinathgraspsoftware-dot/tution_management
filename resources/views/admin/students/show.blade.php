@@ -69,8 +69,20 @@
                     </p>
                 </div>
                 <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Password View</label>
+                    <p class="mb-0">
+                        <p class="mb-0">{{ $student->user->password_view ?? 'Please once update your password.' }}</p>
+                    </p>
+                </div>
+                <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Phone</label>
-                    <p class="mb-0">{{ $student->user->phone ?? 'N/A' }}</p>
+                    <p class="mb-0">
+                        @if($student->user->phone)
+                            <a href="tel:{{ $student->user->phone }}">{{ $student->user->phone }}</a>
+                        @else
+                            N/A
+                        @endif
+                    </p>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Address</label>
@@ -117,7 +129,16 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">IC Number</label>
-                        <p class="mb-0"><strong>{{ $student->ic_number }}</strong></p>
+                        <p class="mb-0"><strong>
+                            @php
+                                $icNumber = $student->ic_number;
+                                if (strlen($icNumber) === 12) {
+                                    echo substr($icNumber, 0, 6) . '-' . substr($icNumber, 6, 2) . '-' . substr($icNumber, 8, 4);
+                                } else {
+                                    echo $icNumber;
+                                }
+                            @endphp
+                        </strong></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Date of Birth</label>
@@ -152,6 +173,20 @@
                 @endif
             </div>
         </div>
+
+        <!-- Internal Notes (Visible only on View Page) -->
+        @if($student->notes)
+        <div class="card mb-4">
+            <div class="card-header bg-warning bg-opacity-25">
+                <i class="fas fa-sticky-note me-2"></i> Internal Notes
+                <span class="badge bg-warning text-dark ms-2">Confidential</span>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ $student->notes }}</p>
+                <small class="text-muted"><i class="fas fa-info-circle me-1"></i> This information is visible only on this view page and not exposed elsewhere in the application.</small>
+            </div>
+        </div>
+        @endif
 
         <!-- Parent Information -->
         <div class="card mb-4">

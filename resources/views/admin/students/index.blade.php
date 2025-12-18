@@ -34,7 +34,7 @@
         <form action="{{ route('admin.students.index') }}" method="GET" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Name, email, ID, school..." value="{{ request('search') }}">
+                <input type="text" name="search" class="form-control" placeholder="Name, email, ID, IC, school..." value="{{ request('search') }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Status</label>
@@ -83,6 +83,7 @@
                     <tr>
                         <th>Student ID</th>
                         <th>Name</th>
+                        <th>IC Number</th>
                         <th>Parent</th>
                         <th>School</th>
                         <th>Grade</th>
@@ -105,6 +106,9 @@
                                         <br><small class="text-muted">{{ $student->user->email }}</small>
                                     </div>
                                 </div>
+                            </td>
+                            <td>
+                                <code class="text-dark">{{ $student->formatted_ic_number ?? '-' }}</code>
                             </td>
                             <td>
                                 @if($student->parent)
@@ -176,7 +180,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-users fa-3x mb-3"></i>
                                     <p>No students found.</p>
@@ -201,11 +205,12 @@
 <!-- Delete Modal -->
 @include('components.delete-modal', [
     'id' => 'deleteModal',
-    'title' => 'Delete Parent',
-    'message' => 'Are you sure you want to delete this parent?',
+    'title' => 'Delete Student',
+    'message' => 'Are you sure you want to delete this student?',
     'route' => 'admin.students.destroy'
 ])
 @endsection
+
 @push('scripts')
 <script>
 function approveStudent(id) {
