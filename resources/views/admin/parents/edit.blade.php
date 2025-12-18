@@ -92,7 +92,10 @@
                         <label for="ic_number" class="form-label">IC Number <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @error('ic_number') is-invalid @enderror"
                                id="ic_number" name="ic_number" value="{{ old('ic_number', $parent->ic_number) }}"
-                               placeholder="e.g., 880101145678" required>
+                               placeholder="e.g., 001005-10-1519" maxlength="14" required>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i> Format: XXXXXX-XX-XXXX (12 digits)
+                        </small>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -468,7 +471,105 @@ $(document).ready(function() {
 
     // IC Number validation - only allow numbers and dashes
     $('#ic_number').on('input', function() {
-        this.value = this.value.replace(/[^0-9-]/g, '');
+        // IC Number Auto-Formatting: XXXXXX-XX-XXXX
+        let value = $(this).val().replace(/[^0-9]/g, ''); // Remove non-digits
+        let formatted = '';
+
+        if (value.length > 0) {
+            formatted = value.substring(0, 6); // First 6 digits
+        }
+        if (value.length > 6) {
+            formatted += '-' + value.substring(6, 8); // Next 2 digits
+        }
+        if (value.length > 8) {
+            formatted += '-' + value.substring(8, 12); // Last 4 digits
+        }
+
+        $(this).val(formatted);
+
+        // Real-time validation feedback
+        let cleaned = value;
+        if (cleaned.length === 0) {
+            $(this).removeClass('is-valid is-invalid');
+        } else if (cleaned.length === 12) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
+
+    // IC Number - paste handler
+    $('#ic_number').on('paste', function(e) {
+        e.preventDefault();
+        let pastedData = e.originalEvent.clipboardData.getData('text');
+        let cleaned = pastedData.replace(/[^0-9]/g, '');
+        $(this).val(cleaned).trigger('input');
+    });
+
+    // Password strength indicator (for new password)
+    $('#password').on('input', function() {
+        let password = $(this).val();
+        let strength = 0;
+        let $indicator = $(this).closest('.mb-3').find('.password-strength');
+
+        if ($indicator.length === 0 && password.length > 0) {
+            $(this).closest('.input-group').after('<div class="password-strength mt-1"></div>');
+            $indicator = $(this).closest('.mb-3').find('.password-strength');
+        }
+
+        if (password.length === 0) {
+            $indicator.remove();
+            return;
+        }
+
+        // Calculate strength
+        if (password.length >= 8) strength++;
+        if (password.length >= 12) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+        // Display strength
+        let strengthText = '';
+        let strengthClass = '';
+
+        if (strength <= 2) {
+            strengthText = 'Weak';
+            strengthClass = 'text-danger';
+        } else if (strength <= 3) {
+            strengthText = 'Medium';
+            strengthClass = 'text-warning';
+        } else {
+            strengthText = 'Strong';
+            strengthClass = 'text-success';
+        }
+
+        $indicator.html('<small class="' + strengthClass + '"><i class="fas fa-shield-alt me-1"></i>Password strength: ' + strengthText + '</small>');
+    });
+
+    // Password confirmation matching
+    $('#password_confirmation').on('input', function() {
+        let password = $('#password').val();
+        let confirmation = $(this).val();
+
+        if (confirmation.length === 0) {
+            $(this).removeClass('is-valid is-invalid');
+            return;
+        }
+
+        if (password === confirmation) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
+
+    // Initialize IC formatting on page load
+    $(document).ready(function() {
+        let icValue = $('#ic_number').val();
+        if (icValue) {
+            $('#ic_number').trigger('input');
+        }
     });
 
     // Form validation

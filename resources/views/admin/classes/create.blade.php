@@ -60,9 +60,9 @@
 
                             <!-- Teacher -->
                             <div class="col-md-6 mb-3">
-                                <label for="teacher_id" class="form-label">Teacher</label>
+                                <label for="teacher_id" class="form-label">Teacher <span class="text-danger">*</span></label>
                                 <select class="form-select @error('teacher_id') is-invalid @enderror"
-                                        id="teacher_id" name="teacher_id">
+                                        id="teacher_id" name="teacher_id" required>
                                     <option value="">Select Teacher (Optional)</option>
                                     @foreach($teachers as $teacher)
                                         <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>

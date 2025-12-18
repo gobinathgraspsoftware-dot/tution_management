@@ -25,12 +25,15 @@ class ParentController extends Controller
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
+            // Clean search input for IC number (remove hyphens)
+            $cleanedSearch = preg_replace('/[^0-9]/', '', $search);
+
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             })->orWhere('parent_id', 'like', "%{$search}%")
-              ->orWhere('ic_number', 'like', "%{$search}%");
+              ->orWhere('ic_number', 'like', "%{$cleanedSearch}%");
         }
 
         // Filter by status
@@ -81,7 +84,23 @@ class ParentController extends Controller
             'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
-            'ic_number' => 'required|string|max:20|unique:parents,ic_number',
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('parents', 'ic_number')->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })
+            ],
             'occupation' => 'nullable|string|max:255',
             'address' => 'required|string|max:500',
             'city' => 'required|string|max:100',
@@ -114,6 +133,9 @@ class ParentController extends Controller
             // Convert address and city to uppercase
             $validated['address'] = strtoupper($validated['address']);
             $validated['city'] = strtoupper($validated['city']);
+
+            // Clean IC number - remove hyphens, store only 12 digits
+            $validated['ic_number'] = preg_replace('/[^0-9]/', '', $validated['ic_number']);
 
             // Format phone numbers using helper
             $phoneNumber = CountryCodeHelper::formatPhoneNumber(
@@ -149,6 +171,7 @@ class ParentController extends Controller
                 'email' => $validated['email'],
                 'phone' => $phoneNumber,
                 'password' => Hash::make($validated['password']),
+                'password_view' => $validated['password'],
                 'status' => $validated['status'],
                 'email_verified_at' => now(),
             ]);
@@ -169,7 +192,7 @@ class ParentController extends Controller
             $parent = Parents::create([
                 'user_id' => $user->id,
                 'parent_id' => $parentId,
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $validated['ic_number'], // Already cleaned, 12 digits only
                 'occupation' => $validated['occupation'],
                 'address' => $validated['address'],
                 'city' => $validated['city'],
@@ -276,7 +299,23 @@ class ParentController extends Controller
             'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
-            'ic_number' => ['required', 'string', 'max:20', Rule::unique('parents', 'ic_number')->ignore($parent->id)],
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('parents', 'ic_number')->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })->ignore($parent->id)
+            ],
             'occupation' => 'nullable|string|max:255',
             'address' => 'required|string|max:500',
             'city' => 'required|string|max:100',
@@ -309,6 +348,9 @@ class ParentController extends Controller
             // Convert address and city to uppercase
             $validated['address'] = strtoupper($validated['address']);
             $validated['city'] = strtoupper($validated['city']);
+
+            // Clean IC number - remove hyphens, store only 12 digits
+            $validated['ic_number'] = preg_replace('/[^0-9]/', '', $validated['ic_number']);
 
             // Format phone numbers using helper
             $phoneNumber = CountryCodeHelper::formatPhoneNumber(
@@ -346,8 +388,10 @@ class ParentController extends Controller
                 'status' => $validated['status'],
             ];
 
+            // Only update password if provided
             if (!empty($validated['password'])) {
                 $userData['password'] = Hash::make($validated['password']);
+                $userData['password_view'] = $validated['password'];
             }
 
             $parent->user->update($userData);
@@ -360,7 +404,7 @@ class ParentController extends Controller
 
             // Update Parent profile
             $parent->update([
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $validated['ic_number'], // Already cleaned, 12 digits only
                 'occupation' => $validated['occupation'],
                 'address' => $validated['address'],
                 'city' => $validated['city'],
@@ -455,7 +499,7 @@ class ParentController extends Controller
 
     /**
      * Export parents list to CSV.
-     * IC numbers and phone numbers are exported as text to preserve + symbol
+     * IC numbers and phone numbers are exported as text to preserve format
      */
     public function export(Request $request)
     {
@@ -484,6 +528,9 @@ class ParentController extends Controller
 
             // Data rows
             foreach ($parents as $p) {
+                // Format IC number for export with hyphens
+                $icFormatted = Parents::formatIcNumber($p->raw_ic_number);
+
                 fputcsv($file, [
                     $p->parent_id,
                     $p->user->name,
@@ -491,8 +538,8 @@ class ParentController extends Controller
                     // Prepend tab character to preserve phone format with + symbol
                     "\t" . $p->user->phone,
                     "\t" . ($p->whatsapp_number ?? $p->user->phone),
-                    // Prepend tab character to preserve IC number format
-                    "\t" . $p->ic_number,
+                    // IC number with formatting
+                    "\t" . $icFormatted,
                     ucfirst($p->relationship) . ($p->relationship_description ? ' (' . $p->relationship_description . ')' : ''),
                     $p->city,
                     $p->state,

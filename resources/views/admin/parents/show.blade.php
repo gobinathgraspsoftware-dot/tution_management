@@ -64,6 +64,12 @@
                     </p>
                 </div>
                 <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Password</label>
+                    <p class="mb-0">
+                        <p class="mb-0">{{ isset($parent->user->password_view)? $parent->user->password_view : 'Please once change your password.' }}</p>
+                    </p>
+                </div>
+                <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Phone</label>
                     <p class="mb-0">
                         <a href="tel:{{ $parent->user->phone }}">{{ $parent->user->phone }}</a>

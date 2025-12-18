@@ -13,7 +13,6 @@ class Parents extends Model
     protected $table = 'parents';
 
     protected $fillable = [
-        'id',
         'user_id',
         'parent_id',
         'ic_number',
@@ -26,13 +25,51 @@ class Parents extends Model
         'emergency_phone',
         'relationship',
         'relationship_description',
-        'whatsapp_number', // KEPT - WhatsApp notification support
+        'whatsapp_number',
         'notification_preference',
     ];
 
     protected $casts = [
         'notification_preference' => 'array',
     ];
+
+    /**
+     * Set IC number - store only 12 digits without hyphens
+     */
+    public function setIcNumberAttribute($value)
+    {
+        // Remove all non-numeric characters
+        $cleaned = preg_replace('/[^0-9]/', '', $value);
+
+        // Store only if exactly 12 digits
+        if (strlen($cleaned) === 12) {
+            $this->attributes['ic_number'] = $cleaned;
+        } else {
+            $this->attributes['ic_number'] = $cleaned;
+        }
+    }
+
+    /**
+     * Get IC number - return formatted with hyphens for display
+     * Format: 001005-10-1519
+     */
+    public function getIcNumberAttribute($value)
+    {
+        if (!$value || strlen($value) !== 12) {
+            return $value;
+        }
+
+        // Format: XXXXXX-XX-XXXX
+        return substr($value, 0, 6) . '-' . substr($value, 6, 2) . '-' . substr($value, 8, 4);
+    }
+
+    /**
+     * Get raw IC number without formatting (for database operations)
+     */
+    public function getRawIcNumberAttribute()
+    {
+        return $this->attributes['ic_number'] ?? null;
+    }
 
     /**
      * Set emergency contact name to uppercase
@@ -90,5 +127,27 @@ class Parents extends Model
     {
         $preferences = $this->notification_preference ?? [];
         return $preferences['email'] ?? true;
+    }
+
+    /**
+     * Helper method to format IC number for display
+     */
+    public static function formatIcNumber($icNumber)
+    {
+        $cleaned = preg_replace('/[^0-9]/', '', $icNumber);
+
+        if (strlen($cleaned) === 12) {
+            return substr($cleaned, 0, 6) . '-' . substr($cleaned, 6, 2) . '-' . substr($cleaned, 8, 4);
+        }
+
+        return $icNumber;
+    }
+
+    /**
+     * Helper method to clean IC number (remove hyphens)
+     */
+    public static function cleanIcNumber($icNumber)
+    {
+        return preg_replace('/[^0-9]/', '', $icNumber);
     }
 }
