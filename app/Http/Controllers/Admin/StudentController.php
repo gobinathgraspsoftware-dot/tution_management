@@ -72,13 +72,71 @@ class StudentController extends Controller
     }
 
     /**
+     * AJAX endpoint to search parents for Select2 dropdown
+     */
+    public function searchParents(Request $request)
+    {
+        $search = $request->get('q', '');
+        $page = $request->get('page', 1);
+        $perPage = 10; // Number of results per page
+
+        $query = Parents::with('user')
+            ->whereHas('user', function ($q) {
+                $q->where('status', 'active');
+            });
+
+        // Search by name, email, phone, or IC number
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%")
+                              ->orWhere('phone', 'like', "%{$search}%");
+                })->orWhere('ic_number', 'like', "%{$search}%");
+            });
+        }
+
+        $total = $query->count();
+        $parents = $query->skip(($page - 1) * $perPage)
+                        ->take($perPage)
+                        ->get();
+
+        $results = $parents->map(function ($parent) {
+            // Format IC number for display
+            $icFormatted = $parent->ic_number;
+            if (strlen($parent->ic_number) === 12) {
+                $icFormatted = substr($parent->ic_number, 0, 6) . '-' .
+                               substr($parent->ic_number, 6, 2) . '-' .
+                               substr($parent->ic_number, 8, 4);
+            }
+
+            return [
+                'id' => $parent->id,
+                'text' => $parent->user->name . ' (' . $icFormatted . ')',
+                'name' => $parent->user->name,
+                'ic_number' => $icFormatted,
+                'email' => $parent->user->email,
+                'phone' => $parent->user->phone,
+            ];
+        });
+
+        return response()->json([
+            'results' => $results,
+            'pagination' => [
+                'more' => ($page * $perPage) < $total
+            ]
+        ]);
+    }
+
+    /**
      * Show the form for creating a new student.
      */
     public function create()
     {
+        // For backward compatibility, still load parents but will be replaced by AJAX
         $parents = Parents::with('user')->whereHas('user', function ($q) {
             $q->where('status', 'active');
-        })->get();
+        })->take(10)->get(); // Load only first 10 for initial display
 
         // Get all countries for phone dropdown
         $countries = CountryCodeHelper::getAllCountries();
@@ -243,11 +301,12 @@ class StudentController extends Controller
      */
     public function edit(Student $student)
     {
-        $student->load(['user', 'parent']);
+        $student->load(['user', 'parent.user']);
 
+        // For backward compatibility, still load parents but will be replaced by AJAX
         $parents = Parents::with('user')->whereHas('user', function ($q) {
             $q->where('status', 'active');
-        })->get();
+        })->take(10)->get();
 
         // Get all countries for phone dropdown
         $countries = CountryCodeHelper::getAllCountries();

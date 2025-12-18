@@ -75,9 +75,6 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Password <span class="text-danger">*</span></label>
                             <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" required>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> Minimum 8 characters required
-                            </small>
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -177,8 +174,8 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Parent <span class="text-danger">*</span></label>
-                        <select name="parent_id" class="form-select @error('parent_id') is-invalid @enderror" required>
-                            <option value="">Select Parent</option>
+                        <select name="parent_id" id="parent_id" class="form-select @error('parent_id') is-invalid @enderror" required>
+                            <option value="">Search for a parent...</option>
                             @foreach($parents as $parent)
                                 <option value="{{ $parent->id }}" {{ old('parent_id') == $parent->id ? 'selected' : '' }}>
                                     {{ $parent->user->name }} ({{ $parent->ic_number }})
@@ -189,6 +186,8 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                         <small class="text-muted">
+                            <i class="fas fa-search me-1"></i> Type to search by name, email, phone, or IC number
+                            <br>
                             <a href="{{ route('admin.parents.create') }}" target="_blank">Create new parent</a>
                         </small>
                     </div>
@@ -260,6 +259,64 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Select2 for Parent dropdown with AJAX
+    $('#parent_id').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for a parent...',
+        allowClear: true,
+        minimumInputLength: 0,
+        ajax: {
+            url: '{{ route("admin.students.search-parents") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+                return {
+                    results: data.results,
+                    pagination: {
+                        more: data.pagination.more
+                    }
+                };
+            },
+            cache: true
+        },
+        templateResult: formatParentSelection,
+        templateSelection: formatParentSelection
+    });
+
+    // Format parent result in dropdown
+    function formatParentResult(parent) {
+        if (parent.loading) {
+            return parent.text;
+        }
+
+        var $container = $(
+            '<div class="select2-result-parent">' +
+                '<div class="select2-result-parent__name">' + parent.name + '</div>' +
+                '<div class="select2-result-parent__meta">' +
+                    '<span class="select2-result-parent__ic">IC: ' + parent.ic_number + '</span>' +
+                    (parent.phone ? ' | <span class="select2-result-parent__phone">' + parent.phone + '</span>' : '') +
+                '</div>' +
+            '</div>'
+        );
+
+        return $container;
+    }
+
+    // Format selected parent
+    function formatParentSelection(parent) {
+        if (parent.id) {
+            return parent.name ? parent.name + ' (' + parent.ic_number + ')' : parent.text;
+        }
+        return parent.text;
+    }
+
     // IC Number formatting and auto-fill
     const icInput = document.getElementById('ic_number');
     const dobInput = document.getElementById('date_of_birth');
@@ -339,4 +396,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<style>
+/* Custom Select2 styling for parent results */
+.select2-result-parent {
+    padding: 5px 0;
+}
+
+.select2-result-parent__name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+.select2-result-parent__meta {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.select2-result-parent__ic {
+    font-family: monospace;
+}
+
+.select2-result-parent__phone {
+    color: #667eea;
+}
+</style>
 @endpush

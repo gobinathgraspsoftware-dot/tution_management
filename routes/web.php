@@ -288,6 +288,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('/parents-export', [ParentController::class, 'export'])->name('parents.export');
 
         // Student Management
+        Route::get('students/search-parents', [StudentController::class, 'searchParents'])->name('students.search-parents');
         Route::resource('students', StudentController::class);
         Route::patch('/students/{student}/toggle-status', [StudentController::class, 'toggleStatus'])->name('students.toggle-status');
         Route::patch('/students/{student}/approve', [StudentController::class, 'approve'])->name('students.approve');

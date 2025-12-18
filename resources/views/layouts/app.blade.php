@@ -14,6 +14,10 @@
     {{-- Chart.js for Financial Dashboard --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
     <style>
         :root {
             --sidebar-width: 260px;
@@ -291,6 +295,46 @@
         .btn-primary:hover {
             opacity: 0.9;
         }
+        /* Badge Styles */
+        .badge {
+            padding: 0.35em 0.65em;
+            font-weight: 500;
+        }
+
+        /* Custom Select2 Styling */
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: 38px;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 1.5;
+            padding-left: 0;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        /* Loading spinner for Select2 */
+        .select2-results__option--loading {
+            padding: 8px;
+            text-align: center;
+        }
     </style>
 
     @stack('styles')
@@ -406,6 +450,9 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         $(document).ready(function() {
