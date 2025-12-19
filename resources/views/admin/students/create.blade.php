@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         theme: 'bootstrap-5',
         placeholder: 'Search for a parent...',
         allowClear: true,
-        minimumInputLength: 0,
+        minimumInputLength: 3,
         ajax: {
             url: '{{ route("admin.students.search-parents") }}',
             dataType: 'json',

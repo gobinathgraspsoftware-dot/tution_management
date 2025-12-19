@@ -148,14 +148,6 @@
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @endcan
-                                    @if($student->approval_status == 'pending')
-                                        @can('approve-students')
-                                        <button type="button" class="btn btn-outline-success" title="Approve"
-                                                onclick="approveStudent({{ $student->id }})">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        @endcan
-                                    @endif
                                     @can('delete-students')
                                     <button type="button" class="btn btn-outline-danger" title="Delete"
                                             onclick="confirmDelete({{ $student->id }}, '{{ $student->user->name }}')">
@@ -168,12 +160,6 @@
                                 <form id="delete-form-{{ $student->id }}" action="{{ route('admin.students.destroy', $student) }}" method="POST" class="d-none">
                                     @csrf
                                     @method('DELETE')
-                                </form>
-                                @endcan
-
-                                @can('approve-students')
-                                <form id="approve-form-{{ $student->id }}" action="{{ route('admin.students.approve', $student) }}" method="POST" class="d-none">
-                                    @csrf
                                 </form>
                                 @endcan
                             </td>
@@ -210,13 +196,3 @@
     'route' => 'admin.students.destroy'
 ])
 @endsection
-
-@push('scripts')
-<script>
-function approveStudent(id) {
-    if (confirm('Are you sure you want to approve this student?')) {
-        document.getElementById('approve-form-' + id).submit();
-    }
-}
-</script>
-@endpush
