@@ -403,7 +403,7 @@ class TeacherController extends Controller
                     $t->teacher_id,
                     $t->user->name,
                     $t->user->email,
-                    $t->user->phone,
+                    '="' . $t->user->phone . '"',
                     $t->formatted_ic_number,
                     implode(', ', $t->specialization_names),
                     $t->employment_type,

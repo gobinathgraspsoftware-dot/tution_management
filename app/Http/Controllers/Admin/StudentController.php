@@ -492,7 +492,7 @@ class StudentController extends Controller
                     $s->student_id,
                     $s->user->name,
                     $s->user->email,
-                    $s->user->phone,
+                    '="' . $s->user->phone . '"',
                     $this->formatIcNumber($s->ic_number),
                     $s->gender,
                     $s->school_name,
