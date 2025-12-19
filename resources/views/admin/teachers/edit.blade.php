@@ -18,7 +18,7 @@
 <form action="{{ route('admin.teachers.update', $teacher) }}" method="POST">
     @csrf
     @method('PUT')
-    
+
     <div class="row">
         <!-- Account Information -->
         <div class="col-md-6">
@@ -34,8 +34,13 @@
 
                     <div class="mb-3">
                         <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" 
-                               value="{{ old('name', $teacher->user->name) }}" required>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               class="form-control @error('name') is-invalid @enderror"
+                               value="{{ old('name', strtoupper($teacher->user->name)) }}"
+                               style="text-transform: uppercase;"
+                               required>
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -43,26 +48,55 @@
 
                     <div class="mb-3">
                         <label class="form-label">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" 
-                               value="{{ old('email', $teacher->user->email) }}" required>
+                        <input type="email"
+                               name="email"
+                               class="form-control @error('email') is-invalid @enderror"
+                               value="{{ old('email', $teacher->user->email) }}"
+                               required>
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
+                    @php
+                        $phoneData = \App\Helpers\CountryCodeHelper::extractCountryCode($teacher->user->phone);
+                    @endphp
+
                     <div class="mb-3">
                         <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
-                               value="{{ old('phone', $teacher->user->phone) }}" required>
+                        <div class="input-group">
+                            <select name="country_code" class="form-select" style="max-width: 120px;">
+                                @foreach(config('country_codes.countries', []) as $country)
+                                    <option value="{{ $country['code'] }}"
+                                            {{ old('country_code', $phoneData['country_code']) == $country['code'] ? 'selected' : '' }}>
+                                        {{ $country['flag'] }} {{ $country['code'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <input type="tel"
+                                   name="phone"
+                                   class="form-control @error('phone') is-invalid @enderror"
+                                   value="{{ old('phone', $phoneData['number']) }}"
+                                   placeholder="e.g., 123456789"
+                                   required>
+                        </div>
                         @error('phone')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Current Password (Reference)</label>
+                        <input type="text" class="form-control" value="{{ $teacher->user->password_view ?? '********' }}" disabled>
+                        <small class="text-muted">For reference only. Use fields below to change password.</small>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">New Password</label>
-                            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror">
+                            <input type="password"
+                                   name="password"
+                                   class="form-control @error('password') is-invalid @enderror">
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -70,7 +104,9 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Confirm Password</label>
-                            <input type="password" name="password_confirmation" class="form-control">
+                            <input type="password"
+                                   name="password_confirmation"
+                                   class="form-control">
                         </div>
                     </div>
 
@@ -98,8 +134,15 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">IC Number <span class="text-danger">*</span></label>
-                        <input type="text" name="ic_number" class="form-control @error('ic_number') is-invalid @enderror" 
-                               value="{{ old('ic_number', $teacher->ic_number) }}" required>
+                        <input type="text"
+                               id="ic_number"
+                               name="ic_number"
+                               class="form-control @error('ic_number') is-invalid @enderror"
+                               value="{{ old('ic_number', $teacher->formatted_ic_number) }}"
+                               placeholder="XXXXXX-XX-XXXX"
+                               maxlength="14"
+                               required>
+                        <small class="text-muted">Format: 001005-10-1519</small>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -107,8 +150,11 @@
 
                     <div class="mb-3">
                         <label class="form-label">Qualification</label>
-                        <input type="text" name="qualification" class="form-control @error('qualification') is-invalid @enderror" 
-                               value="{{ old('qualification', $teacher->qualification) }}">
+                        <input type="text"
+                               name="qualification"
+                               class="form-control @error('qualification') is-invalid @enderror"
+                               value="{{ old('qualification', $teacher->qualification) }}"
+                               placeholder="e.g., B.Ed Mathematics, USM">
                         @error('qualification')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -117,16 +163,32 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Specialization <span class="text-danger">*</span></label>
-                            <input type="text" name="specialization" class="form-control @error('specialization') is-invalid @enderror" 
-                                   value="{{ old('specialization', $teacher->specialization) }}" required>
+                            <select class="form-select @error('specialization') is-invalid @enderror"
+                                    id="specialization"
+                                    name="specialization[]"
+                                    multiple="multiple"
+                                    required>
+                                @foreach($subjects as $subject)
+                                    <option value="{{ $subject->id }}"
+                                            {{ in_array($subject->id, old('specialization', $teacher->specialization ?? [])) ? 'selected' : '' }}>
+                                        {{ $subject->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Select subjects</small>
                             @error('specialization')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Experience (Years) <span class="text-danger">*</span></label>
-                            <input type="number" name="experience_years" min="0" max="50" class="form-control @error('experience_years') is-invalid @enderror" 
-                                   value="{{ old('experience_years', $teacher->experience_years) }}" required>
+                            <input type="number"
+                                   name="experience_years"
+                                   min="0"
+                                   max="50"
+                                   class="form-control @error('experience_years') is-invalid @enderror"
+                                   value="{{ old('experience_years', $teacher->experience_years) }}"
+                                   required>
                             @error('experience_years')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -135,7 +197,8 @@
 
                     <div class="mb-3">
                         <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control @error('address') is-invalid @enderror" 
+                        <textarea name="address"
+                                  class="form-control @error('address') is-invalid @enderror"
                                   rows="2">{{ old('address', $teacher->address) }}</textarea>
                         @error('address')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -144,7 +207,8 @@
 
                     <div class="mb-3">
                         <label class="form-label">Bio</label>
-                        <textarea name="bio" class="form-control @error('bio') is-invalid @enderror" 
+                        <textarea name="bio"
+                                  class="form-control @error('bio') is-invalid @enderror"
                                   rows="2">{{ old('bio', $teacher->bio) }}</textarea>
                         @error('bio')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -154,18 +218,21 @@
             </div>
         </div>
 
-        <!-- Employment Information -->
+        <!-- Employment & Payment Details -->
         <div class="col-md-12">
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="fas fa-briefcase me-2"></i> Employment Information
+                    <i class="fas fa-briefcase me-2"></i> Employment & Payment Details
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Join Date <span class="text-danger">*</span></label>
-                            <input type="date" name="join_date" class="form-control @error('join_date') is-invalid @enderror" 
-                                   value="{{ old('join_date', $teacher->join_date?->format('Y-m-d')) }}" required>
+                            <input type="date"
+                                   name="join_date"
+                                   class="form-control @error('join_date') is-invalid @enderror"
+                                   value="{{ old('join_date', $teacher->join_date?->format('Y-m-d')) }}"
+                                   required>
                             @error('join_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -194,24 +261,39 @@
                         </div>
                         <div class="col-md-3 mb-3" id="hourlyRateField">
                             <label class="form-label">Hourly Rate (RM)</label>
-                            <input type="number" name="hourly_rate" step="0.01" min="0" class="form-control @error('hourly_rate') is-invalid @enderror" 
-                                   value="{{ old('hourly_rate', $teacher->hourly_rate) }}">
+                            <input type="number"
+                                   name="hourly_rate"
+                                   step="0.01"
+                                   min="0"
+                                   class="form-control @error('hourly_rate') is-invalid @enderror"
+                                   value="{{ old('hourly_rate', $teacher->hourly_rate) }}"
+                                   placeholder="e.g., 50.00">
                             @error('hourly_rate')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3 d-none" id="monthlySalaryField">
                             <label class="form-label">Monthly Salary (RM)</label>
-                            <input type="number" name="monthly_salary" step="0.01" min="0" class="form-control @error('monthly_salary') is-invalid @enderror" 
-                                   value="{{ old('monthly_salary', $teacher->monthly_salary) }}">
+                            <input type="number"
+                                   name="monthly_salary"
+                                   step="0.01"
+                                   min="0"
+                                   class="form-control @error('monthly_salary') is-invalid @enderror"
+                                   value="{{ old('monthly_salary', $teacher->monthly_salary) }}"
+                                   placeholder="e.g., 3000.00">
                             @error('monthly_salary')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3 d-none" id="perClassRateField">
                             <label class="form-label">Per Class Rate (RM)</label>
-                            <input type="number" name="per_class_rate" step="0.01" min="0" class="form-control @error('per_class_rate') is-invalid @enderror" 
-                                   value="{{ old('per_class_rate', $teacher->per_class_rate) }}">
+                            <input type="number"
+                                   name="per_class_rate"
+                                   step="0.01"
+                                   min="0"
+                                   class="form-control @error('per_class_rate') is-invalid @enderror"
+                                   value="{{ old('per_class_rate', $teacher->per_class_rate) }}"
+                                   placeholder="e.g., 150.00">
                             @error('per_class_rate')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -231,23 +313,31 @@
                     <div class="row">
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Bank Name</label>
-                            <input type="text" name="bank_name" class="form-control @error('bank_name') is-invalid @enderror" 
-                                   value="{{ old('bank_name', $teacher->bank_name) }}">
+                            <input type="text"
+                                   name="bank_name"
+                                   class="form-control @error('bank_name') is-invalid @enderror"
+                                   value="{{ old('bank_name', $teacher->bank_name) }}"
+                                   placeholder="e.g., Maybank">
                             @error('bank_name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Bank Account</label>
-                            <input type="text" name="bank_account" class="form-control @error('bank_account') is-invalid @enderror" 
-                                   value="{{ old('bank_account', $teacher->bank_account) }}">
+                            <input type="text"
+                                   name="bank_account"
+                                   class="form-control @error('bank_account') is-invalid @enderror"
+                                   value="{{ old('bank_account', $teacher->bank_account) }}"
+                                   placeholder="e.g., 1234567890">
                             @error('bank_account')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">EPF Number</label>
-                            <input type="text" name="epf_number" class="form-control @error('epf_number') is-invalid @enderror" 
+                            <input type="text"
+                                   name="epf_number"
+                                   class="form-control @error('epf_number') is-invalid @enderror"
                                    value="{{ old('epf_number', $teacher->epf_number) }}">
                             @error('epf_number')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -255,7 +345,9 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">SOCSO Number</label>
-                            <input type="text" name="socso_number" class="form-control @error('socso_number') is-invalid @enderror" 
+                            <input type="text"
+                                   name="socso_number"
+                                   class="form-control @error('socso_number') is-invalid @enderror"
                                    value="{{ old('socso_number', $teacher->socso_number) }}">
                             @error('socso_number')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -281,13 +373,51 @@
 
 @push('scripts')
 <script>
+$(document).ready(function() {
+    // Initialize Select2 for specialization
+    $('#specialization').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select subjects',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Auto-format IC number while typing
+    $('#ic_number').on('input', function() {
+        let value = $(this).val().replace(/[^0-9]/g, ''); // Remove non-numeric
+
+        if (value.length > 12) {
+            value = value.substr(0, 12);
+        }
+
+        // Format: XXXXXX-XX-XXXX
+        let formatted = '';
+        if (value.length > 0) {
+            formatted = value.substr(0, 6);
+            if (value.length >= 7) {
+                formatted += '-' + value.substr(6, 2);
+            }
+            if (value.length >= 9) {
+                formatted += '-' + value.substr(8, 4);
+            }
+        }
+
+        $(this).val(formatted);
+    });
+
+    // Auto-convert name to uppercase
+    $('#name').on('input', function() {
+        $(this).val($(this).val().toUpperCase());
+    });
+});
+
 function togglePayFields() {
     const payType = document.getElementById('payType').value;
-    
+
     document.getElementById('hourlyRateField').classList.add('d-none');
     document.getElementById('monthlySalaryField').classList.add('d-none');
     document.getElementById('perClassRateField').classList.add('d-none');
-    
+
     if (payType === 'hourly') {
         document.getElementById('hourlyRateField').classList.remove('d-none');
     } else if (payType === 'monthly') {
@@ -297,6 +427,7 @@ function togglePayFields() {
     }
 }
 
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     togglePayFields();
 });

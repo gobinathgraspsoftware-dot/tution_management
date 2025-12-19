@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Subject;
 use App\Models\ActivityLog;
+use App\Helpers\CountryCodeHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -29,8 +30,7 @@ class TeacherController extends Controller
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             })->orWhere('teacher_id', 'like', "%{$search}%")
-              ->orWhere('ic_number', 'like', "%{$search}%")
-              ->orWhere('specialization', 'like', "%{$search}%");
+              ->orWhere('ic_number', 'like', "%{$search}%");
         }
 
         // Filter by status
@@ -70,13 +70,31 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20',
+            'country_code' => 'nullable|string|max:5',
+            'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|confirmed',
-            'ic_number' => 'required|string|max:20|unique:teachers,ic_number',
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('teachers', 'ic_number')->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })
+            ],
             'address' => 'nullable|string|max:500',
             'qualification' => 'nullable|string|max:500',
             'experience_years' => 'required|integer|min:0|max:50',
-            'specialization' => 'required|string|max:255',
+            'specialization' => 'nullable|array',
+            'specialization.*' => 'exists:subjects,id',
             'bio' => 'nullable|string|max:1000',
             'join_date' => 'required|date',
             'employment_type' => 'required|in:full_time,part_time,contract',
@@ -93,12 +111,26 @@ class TeacherController extends Controller
 
         DB::beginTransaction();
         try {
+            // Convert name to UPPERCASE
+            $name = strtoupper($validated['name']);
+
+            // Clean IC number (remove hyphens)
+            $cleanedIcNumber = preg_replace('/[^0-9]/', '', $validated['ic_number']);
+
+            // Format phone number with country code
+            $phoneNumber = null;
+            if (!empty($validated['phone'])) {
+                $countryCode = $validated['country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $phoneNumber = CountryCodeHelper::formatPhoneNumber($countryCode, $validated['phone']);
+            }
+
             // Create User account
             $user = User::create([
-                'name' => $validated['name'],
+                'name' => $name,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'password' => Hash::make($validated['password']),
+                'password_view' => $validated['password'], // Store plain password for viewing
                 'status' => $validated['status'] === 'active' ? 'active' : 'inactive',
                 'email_verified_at' => now(),
             ]);
@@ -113,11 +145,11 @@ class TeacherController extends Controller
             Teacher::create([
                 'user_id' => $user->id,
                 'teacher_id' => $teacherId,
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $cleanedIcNumber,
                 'address' => $validated['address'],
                 'qualification' => $validated['qualification'],
                 'experience_years' => $validated['experience_years'],
-                'specialization' => $validated['specialization'],
+                'specialization' => $validated['specialization'] ?? [], // Store as array
                 'bio' => $validated['bio'],
                 'join_date' => $validated['join_date'],
                 'employment_type' => $validated['employment_type'],
@@ -138,7 +170,7 @@ class TeacherController extends Controller
                 'action' => 'create',
                 'model_type' => 'Teacher',
                 'model_id' => $user->teacher->id,
-                'description' => 'Created teacher: ' . $validated['name'],
+                'description' => 'Created teacher: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -191,13 +223,31 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($teacher->user_id)],
-            'phone' => 'required|string|max:20',
+            'country_code' => 'nullable|string|max:5',
+            'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
-            'ic_number' => ['required', 'string', 'max:20', Rule::unique('teachers', 'ic_number')->ignore($teacher->id)],
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('teachers', 'ic_number')->ignore($teacher->id)->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })
+            ],
             'address' => 'nullable|string|max:500',
             'qualification' => 'nullable|string|max:500',
             'experience_years' => 'required|integer|min:0|max:50',
-            'specialization' => 'required|string|max:255',
+            'specialization' => 'nullable|array',
+            'specialization.*' => 'exists:subjects,id',
             'bio' => 'nullable|string|max:1000',
             'join_date' => 'required|date',
             'employment_type' => 'required|in:full_time,part_time,contract',
@@ -214,27 +264,42 @@ class TeacherController extends Controller
 
         DB::beginTransaction();
         try {
+            // Convert name to UPPERCASE
+            $name = strtoupper($validated['name']);
+
+            // Clean IC number (remove hyphens)
+            $cleanedIcNumber = preg_replace('/[^0-9]/', '', $validated['ic_number']);
+
+            // Format phone number with country code
+            $phoneNumber = null;
+            if (!empty($validated['phone'])) {
+                $countryCode = $validated['country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $phoneNumber = CountryCodeHelper::formatPhoneNumber($countryCode, $validated['phone']);
+            }
+
             // Update User account
             $userData = [
-                'name' => $validated['name'],
+                'name' => $name,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'status' => $validated['status'] === 'active' ? 'active' : 'inactive',
             ];
 
+            // Only update password if provided
             if (!empty($validated['password'])) {
                 $userData['password'] = Hash::make($validated['password']);
+                $userData['password_view'] = $validated['password'];
             }
 
             $teacher->user->update($userData);
 
             // Update Teacher profile
             $teacher->update([
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $cleanedIcNumber,
                 'address' => $validated['address'],
                 'qualification' => $validated['qualification'],
                 'experience_years' => $validated['experience_years'],
-                'specialization' => $validated['specialization'],
+                'specialization' => $validated['specialization'] ?? [], // Store as array
                 'bio' => $validated['bio'],
                 'join_date' => $validated['join_date'],
                 'employment_type' => $validated['employment_type'],
@@ -255,7 +320,7 @@ class TeacherController extends Controller
                 'action' => 'update',
                 'model_type' => 'Teacher',
                 'model_id' => $teacher->id,
-                'description' => 'Updated teacher: ' . $validated['name'],
+                'description' => 'Updated teacher: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -339,8 +404,8 @@ class TeacherController extends Controller
                     $t->user->name,
                     $t->user->email,
                     $t->user->phone,
-                    $t->ic_number,
-                    $t->specialization,
+                    $t->formatted_ic_number,
+                    implode(', ', $t->specialization_names),
                     $t->employment_type,
                     $t->pay_type,
                     $t->join_date?->format('Y-m-d'),

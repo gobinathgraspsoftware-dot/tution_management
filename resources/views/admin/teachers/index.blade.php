@@ -34,7 +34,7 @@
         <form action="{{ route('admin.teachers.index') }}" method="GET" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Name, email, specialization..." value="{{ request('search') }}">
+                <input type="text" name="search" class="form-control" placeholder="Name, email, IC..." value="{{ request('search') }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Status</label>
@@ -85,6 +85,7 @@
                         <th>Teacher ID</th>
                         <th>Name</th>
                         <th>Email</th>
+                        <th>IC Number</th>
                         <th>Specialization</th>
                         <th>Employment</th>
                         <th>Pay Rate</th>
@@ -108,7 +109,19 @@
                                 </div>
                             </td>
                             <td>{{ $teacher->user->email }}</td>
-                            <td>{{ $teacher->specialization ?? '-' }}</td>
+                            <td><span class="badge bg-light text-dark">{{ $teacher->formatted_ic_number ?? 'N/A' }}</span></td>
+                            <td>
+                                @if(!empty($teacher->specialization_names))
+                                    @foreach(array_slice($teacher->specialization_names, 0, 2) as $subject)
+                                        <span class="badge bg-primary me-1 mb-1">{{ $subject }}</span>
+                                    @endforeach
+                                    @if(count($teacher->specialization_names) > 2)
+                                        <span class="badge bg-secondary mb-1">+{{ count($teacher->specialization_names) - 2 }}</span>
+                                    @endif
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>
                                 @php
                                     $empBadgeClass = [
@@ -162,7 +175,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No teachers found.</p>
                             </td>

@@ -33,7 +33,16 @@
                     {{ substr($teacher->user->name, 0, 1) }}
                 </div>
                 <h4>{{ $teacher->user->name }}</h4>
-                <p class="text-muted mb-2">{{ $teacher->specialization ?? 'Teacher' }}</p>
+                <p class="text-muted mb-2">
+                    @if(!empty($teacher->specialization_names))
+                        {{ implode(', ', array_slice($teacher->specialization_names, 0, 2)) }}
+                        @if(count($teacher->specialization_names) > 2)
+                            <span class="text-muted small">+{{ count($teacher->specialization_names) - 2 }} more</span>
+                        @endif
+                    @else
+                        Teacher
+                    @endif
+                </p>
                 <span class="badge bg-info">{{ $teacher->teacher_id }}</span>
 
                 <hr>
@@ -63,7 +72,11 @@
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Phone</label>
                     <p class="mb-0">
-                        <a href="tel:{{ $teacher->user->phone }}">{{ $teacher->user->phone ?? 'N/A' }}</a>
+                        @if($teacher->user->phone)
+                            <a href="tel:{{ $teacher->user->phone }}">{{ $teacher->user->phone }}</a>
+                        @else
+                            N/A
+                        @endif
                     </p>
                 </div>
                 <div class="mb-3">
@@ -107,7 +120,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">IC Number</label>
-                        <p class="mb-0"><strong>{{ $teacher->ic_number ?? 'N/A' }}</strong></p>
+                        <p class="mb-0"><strong>{{ $teacher->formatted_ic_number ?? 'N/A' }}</strong></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Join Date</label>
@@ -121,6 +134,18 @@
                         <label class="form-label text-muted small mb-1">Experience</label>
                         <p class="mb-0">{{ $teacher->experience_years }} years</p>
                     </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label text-muted small mb-1">Specialization</label>
+                        <div>
+                            @if(!empty($teacher->specialization_names))
+                                @foreach($teacher->specialization_names as $subject)
+                                    <span class="badge bg-primary me-1 mb-1">{{ $subject }}</span>
+                                @endforeach
+                            @else
+                                <span class="text-muted">N/A</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
                 @if($teacher->bio)
                 <div class="mt-3">
@@ -128,6 +153,28 @@
                     <p class="mb-0">{{ $teacher->bio }}</p>
                 </div>
                 @endif
+            </div>
+        </div>
+
+        <!-- Account Security -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-lock me-2"></i> Account Security
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small mb-1">Current Password</label>
+                        <p class="mb-0">
+                            <code>{{ $teacher->user->password_view ?? '********' }}</code>
+                        </p>
+                        <small class="text-muted">For reference only</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small mb-1">Account Created</label>
+                        <p class="mb-0">{{ $teacher->user->created_at->format('d M Y, h:i A') }}</p>
+                    </div>
+                </div>
             </div>
         </div>
 
