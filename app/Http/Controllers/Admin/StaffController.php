@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Staff;
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Helpers\CountryCodeHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -62,7 +63,11 @@ class StaffController extends Controller
      */
     public function create()
     {
-        return view('admin.staff.create');
+        // Get all countries for dropdown
+        $countries = CountryCodeHelper::getAllCountries();
+        $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
+
+        return view('admin.staff.create', compact('countries', 'defaultCountryCode'));
     }
 
     /**
@@ -73,15 +78,33 @@ class StaffController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
+            'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
-            'ic_number' => 'required|string|max:20|unique:staff,ic_number',
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]+$/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('staff', 'ic_number')->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })
+            ],
             'address' => 'nullable|string|max:500',
             'position' => 'required|string|max:100',
             'department' => 'required|string|max:100',
             'join_date' => 'required|date',
             'salary' => 'nullable|numeric|min:0',
             'emergency_contact' => 'nullable|string|max:255',
+            'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'status' => 'required|in:active,inactive',
@@ -89,12 +112,35 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
+            // Convert name to UPPERCASE
+            $name = strtoupper($validated['name']);
+
+            // Clean IC number (remove hyphens, store only 12 digits)
+            $cleanedIcNumber = preg_replace('/[^0-9]/', '', $validated['ic_number']);
+
+            // Format phone number with country code
+            $phoneNumber = CountryCodeHelper::formatPhoneNumber(
+                $validated['country_code'],
+                $validated['phone']
+            );
+
+            // Emergency phone handling
+            $emergencyPhone = null;
+            if (!empty($validated['emergency_phone'])) {
+                $emergencyCountryCode = $validated['emergency_country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $emergencyPhone = CountryCodeHelper::formatPhoneNumber(
+                    $emergencyCountryCode,
+                    $validated['emergency_phone']
+                );
+            }
+
             // Create User account
             $user = User::create([
-                'name' => $validated['name'],
+                'name' => $name,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'password' => Hash::make($validated['password']),
+                'password_view' => $validated['password'], // Store plain password for viewing
                 'status' => $validated['status'],
                 'email_verified_at' => now(),
             ]);
@@ -109,14 +155,14 @@ class StaffController extends Controller
             Staff::create([
                 'user_id' => $user->id,
                 'staff_id' => $staffId,
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $cleanedIcNumber,
                 'address' => $validated['address'],
                 'position' => $validated['position'],
                 'department' => $validated['department'],
                 'join_date' => $validated['join_date'],
                 'salary' => $validated['salary'],
                 'emergency_contact' => $validated['emergency_contact'],
-                'emergency_phone' => $validated['emergency_phone'],
+                'emergency_phone' => $emergencyPhone,
                 'notes' => $validated['notes'],
             ]);
 
@@ -126,7 +172,7 @@ class StaffController extends Controller
                 'action' => 'create',
                 'model_type' => 'Staff',
                 'model_id' => $user->staff->id,
-                'description' => 'Created staff member: ' . $validated['name'],
+                'description' => 'Created staff member: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -157,7 +203,34 @@ class StaffController extends Controller
     public function edit(Staff $staff)
     {
         $staff->load('user');
-        return view('admin.staff.edit', compact('staff'));
+
+        // Get all countries for dropdown
+        $countries = CountryCodeHelper::getAllCountries();
+        $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
+
+        // Extract country code from phone number
+        $phoneData = CountryCodeHelper::extractCountryCode($staff->user->phone);
+        $selectedCountryCode = $phoneData['country_code'];
+        $phoneNumber = $phoneData['number'];
+
+        // Extract country code from emergency phone
+        $emergencyCountryCode = $defaultCountryCode;
+        $emergencyPhoneNumber = '';
+        if ($staff->emergency_phone) {
+            $emergencyPhoneData = CountryCodeHelper::extractCountryCode($staff->emergency_phone);
+            $emergencyCountryCode = $emergencyPhoneData['country_code'];
+            $emergencyPhoneNumber = $emergencyPhoneData['number'];
+        }
+
+        return view('admin.staff.edit', compact(
+            'staff',
+            'countries',
+            'defaultCountryCode',
+            'selectedCountryCode',
+            'phoneNumber',
+            'emergencyCountryCode',
+            'emergencyPhoneNumber'
+        ));
     }
 
     /**
@@ -168,15 +241,33 @@ class StaffController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($staff->user_id)],
+            'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
-            'ic_number' => ['required', 'string', 'max:20', Rule::unique('staff', 'ic_number')->ignore($staff->id)],
+            'ic_number' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $value);
+                    if (strlen($cleaned) !== 12) {
+                        $fail('The IC number must be exactly 12 digits.');
+                    }
+                    if (!preg_match('/^[0-9]/', $cleaned)) {
+                        $fail('The IC number must contain only numeric digits.');
+                    }
+                },
+                Rule::unique('staff', 'ic_number')->ignore($staff->id)->where(function ($query) use ($request) {
+                    $cleaned = preg_replace('/[^0-9]/', '', $request->ic_number);
+                    return $query->where('ic_number', $cleaned);
+                })
+            ],
             'address' => 'nullable|string|max:500',
             'position' => 'required|string|max:100',
             'department' => 'required|string|max:100',
             'join_date' => 'required|date',
             'salary' => 'nullable|numeric|min:0',
             'emergency_contact' => 'nullable|string|max:255',
+            'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'status' => 'required|in:active,inactive',
@@ -184,30 +275,54 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
+            // Convert name to UPPERCASE
+            $name = strtoupper($validated['name']);
+
+            // Clean IC number (remove hyphens, store only 12 digits)
+            $cleanedIcNumber = preg_replace('/[^0-9]/', '', $validated['ic_number']);
+
+            // Format phone number with country code
+            $phoneNumber = CountryCodeHelper::formatPhoneNumber(
+                $validated['country_code'],
+                $validated['phone']
+            );
+
+            // Emergency phone handling
+            $emergencyPhone = null;
+            if (!empty($validated['emergency_phone'])) {
+                $emergencyCountryCode = $validated['emergency_country_code'] ?? CountryCodeHelper::getDefaultCountryCode();
+                $emergencyPhone = CountryCodeHelper::formatPhoneNumber(
+                    $emergencyCountryCode,
+                    $validated['emergency_phone']
+                );
+            }
+
             // Update User account
             $userData = [
-                'name' => $validated['name'],
+                'name' => $name,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
+                'phone' => $phoneNumber,
                 'status' => $validated['status'],
             ];
 
+            // Only update password if provided
             if (!empty($validated['password'])) {
                 $userData['password'] = Hash::make($validated['password']);
+                $userData['password_view'] = $validated['password'];
             }
 
             $staff->user->update($userData);
 
             // Update Staff profile
             $staff->update([
-                'ic_number' => $validated['ic_number'],
+                'ic_number' => $cleanedIcNumber,
                 'address' => $validated['address'],
                 'position' => $validated['position'],
                 'department' => $validated['department'],
                 'join_date' => $validated['join_date'],
                 'salary' => $validated['salary'],
                 'emergency_contact' => $validated['emergency_contact'],
-                'emergency_phone' => $validated['emergency_phone'],
+                'emergency_phone' => $emergencyPhone,
                 'notes' => $validated['notes'],
             ]);
 
@@ -217,7 +332,7 @@ class StaffController extends Controller
                 'action' => 'update',
                 'model_type' => 'Staff',
                 'model_id' => $staff->id,
-                'description' => 'Updated staff member: ' . $validated['name'],
+                'description' => 'Updated staff member: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -296,7 +411,7 @@ class StaffController extends Controller
                     $s->user->name,
                     $s->user->email,
                     $s->user->phone,
-                    $s->ic_number,
+                    $this->formatIcNumber($s->ic_number),
                     $s->position,
                     $s->department,
                     $s->join_date?->format('Y-m-d'),
@@ -308,5 +423,16 @@ class StaffController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Format IC number for display (add hyphens)
+     */
+    private function formatIcNumber($icNumber)
+    {
+        if (strlen($icNumber) === 12) {
+            return substr($icNumber, 0, 6) . '-' . substr($icNumber, 6, 2) . '-' . substr($icNumber, 8);
+        }
+        return $icNumber;
     }
 }

@@ -47,4 +47,18 @@ class Staff extends Model
     {
         return $this->user->name;
     }
+
+    /**
+     * Format IC number for display (add hyphens)
+     * Format: 001005-10-1519
+     */
+    public function getFormattedIcNumberAttribute()
+    {
+        if (strlen($this->ic_number) === 12) {
+            return substr($this->ic_number, 0, 6) . '-' .
+                   substr($this->ic_number, 6, 2) . '-' .
+                   substr($this->ic_number, 8);
+        }
+        return $this->ic_number;
+    }
 }

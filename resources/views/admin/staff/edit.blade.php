@@ -15,7 +15,7 @@
     </nav>
 </div>
 
-<form action="{{ route('admin.staff.update', $staff) }}" method="POST">
+<form action="{{ route('admin.staff.update', $staff) }}" method="POST" id="staffForm">
     @csrf
     @method('PUT')
     
@@ -34,11 +34,12 @@
 
                     <div class="mb-3">
                         <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" 
+                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" 
                                value="{{ old('name', $staff->user->name) }}" required>
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted">Name will be automatically converted to UPPERCASE</small>
                     </div>
 
                     <div class="mb-3">
@@ -52,11 +53,25 @@
 
                     <div class="mb-3">
                         <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
-                               value="{{ old('phone', $staff->user->phone) }}" required>
-                        @error('phone')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <div class="input-group">
+                            <select name="country_code" class="form-select @error('country_code') is-invalid @enderror" 
+                                    style="max-width: 120px;" required>
+                                @foreach($countries as $country)
+                                    <option value="{{ $country['code'] }}" 
+                                            {{ old('country_code', $selectedCountryCode) == $country['code'] ? 'selected' : '' }}>
+                                        {{ $country['code'] }} {{ $country['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
+                                   value="{{ old('phone', $phoneNumber) }}" placeholder="e.g., 0123456789" required>
+                            @error('country_code')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            @error('phone')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
 
                     <div class="row">
@@ -66,7 +81,7 @@
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Leave blank to keep current password</small>
+                            <small class="text-muted">Leave blank to keep current password (Minimum 8 characters)</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Confirm Password</label>
@@ -97,11 +112,16 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">IC Number <span class="text-danger">*</span></label>
-                        <input type="text" name="ic_number" class="form-control @error('ic_number') is-invalid @enderror" 
-                               value="{{ old('ic_number', $staff->ic_number) }}" required>
+                        <input type="text" name="ic_number" id="ic_number" 
+                               class="form-control @error('ic_number') is-invalid @enderror" 
+                               value="{{ old('ic_number', $staff->formatted_ic_number) }}" 
+                               placeholder="e.g., 001005-10-1519" 
+                               maxlength="14"
+                               required>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted">Format: YYMMDD-PB-XXXX (12 digits with hyphens)</small>
                     </div>
 
                     <div class="mb-3">
@@ -113,19 +133,28 @@
                         @enderror
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Emergency Contact</label>
-                            <input type="text" name="emergency_contact" class="form-control @error('emergency_contact') is-invalid @enderror" 
-                                   value="{{ old('emergency_contact', $staff->emergency_contact) }}">
-                            @error('emergency_contact')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Emergency Phone</label>
+                    <div class="mb-3">
+                        <label class="form-label">Emergency Contact Name</label>
+                        <input type="text" name="emergency_contact" class="form-control @error('emergency_contact') is-invalid @enderror" 
+                               value="{{ old('emergency_contact', $staff->emergency_contact) }}">
+                        @error('emergency_contact')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Emergency Contact Phone</label>
+                        <div class="input-group">
+                            <select name="emergency_country_code" class="form-select" style="max-width: 120px;">
+                                @foreach($countries as $country)
+                                    <option value="{{ $country['code'] }}" 
+                                            {{ old('emergency_country_code', $emergencyCountryCode) == $country['code'] ? 'selected' : '' }}>
+                                        {{ $country['code'] }} {{ $country['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
                             <input type="text" name="emergency_phone" class="form-control @error('emergency_phone') is-invalid @enderror" 
-                                   value="{{ old('emergency_phone', $staff->emergency_phone) }}">
+                                   value="{{ old('emergency_phone', $emergencyPhoneNumber) }}" placeholder="e.g., 0123456789">
                             @error('emergency_phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -201,3 +230,47 @@
     </div>
 </form>
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Auto-convert name to UPPERCASE
+    $('#name').on('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+
+    // IC Number auto-formatting (12 digits with hyphens: YYMMDD-PB-XXXX)
+    $('#ic_number').on('input', function() {
+        let value = this.value.replace(/[^0-9]/g, ''); // Remove all non-numeric characters
+        let formatted = '';
+        
+        // Format: YYMMDD-PB-XXXX
+        if (value.length > 0) {
+            formatted = value.substring(0, 6); // First 6 digits (YYMMDD)
+            
+            if (value.length > 6) {
+                formatted += '-' + value.substring(6, 8); // Next 2 digits (PB)
+            }
+            
+            if (value.length > 8) {
+                formatted += '-' + value.substring(8, 12); // Last 4 digits (XXXX)
+            }
+        }
+        
+        this.value = formatted;
+    });
+
+    // Form validation
+    $('#staffForm').on('submit', function(e) {
+        // Validate IC number has exactly 12 digits
+        let icNumber = $('#ic_number').val().replace(/[^0-9]/g, '');
+        if (icNumber.length !== 12) {
+            e.preventDefault();
+            alert('IC Number must be exactly 12 digits');
+            $('#ic_number').focus();
+            return false;
+        }
+    });
+});
+</script>
+@endpush

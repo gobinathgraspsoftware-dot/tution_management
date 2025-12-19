@@ -102,7 +102,7 @@
                                     </div>
                                     <div>
                                         <strong>{{ $member->user->name }}</strong>
-                                        <br><small class="text-muted">{{ $member->ic_number }}</small>
+                                        <br><small class="text-muted">{{ $member->formatted_ic_number }}</small>
                                     </div>
                                 </div>
                             </td>

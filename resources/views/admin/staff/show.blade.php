@@ -94,7 +94,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">IC Number</label>
-                        <p class="mb-0">{{ $staff->ic_number }}</p>
+                        <p class="mb-0">{{ $staff->formatted_ic_number }}</p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Join Date</label>
@@ -141,12 +141,19 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted small mb-1">Last Login</label>
-                        <p class="mb-0">{{ $staff->user->last_login_at?->format('d M Y, h:i A') ?? 'Never' }}</p>
+                        <label class="form-label text-muted small mb-1">Password</label>
+                        <p class="mb-0">
+                            @if($staff->user->password_view)
+                                <span class="badge bg-info">{{ $staff->user->password_view }}</span>
+                            @else
+                                <span class="text-muted">Not available</span>
+                            @endif
+                        </p>
+                        <small class="text-muted">Current password for viewing only</small>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted small mb-1">Account Created</label>
-                        <p class="mb-0">{{ $staff->user->created_at->format('d M Y') }}</p>
+                        <label class="form-label text-muted small mb-1">Last Login</label>
+                        <p class="mb-0">{{ $staff->user->last_login_at?->format('d M Y, h:i A') ?? 'Never' }}</p>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label text-muted small mb-1">Email Verified</label>
@@ -157,6 +164,16 @@
                                 <span class="badge bg-warning">Not Verified</span>
                             @endif
                         </p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-0">
+                        <label class="form-label text-muted small mb-1">Account Created</label>
+                        <p class="mb-0">{{ $staff->user->created_at->format('d M Y, h:i A') }}</p>
+                    </div>
+                    <div class="col-md-6 mb-0">
+                        <label class="form-label text-muted small mb-1">Last Updated</label>
+                        <p class="mb-0">{{ $staff->user->updated_at->format('d M Y, h:i A') }}</p>
                     </div>
                 </div>
             </div>
