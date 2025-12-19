@@ -236,9 +236,6 @@ class StudentController extends Controller
                 'registration_date' => now(),
                 'enrollment_date' => now(),
                 'referral_code' => $referralCode,
-                'approval_status' => 'approved',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
                 'notes' => $validated['notes'],
             ]);
 

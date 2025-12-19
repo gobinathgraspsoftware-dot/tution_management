@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -39,6 +40,53 @@ class Student extends Model
         'enrollment_date' => 'date',
         'approved_at' => 'datetime',
     ];
+
+    protected $appends = ['waiting_time'];
+
+    public function getWaitingStatusAttribute(): array {
+        $createdDate = $this->registration_date? Carbon::parse($this->registration_date) : $this->created_at;
+
+        if (!$createdDate) {
+            return [
+                'value' => '',
+                'badge' => 'bg-secondary',
+            ];
+        }
+
+        $now = Carbon::now();
+        $diffInDays = (int)$createdDate->diffInDays($now);
+
+        // Less than 1 day → show hours
+        if ($diffInDays < 1) {
+            $hours = (int)$createdDate->diffInHours($now);
+            return [
+                'value' => $hours . ' ' . ($hours === 1 ? 'hour' : 'hours'),
+                'badge' => 'bg-success',
+            ];
+        }
+
+        // More than 7 days
+        if ($diffInDays > 7) {
+            return [
+                'value' => $diffInDays . ' days',
+                'badge' => 'bg-danger',
+            ];
+        }
+
+        // More than 3 days
+        if ($diffInDays > 3) {
+            return [
+                'value' => $diffInDays . ' days',
+                'badge' => 'bg-warning',
+            ];
+        }
+
+        // 1–3 days
+        return [
+            'value' => $diffInDays . ' days',
+            'badge' => 'bg-success',
+        ];
+    }
 
     // Relationships
     public function user()
@@ -208,8 +256,8 @@ class Student extends Model
             return $this->ic_number;
         }
 
-        return substr($this->ic_number, 0, 6) . '-' . 
-               substr($this->ic_number, 6, 2) . '-' . 
+        return substr($this->ic_number, 0, 6) . '-' .
+               substr($this->ic_number, 6, 2) . '-' .
                substr($this->ic_number, 8, 4);
     }
 
@@ -242,8 +290,8 @@ class Student extends Model
             return $icNumber;
         }
 
-        return substr($cleaned, 0, 6) . '-' . 
-               substr($cleaned, 6, 2) . '-' . 
+        return substr($cleaned, 0, 6) . '-' .
+               substr($cleaned, 6, 2) . '-' .
                substr($cleaned, 8, 4);
     }
 
@@ -271,7 +319,7 @@ class Student extends Model
     public static function extractDobFromIc($icNumber)
     {
         $cleaned = self::cleanIcNumber($icNumber);
-        
+
         if (strlen($cleaned) !== 12) {
             return null;
         }
@@ -295,13 +343,13 @@ class Student extends Model
     public static function extractGenderFromIc($icNumber)
     {
         $cleaned = self::cleanIcNumber($icNumber);
-        
+
         if (strlen($cleaned) !== 12) {
             return null;
         }
 
         $lastDigit = intval(substr($cleaned, 11, 1));
-        
+
         return ($lastDigit % 2 === 0) ? 'female' : 'male';
     }
 
@@ -314,7 +362,7 @@ class Student extends Model
     public static function isValidIcNumber($icNumber)
     {
         $cleaned = self::cleanIcNumber($icNumber);
-        
+
         // Must be exactly 12 digits
         if (strlen($cleaned) !== 12) {
             return false;

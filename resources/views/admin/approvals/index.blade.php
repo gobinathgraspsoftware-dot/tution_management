@@ -191,16 +191,9 @@
                                 {{ $student->registration_date ? \Carbon\Carbon::parse($student->registration_date)->format('d M Y') : $student->created_at->format('d M Y') }}
                             </td>
                             <td>
-                                @php
-                                    $waitDays = $student->created_at->diffInDays(now());
-                                @endphp
-                                @if($waitDays > 7)
-                                <span class="badge bg-danger">{{ $waitDays }} days</span>
-                                @elseif($waitDays > 3)
-                                <span class="badge bg-warning">{{ $waitDays }} days</span>
-                                @else
-                                <span class="badge bg-success">{{ $waitDays }} days</span>
-                                @endif
+                                <span class="badge {{ $student->waiting_status['badge'] }}">
+                                    {{ $student->waiting_status['value'] }}
+                                </span>
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
