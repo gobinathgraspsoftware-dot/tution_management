@@ -18,6 +18,12 @@
         <i class="fas fa-chevron-down"></i> User Management
     </a>
     <div class="collapse" id="section2">
+        <a href="{{ route('admin.roles.index') }}" class="menu-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+            <i class="fas fa-user-shield"></i> Roles
+        </a>
+        <a href="{{ route('admin.permissions.index') }}" class="menu-item {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}">
+            <i class="fas fa-shield-alt"></i> Permissions
+        </a>
     @can('view-students')
     <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.index') ? 'active' : '' }}">
     <i class="fas fa-users"></i> All Students

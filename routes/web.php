@@ -68,6 +68,8 @@ use App\Http\Controllers\Admin\SeminarController;
 use App\Http\Controllers\Public\SeminarRegistrationController;
 use App\Http\Controllers\Admin\SeminarAccountingController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
+use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Staff\EnrollmentController as StaffEnrollmentController;
 use App\Http\Controllers\Parent\EnrollmentController as ParentEnrollmentController;
 use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
@@ -270,6 +272,14 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
     Route::middleware(['role:super-admin|admin'])->prefix('admin')->name('admin.')->group(function () {
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
+
+        // Roles Management
+        Route::resource('roles', RoleController::class);
+        Route::get('roles/{role}/permissions', [RoleController::class, 'permissions'])->name('roles.permissions');
+        Route::put('roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.updatePermissions');
+
+        // Permissions Management
+        Route::resource('permissions', PermissionController::class);
 
         // Staff Management
         Route::resource('staff', StaffController::class);
