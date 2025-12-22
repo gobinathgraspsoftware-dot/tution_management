@@ -43,6 +43,15 @@
                 @else
                     <span class="badge bg-danger fs-6">Inactive</span>
                 @endif
+                
+                @if($staff->user->roles->isNotEmpty())
+                    <div class="mt-2">
+                        <small class="text-muted d-block mb-1">Role</small>
+                        <span class="badge bg-primary fs-6">
+                            {{ ucwords(str_replace('-', ' ', $staff->user->roles->first()->name)) }}
+                        </span>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -141,6 +150,18 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 mb-3">
+                        <label class="form-label text-muted small mb-1">Assigned Role</label>
+                        <p class="mb-0">
+                            @if($staff->user->roles->isNotEmpty())
+                                <span class="badge bg-primary">
+                                    {{ ucwords(str_replace('-', ' ', $staff->user->roles->first()->name)) }}
+                                </span>
+                            @else
+                                <span class="text-muted">No role assigned</span>
+                            @endif
+                        </p>
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <label class="form-label text-muted small mb-1">Password</label>
                         <p class="mb-0">
                             @if($staff->user->password_view)
@@ -155,6 +176,8 @@
                         <label class="form-label text-muted small mb-1">Last Login</label>
                         <p class="mb-0">{{ $staff->user->last_login_at?->format('d M Y, h:i A') ?? 'Never' }}</p>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label text-muted small mb-1">Email Verified</label>
                         <p class="mb-0">
@@ -165,13 +188,11 @@
                             @endif
                         </p>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-0">
+                    <div class="col-md-4 mb-0">
                         <label class="form-label text-muted small mb-1">Account Created</label>
                         <p class="mb-0">{{ $staff->user->created_at->format('d M Y, h:i A') }}</p>
                     </div>
-                    <div class="col-md-6 mb-0">
+                    <div class="col-md-4 mb-0">
                         <label class="form-label text-muted small mb-1">Last Updated</label>
                         <p class="mb-0">{{ $staff->user->updated_at->format('d M Y, h:i A') }}</p>
                     </div>

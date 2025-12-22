@@ -32,7 +32,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <form action="{{ route('admin.staff.index') }}" method="GET" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Search</label>
                 <input type="text" name="search" class="form-control" placeholder="Name, email, IC..." value="{{ request('search') }}">
             </div>
@@ -62,7 +62,18 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end gap-2">
+            <div class="col-md-2">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-select">
+                    <option value="">All Roles</option>
+                    @foreach($roles as $role)
+                        <option value="{{ $role->name }}" {{ request('role') == $role->name ? 'selected' : '' }}>
+                            {{ ucwords(str_replace('-', ' ', $role->name)) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search me-1"></i> Filter
                 </button>
@@ -87,6 +98,7 @@
                         <th>Phone</th>
                         <th>Position</th>
                         <th>Department</th>
+                        <th>Role</th>
                         <th>Status</th>
                         <th width="150">Actions</th>
                     </tr>
@@ -111,6 +123,15 @@
                             <td>{{ $member->position ?? '-' }}</td>
                             <td>{{ $member->department ?? '-' }}</td>
                             <td>
+                                @if($member->user->roles->isNotEmpty())
+                                    <span class="badge bg-info">
+                                        {{ ucwords(str_replace('-', ' ', $member->user->roles->first()->name)) }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
                                 @if($member->user->status == 'active')
                                     <span class="badge bg-success">Active</span>
                                 @else
@@ -130,7 +151,7 @@
                                     </a>
                                     @endcan
                                     @can('delete-staff')
-                                    <button type="button" class="btn btn-outline-danger" title="Delete" 
+                                    <button type="button" class="btn btn-outline-danger" title="Delete"
                                             onclick="confirmDelete('{{ $member->id }}', '{{ $member->user->name }}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -140,7 +161,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No staff members found.</p>
                             </td>

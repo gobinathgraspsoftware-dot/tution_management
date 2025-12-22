@@ -11,6 +11,7 @@ use App\Helpers\CountryCodeHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
 {
@@ -19,7 +20,7 @@ class StaffController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Staff::with('user');
+        $query = Staff::with(['user.roles']);
 
         // Search
         if ($request->filled('search')) {
@@ -49,13 +50,23 @@ class StaffController extends Controller
             $query->where('position', $request->position);
         }
 
+        // Filter by role
+        if ($request->filled('role')) {
+            $query->whereHas('user.roles', function ($q) use ($request) {
+                $q->where('name', $request->role);
+            });
+        }
+
         $staff = $query->latest()->paginate(15)->withQueryString();
 
         // Get unique departments and positions for filters
         $departments = Staff::distinct()->pluck('department')->filter()->values();
         $positions = Staff::distinct()->pluck('position')->filter()->values();
+        
+        // Get all roles for filter dropdown
+        $roles = Role::orderBy('name')->get();
 
-        return view('admin.staff.index', compact('staff', 'departments', 'positions'));
+        return view('admin.staff.index', compact('staff', 'departments', 'positions', 'roles'));
     }
 
     /**
@@ -66,8 +77,11 @@ class StaffController extends Controller
         // Get all countries for dropdown
         $countries = CountryCodeHelper::getAllCountries();
         $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
+        
+        // Get all roles for dropdown
+        $roles = Role::orderBy('name')->get();
 
-        return view('admin.staff.create', compact('countries', 'defaultCountryCode'));
+        return view('admin.staff.create', compact('countries', 'defaultCountryCode', 'roles'));
     }
 
     /**
@@ -81,6 +95,7 @@ class StaffController extends Controller
             'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|exists:roles,name',
             'ic_number' => [
                 'required',
                 'string',
@@ -145,8 +160,8 @@ class StaffController extends Controller
                 'email_verified_at' => now(),
             ]);
 
-            // Assign staff role
-            $user->assignRole('staff');
+            // Assign selected role to user
+            $user->assignRole($validated['role']);
 
             // Generate staff ID
             $staffId = 'STF-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
@@ -172,7 +187,7 @@ class StaffController extends Controller
                 'action' => 'create',
                 'model_type' => 'Staff',
                 'model_id' => $user->staff->id,
-                'description' => 'Created staff member: ' . $name,
+                'description' => 'Created staff member: ' . $name . ' with role: ' . $validated['role'],
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -193,7 +208,7 @@ class StaffController extends Controller
      */
     public function show(Staff $staff)
     {
-        $staff->load('user');
+        $staff->load(['user.roles']);
         return view('admin.staff.show', compact('staff'));
     }
 
@@ -202,7 +217,7 @@ class StaffController extends Controller
      */
     public function edit(Staff $staff)
     {
-        $staff->load('user');
+        $staff->load(['user.roles']);
 
         // Get all countries for dropdown
         $countries = CountryCodeHelper::getAllCountries();
@@ -221,6 +236,12 @@ class StaffController extends Controller
             $emergencyCountryCode = $emergencyPhoneData['country_code'];
             $emergencyPhoneNumber = $emergencyPhoneData['number'];
         }
+        
+        // Get all roles for dropdown
+        $roles = Role::orderBy('name')->get();
+        
+        // Get current user role
+        $currentRole = $staff->user->roles->first()?->name ?? '';
 
         return view('admin.staff.edit', compact(
             'staff',
@@ -229,7 +250,9 @@ class StaffController extends Controller
             'selectedCountryCode',
             'phoneNumber',
             'emergencyCountryCode',
-            'emergencyPhoneNumber'
+            'emergencyPhoneNumber',
+            'roles',
+            'currentRole'
         ));
     }
 
@@ -244,6 +267,7 @@ class StaffController extends Controller
             'country_code' => 'required|string|max:5',
             'phone' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
+            'role' => 'required|exists:roles,name',
             'ic_number' => [
                 'required',
                 'string',
@@ -313,6 +337,9 @@ class StaffController extends Controller
 
             $staff->user->update($userData);
 
+            // Sync user role (remove all existing roles and assign new one)
+            $staff->user->syncRoles([$validated['role']]);
+
             // Update Staff profile
             $staff->update([
                 'ic_number' => $cleanedIcNumber,
@@ -332,7 +359,7 @@ class StaffController extends Controller
                 'action' => 'update',
                 'model_type' => 'Staff',
                 'model_id' => $staff->id,
-                'description' => 'Updated staff member: ' . $name,
+                'description' => 'Updated staff member: ' . $name . ' with role: ' . $validated['role'],
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -387,7 +414,7 @@ class StaffController extends Controller
      */
     public function export(Request $request)
     {
-        $staff = Staff::with('user')->get();
+        $staff = Staff::with(['user.roles'])->get();
 
         $filename = 'staff_export_' . date('Y-m-d_His') . '.csv';
         $headers = [
@@ -401,7 +428,7 @@ class StaffController extends Controller
             // Header row
             fputcsv($file, [
                 'Staff ID', 'Name', 'Email', 'Phone', 'IC Number',
-                'Position', 'Department', 'Join Date', 'Status'
+                'Position', 'Department', 'Role', 'Join Date', 'Status'
             ]);
 
             // Data rows
@@ -414,6 +441,7 @@ class StaffController extends Controller
                     $this->formatIcNumber($s->ic_number),
                     $s->position,
                     $s->department,
+                    $s->user->roles->pluck('name')->implode(', '),
                     $s->join_date?->format('Y-m-d'),
                     $s->user->status,
                 ]);

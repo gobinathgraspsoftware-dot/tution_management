@@ -146,33 +146,30 @@
             </div>
         </div>
 
-        <!--
-                @php
-                    $whatsappEnabled = $parent->notification_preference['whatsapp'] ?? true;
-                    $emailEnabled = $parent->notification_preference['email'] ?? true;
-                @endphp
+        <!-- @php
+                $whatsappEnabled = $parent->notification_preference['whatsapp'] ?? true;
+                $emailEnabled = $parent->notification_preference['email'] ?? true;
+            @endphp
 
-                <div class="mb-2">
-                    <i class="fab fa-whatsapp text-success me-2"></i>
-                    <span>WhatsApp Notifications: </span>
-                    @if($whatsappEnabled)
-                        <span class="badge bg-success">Enabled</span>
-                    @else
-                        <span class="badge bg-secondary">Disabled</span>
-                    @endif
-                </div>
+            <div class="mb-2">
+                <i class="fab fa-whatsapp text-success me-2"></i>
+                <span>WhatsApp Notifications: </span>
+                @if($whatsappEnabled)
+                    <span class="badge bg-success">Enabled</span>
+                @else
+                    <span class="badge bg-secondary">Disabled</span>
+                @endif
+            </div>
 
-                <div>
-                    <i class="fas fa-envelope text-primary me-2"></i>
-                    <span>Email Notifications: </span>
-                    @if($emailEnabled)
-                        <span class="badge bg-success">Enabled</span>
-                    @else
-                        <span class="badge bg-secondary">Disabled</span>
-                    @endif
-                </div>
-
-        </div>
+            <div>
+                <i class="fas fa-envelope text-primary me-2"></i>
+                <span>Email Notifications: </span>
+                @if($emailEnabled)
+                    <span class="badge bg-success">Enabled</span>
+                @else
+                    <span class="badge bg-secondary">Disabled</span>
+                @endif
+            </div> -->
     </div>
 
     <!-- Main Content -->
