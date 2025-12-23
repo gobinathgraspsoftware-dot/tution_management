@@ -276,9 +276,18 @@ class RoleController extends Controller
         try {
             DB::beginTransaction();
 
-            // Sync permissions
-            $permissions = $validated['permissions'] ?? [];
-            $role->syncPermissions($permissions);
+            // Get permission IDs from request
+            $permissionIds = $validated['permissions'] ?? [];
+            
+            // Convert permission IDs to Permission models
+            // Spatie Permission requires names or models, not raw IDs
+            if (!empty($permissionIds)) {
+                $permissions = Permission::whereIn('id', $permissionIds)->get();
+                $role->syncPermissions($permissions);
+            } else {
+                // If no permissions selected, remove all permissions
+                $role->syncPermissions([]);
+            }
 
             // Log activity
             activity()
@@ -286,7 +295,7 @@ class RoleController extends Controller
                 ->performedOn($role)
                 ->withProperties([
                     'role_name' => $role->name,
-                    'permissions_count' => count($permissions),
+                    'permissions_count' => count($permissionIds),
                 ])
                 ->log('Updated permissions for role: ' . $role->name);
 
@@ -294,7 +303,7 @@ class RoleController extends Controller
 
             return redirect()
                 ->route('admin.roles.permissions', $role->id)
-                ->with('success', 'Role permissions updated successfully.');
+                ->with('success', 'Role permissions updated successfully. ' . count($permissionIds) . ' permission(s) assigned.');
 
         } catch (\Exception $e) {
             DB::rollBack();
