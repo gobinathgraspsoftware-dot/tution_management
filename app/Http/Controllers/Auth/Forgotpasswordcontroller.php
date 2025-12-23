@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\User;
 
-class Forgotpasswordcontroller extends Controller
+class ForgotPasswordController extends Controller
 {
     /**
      * Show forgot password form
