@@ -273,6 +273,22 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
 
+        // View password reset logs
+        Route::get('/password-resets', function () {
+            $resets = \DB::table('password_reset_tokens')
+                ->orderBy('created_at', 'desc')
+                ->paginate(50);
+            return view('admin.password-resets.index', compact('resets'));
+        })->name('password-resets.index');
+
+        // Clear expired OTPs (manual trigger)
+        Route::post('/password-resets/clear-expired', function () {
+            $deleted = \DB::table('password_reset_tokens')
+                ->where('created_at', '<', now()->subMinutes(1))
+                ->delete();
+            return back()->with('success', "{$deleted} expired OTPs cleared.");
+        })->name('password-resets.clear-expired');
+
         // Roles Management
         Route::resource('roles', RoleController::class);
         Route::get('roles/{role}/permissions', [RoleController::class, 'permissions'])->name('roles.permissions');
