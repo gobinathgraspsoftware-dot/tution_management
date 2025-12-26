@@ -134,7 +134,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-users me-2"></i> Student-wise Attendance</h5>
                 @if($reportData['student_stats']->where('percentage', '<', 75)->count() > 0)
-                <form action="{{ route('admin.attendance.reports.send-bulk-alerts') }}" method="POST">
+                <form action="{{ route('admin.attendance.reports.bulk-alerts') }}" method="POST">
                     @csrf
                     <input type="hidden" name="class_id" value="{{ $selectedClass->id }}">
                     @foreach($reportData['student_stats']->where('percentage', '<', 75) as $stat)

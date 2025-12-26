@@ -50,7 +50,52 @@
     {{-- End: User Management --}}
     </div>
 </div>
+<!-- Academic Management -->
+<div class="menu-dropdown">
+    <a href="#section11" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Academic Management
+    </a>
+    <div class="collapse" id="section11">
+    <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
+    <i class="fas fa-book"></i> Subjects
+    </a>
+    <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
+    <i class="fas fa-box"></i> Packages
+    </a>
+    </div>
+</div>
+{{-- End: Academic Management  --}}
 
+{{-- Start: CLASS MANAGEMENT --}}
+@canany(['view-classes', 'create-classes', 'manage-class-schedule'])
+<!-- CLASS MANAGEMENT -->
+<div class="menu-dropdown">
+    <a href="#section12" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> CLASS MANAGEMENT
+    </a>
+    <div class="collapse" id="section12">
+
+    @can('view-classes')
+    <a href="{{ route('admin.classes.index') }}"
+       class="menu-item {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
+    <i class="fas fa-chalkboard"></i>
+    Classes
+    </a>
+    @endcan
+    <a href="{{ route('timetable.index') }}"
+       class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Timetable
+    </a>
+    <a href="{{ route('admin.classes.timetable') }}"
+       class="menu-item {{ request()->routeIs('admin.classes.timetable') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i>
+    Weekly Timetable
+    </a>
+    </div>
+</div>
+@endcanany
+{{-- End: CLASS MANAGEMENT --}}
 {{-- Start: Enrollment Management --}}
 @if(Route::has('admin.enrollments.index'))
 <div class="menu-dropdown">
@@ -311,52 +356,7 @@
     {{-- Start: Academic Management  --}}
     </div>
 </div>
-<!-- Academic Management -->
-<div class="menu-dropdown">
-    <a href="#section11" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Academic Management
-    </a>
-    <div class="collapse" id="section11">
-    <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
-    <i class="fas fa-book"></i> Subjects
-    </a>
-    <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
-    <i class="fas fa-box"></i> Packages
-    </a>
-    </div>
-</div>
-{{-- End: Academic Management  --}}
 
-{{-- Start: CLASS MANAGEMENT --}}
-@canany(['view-classes', 'create-classes', 'manage-class-schedule'])
-<!-- CLASS MANAGEMENT -->
-<div class="menu-dropdown">
-    <a href="#section12" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> CLASS MANAGEMENT
-    </a>
-    <div class="collapse" id="section12">
-
-    @can('view-classes')
-    <a href="{{ route('admin.classes.index') }}"
-       class="menu-item {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
-    <i class="fas fa-chalkboard"></i>
-    Classes
-    </a>
-    @endcan
-    <a href="{{ route('timetable.index') }}"
-       class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Timetable
-    </a>
-    <a href="{{ route('admin.classes.timetable') }}"
-       class="menu-item {{ request()->routeIs('admin.classes.timetable') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Weekly Timetable
-    </a>
-    </div>
-</div>
-@endcanany
-{{-- End: CLASS MANAGEMENT --}}
 <!-- Operations -->
 <div class="menu-dropdown">
     <a href="#section13" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
