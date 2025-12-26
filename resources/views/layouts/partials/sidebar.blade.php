@@ -48,9 +48,6 @@
     <i class="fas fa-user-tie"></i> Staff
     </a>
     {{-- End: User Management --}}
-
-    {{-- Start: Attendance Management --}}
-    @canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
     </div>
 </div>
 
@@ -76,6 +73,8 @@
 @endif
 {{-- End: Enrollment Management --}}
 
+{{-- Start: Attendance Management --}}
+@canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
 <!-- Attendance Management -->
 <div class="menu-dropdown">
     <a href="#section3" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -100,9 +99,10 @@
     @can('view-teacher-attendance-all')
     <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
     @endcan
-    @endcanany
     </div>
 </div>
+@endcanany
+{{-- End: Attendance Management --}}
 <!-- Teacher Salary -->
 <div class="menu-dropdown">
     <a href="#section4" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -119,12 +119,12 @@
     <i class="fas fa-chart-line"></i> Teacher Performance
     </a>
     @endif
-    {{-- End: Attendance Management --}}
-
-    {{-- Start: Financial Management --}}
-    @canany(['view-financial-dashboard', 'view-revenue-reports', 'view-expense-reports'])
     </div>
 </div>
+{{-- End: Attendance Management --}}
+
+{{-- Start: Financial Management --}}
+@canany(['view-financial-dashboard', 'view-revenue-reports', 'view-expense-reports'])
 <!-- Financial Management -->
 <div class="menu-dropdown">
     <a href="#section5" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -171,12 +171,10 @@
     <span>Cash Flow</span>
     </a>
     @endcan
-    @endcanany
-    {{-- End: Financial Management --}}
-
-    {{-- Start: Seminar Management --}}
     </div>
 </div>
+@endcanany
+{{-- End: Financial Management --}}
 <!-- Seminar Management -->
 <div class="menu-dropdown">
     <a href="#section6" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -325,10 +323,12 @@
     <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
     <i class="fas fa-box"></i> Packages
     </a>
-    {{-- End: Academic Management  --}}
-    @canany(['view-classes', 'create-classes', 'manage-class-schedule'])
     </div>
 </div>
+{{-- End: Academic Management  --}}
+
+{{-- Start: CLASS MANAGEMENT --}}
+@canany(['view-classes', 'create-classes', 'manage-class-schedule'])
 <!-- CLASS MANAGEMENT -->
 <div class="menu-dropdown">
     <a href="#section12" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -343,7 +343,6 @@
     Classes
     </a>
     @endcan
-    @endcanany
     <a href="{{ route('timetable.index') }}"
        class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
     <i class="fas fa-calendar-week"></i>
@@ -356,6 +355,8 @@
     </a>
     </div>
 </div>
+@endcanany
+{{-- End: CLASS MANAGEMENT --}}
 <!-- Operations -->
 <div class="menu-dropdown">
     <a href="#section13" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
