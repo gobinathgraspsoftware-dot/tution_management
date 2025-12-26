@@ -26,7 +26,7 @@
                 type="text"
                 class="form-control"
                 id="phone_display"
-                value="+{{ request('phone') }}"
+                value="{{ request('phone') }}"
                 readonly
             >
         </div>
@@ -35,7 +35,7 @@
 
     <div class="mb-3">
         <label for="otp" class="form-label">
-            OTP Code 
+            OTP Code
             <span class="text-danger">*</span>
         </label>
         <div class="input-group">
@@ -74,7 +74,7 @@
 
     <div class="mb-3">
         <label for="password" class="form-label">
-            New Password 
+            New Password
             <span class="text-danger">*</span>
         </label>
         <div class="input-group">
@@ -103,7 +103,7 @@
 
     <div class="mb-3">
         <label for="password_confirmation" class="form-label">
-            Confirm New Password 
+            Confirm New Password
             <span class="text-danger">*</span>
         </label>
         <div class="input-group">
@@ -190,7 +190,7 @@ $(document).ready(function() {
     $('#otp').on('input', function() {
         let value = $(this).val().replace(/\D/g, '');
         $(this).val(value);
-        
+
         // Visual feedback when 6 digits entered
         if (value.length === 6) {
             $(this).removeClass('is-invalid').addClass('is-valid');
@@ -213,19 +213,19 @@ $(document).ready(function() {
 
     function calculatePasswordStrength(password) {
         let strength = 0;
-        
+
         if (password.length >= 8) strength += 25;
         if (password.length >= 12) strength += 25;
         if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
         if (/\d/.test(password)) strength += 15;
         if (/[^a-zA-Z0-9]/.test(password)) strength += 10;
-        
+
         return Math.min(strength, 100);
     }
 
     function updatePasswordStrength(strength) {
         let color, text, bgColor;
-        
+
         if (strength < 30) {
             color = 'danger';
             text = 'Weak';
@@ -243,7 +243,7 @@ $(document).ready(function() {
             text = 'Strong';
             bgColor = '#198754';
         }
-        
+
         $('#passwordStrength').html(`
             <div class="d-flex justify-content-between align-items-center">
                 <small class="text-${color}">
@@ -252,8 +252,8 @@ $(document).ready(function() {
                 <small class="text-muted">${strength}%</small>
             </div>
             <div class="progress" style="height: 5px;">
-                <div class="progress-bar bg-${color}" role="progressbar" 
-                     style="width: ${strength}%; background-color: ${bgColor} !important;" 
+                <div class="progress-bar bg-${color}" role="progressbar"
+                     style="width: ${strength}%; background-color: ${bgColor} !important;"
                      aria-valuenow="${strength}" aria-valuemin="0" aria-valuemax="100">
                 </div>
             </div>
@@ -263,7 +263,7 @@ $(document).ready(function() {
     function checkPasswordMatch() {
         const password = $('#password').val();
         const confirmation = $('#password_confirmation').val();
-        
+
         if (confirmation.length > 0) {
             if (password === confirmation) {
                 $('#passwordMatch').html('<span class="text-success"><i class="fas fa-check-circle"></i> Passwords match</span>');
@@ -282,19 +282,19 @@ $(document).ready(function() {
     $('#resetPasswordForm').submit(function(e) {
         const password = $('#password').val();
         const confirmation = $('#password_confirmation').val();
-        
+
         if (password !== confirmation) {
             e.preventDefault();
             alert('Passwords do not match!');
             return false;
         }
-        
+
         if (password.length < 8) {
             e.preventDefault();
             alert('Password must be at least 8 characters long!');
             return false;
         }
-        
+
         $('#resetBtn').html('<i class="fas fa-spinner fa-spin me-2"></i> Resetting Password...').prop('disabled', true);
     });
 

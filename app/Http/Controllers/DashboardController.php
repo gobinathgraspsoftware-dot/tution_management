@@ -127,4 +127,17 @@ class DashboardController extends Controller
 
         return view('dashboards.student', $data);
     }
+
+    public function forgetPasswordList() {
+        $resets = \DB::table('password_reset_tokens')->orderBy('created_at', 'desc')->paginate(50);
+
+        return view('admin.password-resets.index', compact('resets'));
+    }
+
+    public function forgetPwdOtpClearExpired() {
+        $deleted = \DB::table('password_reset_tokens')->where('created_at', '<', now()->subMinutes(15))->delete();
+
+        return back()->with('success', "{$deleted} expired OTPs cleared.");
+    }
+
 }
