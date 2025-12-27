@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-header">
-    <h1><i class="fas fa-calendar-check me-2"></i> Teacher Attendance Calendar</h1>
+    <h1><i class="fas fa-calendar-alt me-2"></i> Teacher Attendance Calendar</h1>
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
@@ -65,14 +65,6 @@
             $startOfCalendar = $startOfMonth->copy()->startOfWeek();
             $endOfCalendar = $endOfMonth->copy()->endOfWeek();
             $currentDate = $startOfCalendar->copy();
-
-            // Calculate summary stats
-            $totalDays = 0;
-            $presentDays = 0;
-            $absentDays = 0;
-            $halfDays = 0;
-            $leaveDays = 0;
-            $totalHours = 0;
         @endphp
 
         <div class="table-responsive">
@@ -97,59 +89,63 @@
                                     $dayData = $calendarData[$dateKey] ?? null;
                                     $isCurrentMonth = $currentDate->month == $date->month;
                                     $isToday = $currentDate->isToday();
-
-                                    // Update stats
-                                    if ($isCurrentMonth && $dayData && $dayData['status']) {
-                                        $totalDays++;
-                                        if ($dayData['status'] == 'present') $presentDays++;
-                                        if ($dayData['status'] == 'absent') $absentDays++;
-                                        if ($dayData['status'] == 'half_day') $halfDays++;
-                                        if ($dayData['status'] == 'leave') $leaveDays++;
-                                        if ($dayData['hours_worked']) $totalHours += $dayData['hours_worked'];
-                                    }
                                 @endphp
                                 <td class="calendar-cell {{ !$isCurrentMonth ? 'other-month' : '' }} {{ $isToday ? 'today' : '' }}">
                                     <div class="date-header">
                                         <strong>{{ $currentDate->day }}</strong>
                                     </div>
 
-                                    @if($dayData && $dayData['status'] && $isCurrentMonth)
+                                    @if($dayData && $isCurrentMonth)
                                         <div class="attendance-data">
-                                            @if($dayData['status'] == 'present')
-                                                <span class="badge bg-success w-100 mb-1">
-                                                    <i class="fas fa-check"></i> Present
-                                                </span>
-                                            @elseif($dayData['status'] == 'absent')
-                                                <span class="badge bg-danger w-100 mb-1">
-                                                    <i class="fas fa-times"></i> Absent
-                                                </span>
-                                            @elseif($dayData['status'] == 'half_day')
-                                                <span class="badge bg-warning w-100 mb-1">
-                                                    <i class="fas fa-clock"></i> Half Day
-                                                </span>
-                                            @elseif($dayData['status'] == 'leave')
-                                                <span class="badge bg-info w-100 mb-1">
-                                                    <i class="fas fa-user-slash"></i> Leave
-                                                </span>
-                                            @endif
+                                            @if($dayData['status'])
+                                                <div class="status-badge">
+                                                    @php
+                                                        $statusClass = [
+                                                            'present' => 'bg-success',
+                                                            'absent' => 'bg-danger',
+                                                            'half_day' => 'bg-warning text-dark',
+                                                            'leave' => 'bg-info',
+                                                        ][$dayData['status']] ?? 'bg-secondary';
+                                                    @endphp
+                                                    <span class="badge {{ $statusClass }} w-100">
+                                                        {{ ucfirst(str_replace('_', ' ', $dayData['status'])) }}
+                                                    </span>
+                                                </div>
 
-                                            @if($dayData['time_in'] && $dayData['time_out'])
-                                                <small class="d-block text-muted">
-                                                    <i class="fas fa-clock"></i>
-                                                    {{ $dayData['time_in'] }} - {{ $dayData['time_out'] }}
-                                                </small>
-                                            @endif
+                                                @if($dayData['time_in'] || $dayData['time_out'])
+                                                    <div class="time-info mt-2">
+                                                        @if($dayData['time_in'])
+                                                            <small class="d-block text-muted">
+                                                                <i class="fas fa-sign-in-alt"></i> {{ $dayData['time_in'] }}
+                                                            </small>
+                                                        @endif
+                                                        @if($dayData['time_out'])
+                                                            <small class="d-block text-muted">
+                                                                <i class="fas fa-sign-out-alt"></i> {{ $dayData['time_out'] }}
+                                                            </small>
+                                                        @endif
+                                                    </div>
+                                                @endif
 
-                                            @if($dayData['hours_worked'])
-                                                <small class="d-block text-primary">
-                                                    <strong>{{ number_format($dayData['hours_worked'], 2) }}h</strong>
-                                                </small>
-                                            @endif
+                                                @if($dayData['hours_worked'])
+                                                    <div class="hours-badge mt-1">
+                                                        <small class="badge bg-primary">
+                                                            {{ number_format($dayData['hours_worked'], 1) }} hrs
+                                                        </small>
+                                                    </div>
+                                                @endif
 
-                                            @if($dayData['remarks'])
-                                                <small class="d-block text-muted" title="{{ $dayData['remarks'] }}">
-                                                    <i class="fas fa-comment"></i> Note
-                                                </small>
+                                                @if($dayData['remarks'])
+                                                    <div class="remarks-info mt-1">
+                                                        <small class="text-muted" title="{{ $dayData['remarks'] }}">
+                                                            <i class="fas fa-comment"></i>
+                                                        </small>
+                                                    </div>
+                                                @endif
+                                            @else
+                                                <div class="no-record">
+                                                    <small class="text-muted">No record</small>
+                                                </div>
                                             @endif
                                         </div>
                                     @endif
@@ -162,45 +158,55 @@
             </table>
         </div>
 
-        <!-- Summary Statistics -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h6>Monthly Summary</h6>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-box">
-                    <span class="badge bg-success">Present</span>
-                    <h4>{{ $presentDays }}</h4>
+        <!-- Monthly Summary -->
+        <div class="mt-4">
+            @php
+                $presentDays = collect($calendarData)->where('status', 'present')->count();
+                $absentDays = collect($calendarData)->where('status', 'absent')->count();
+                $halfDays = collect($calendarData)->where('status', 'half_day')->count();
+                $leaveDays = collect($calendarData)->where('status', 'leave')->count();
+                $totalHours = collect($calendarData)->sum('hours_worked');
+                $workingDays = $presentDays + $halfDays;
+                $totalDays = $presentDays + $absentDays + $halfDays + $leaveDays;
+                $attendanceRate = $totalDays > 0 ? round(($workingDays / $totalDays) * 100, 1) : 0;
+            @endphp
+
+            <div class="row text-center">
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-success">{{ $presentDays }}</h4>
+                        <small>Present Days</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-box">
-                    <span class="badge bg-danger">Absent</span>
-                    <h4>{{ $absentDays }}</h4>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-danger">{{ $absentDays }}</h4>
+                        <small>Absent Days</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-box">
-                    <span class="badge bg-warning">Half Day</span>
-                    <h4>{{ $halfDays }}</h4>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-warning">{{ $halfDays }}</h4>
+                        <small>Half Days</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-box">
-                    <span class="badge bg-info">Leave</span>
-                    <h4>{{ $leaveDays }}</h4>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-info">{{ $leaveDays }}</h4>
+                        <small>Leave Days</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-box">
-                    <span class="badge bg-primary">Total Hours</span>
-                    <h4>{{ number_format($totalHours, 2) }}h</h4>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-primary">{{ number_format($totalHours, 1) }}</h4>
+                        <small>Total Hours</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-box">
-                    <span class="badge bg-secondary">Attendance %</span>
-                    <h4>{{ $totalDays > 0 ? number_format(($presentDays / $totalDays) * 100, 1) : 0 }}%</h4>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-success">{{ $attendanceRate }}%</h4>
+                        <small>Attendance Rate</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -210,8 +216,8 @@
             <h6>Legend:</h6>
             <span class="badge bg-success me-2"><i class="fas fa-check"></i> Present</span>
             <span class="badge bg-danger me-2"><i class="fas fa-times"></i> Absent</span>
-            <span class="badge bg-warning me-2"><i class="fas fa-clock"></i> Half Day</span>
-            <span class="badge bg-info"><i class="fas fa-user-slash"></i> Leave</span>
+            <span class="badge bg-warning text-dark me-2"><i class="fas fa-adjust"></i> Half Day</span>
+            <span class="badge bg-info"><i class="fas fa-calendar-times"></i> On Leave</span>
         </div>
     </div>
 </div>
@@ -253,24 +259,50 @@
 
 .date-header {
     font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
+    font-weight: bold;
 }
 
 .attendance-data {
     font-size: 11px;
 }
 
-.stat-box {
-    text-align: center;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 10px;
+.status-badge {
+    margin-bottom: 5px;
 }
 
-.stat-box h4 {
-    margin: 10px 0 0 0;
+.status-badge .badge {
+    font-size: 10px;
+    padding: 3px 6px;
+}
+
+.time-info {
+    font-size: 10px;
+}
+
+.hours-badge .badge {
+    font-size: 9px;
+}
+
+.summary-card {
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.summary-card h4 {
+    margin-bottom: 5px;
     font-weight: bold;
+}
+
+.summary-card small {
+    color: #666;
+}
+
+.no-record {
+    text-align: center;
+    padding: 20px 0;
 }
 </style>
 @endpush

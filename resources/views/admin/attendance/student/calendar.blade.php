@@ -10,7 +10,7 @@
         <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ route('admin.attendance.index') }}">Attendance</a></li>
-            <li class="breadcrumb-item active">Calendar</li>
+            <li class="breadcrumb-item active">Student Calendar</li>
         </ol>
     </nav>
 </div>
@@ -20,7 +20,7 @@
     <div class="card-body">
         <form method="GET" class="row g-3">
             <div class="col-md-5">
-                <label class="form-label">Class</label>
+                <label class="form-label">Class <span class="text-danger">*</span></label>
                 <select name="class_id" class="form-select" onchange="this.form.submit()">
                     <option value="">Select Class</option>
                     @foreach($classes as $class)
@@ -53,9 +53,14 @@
 @if($selectedClassId && !empty($calendarData))
 <!-- Calendar -->
 <div class="card">
-    <div class="card-header">
-        <i class="fas fa-calendar me-2"></i>
-        {{ \Carbon\Carbon::parse($selectedMonth)->format('F Y') }} Attendance Calendar
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+            <i class="fas fa-calendar me-2"></i>
+            {{ \Carbon\Carbon::parse($selectedMonth)->format('F Y') }} Attendance Calendar
+        </span>
+        <span class="badge bg-primary">
+            {{ $classes->find($selectedClassId)->name ?? 'Class' }}
+        </span>
     </div>
     <div class="card-body">
         @php
@@ -93,13 +98,23 @@
                                 <td class="calendar-cell {{ !$isCurrentMonth ? 'other-month' : '' }} {{ $isToday ? 'today' : '' }}">
                                     <div class="date-header">
                                         <strong>{{ $currentDate->day }}</strong>
+                                        @if($isToday)
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 8px;">Today</span>
+                                        @endif
                                     </div>
 
                                     @if($dayData && $isCurrentMonth)
                                         <div class="attendance-data">
                                             @foreach($dayData['sessions'] as $session)
                                                 <div class="session-info mb-2">
-                                                    <small class="text-muted d-block">{{ $session['time'] }}</small>
+                                                    <small class="text-muted d-block fw-bold">
+                                                        <i class="fas fa-clock"></i> {{ $session['time'] }}
+                                                    </small>
+                                                    @if($session['topic'])
+                                                        <small class="text-muted d-block mb-1" style="font-size: 9px;">
+                                                            {{ Str::limit($session['topic'], 20) }}
+                                                        </small>
+                                                    @endif
                                                     <div class="attendance-badges">
                                                         <span class="badge bg-success" title="Present">
                                                             <i class="fas fa-check"></i> {{ $session['summary']['present'] }}
@@ -108,13 +123,47 @@
                                                             <i class="fas fa-times"></i> {{ $session['summary']['absent'] }}
                                                         </span>
                                                         @if($session['summary']['late'] > 0)
-                                                            <span class="badge bg-warning" title="Late">
+                                                            <span class="badge bg-warning text-dark" title="Late">
                                                                 <i class="fas fa-clock"></i> {{ $session['summary']['late'] }}
+                                                            </span>
+                                                        @endif
+                                                        @if($session['summary']['excused'] > 0)
+                                                            <span class="badge bg-info" title="Excused">
+                                                                <i class="fas fa-user-slash"></i> {{ $session['summary']['excused'] }}
                                                             </span>
                                                         @endif
                                                     </div>
                                                 </div>
                                             @endforeach
+
+                                            <!-- Daily Summary -->
+                                            @if(count($dayData['sessions']) > 1)
+                                                <div class="daily-summary mt-2 pt-2 border-top">
+                                                    <small class="text-muted d-block mb-1"><strong>Daily Total:</strong></small>
+                                                    <div class="attendance-badges">
+                                                        <span class="badge bg-success" style="font-size: 9px;">
+                                                            {{ $dayData['summary']['present'] }}
+                                                        </span>
+                                                        <span class="badge bg-danger" style="font-size: 9px;">
+                                                            {{ $dayData['summary']['absent'] }}
+                                                        </span>
+                                                        @if($dayData['summary']['late'] > 0)
+                                                            <span class="badge bg-warning text-dark" style="font-size: 9px;">
+                                                                {{ $dayData['summary']['late'] }}
+                                                            </span>
+                                                        @endif
+                                                        @if($dayData['summary']['excused'] > 0)
+                                                            <span class="badge bg-info" style="font-size: 9px;">
+                                                                {{ $dayData['summary']['excused'] }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @elseif($isCurrentMonth && $currentDate < now())
+                                        <div class="no-record text-center">
+                                            <small class="text-muted">No sessions</small>
                                         </div>
                                     @endif
                                 </td>
@@ -126,19 +175,75 @@
             </table>
         </div>
 
+        <!-- Monthly Summary -->
+        <div class="mt-4">
+            @php
+                $totalPresent = collect($calendarData)->sum('summary.present');
+                $totalAbsent = collect($calendarData)->sum('summary.absent');
+                $totalLate = collect($calendarData)->sum('summary.late');
+                $totalExcused = collect($calendarData)->sum('summary.excused');
+                $totalRecords = $totalPresent + $totalAbsent + $totalLate + $totalExcused;
+                $attendanceRate = $totalRecords > 0 ? round((($totalPresent + $totalLate) / $totalRecords) * 100, 1) : 0;
+                $totalSessions = collect($calendarData)->sum(fn($day) => count($day['sessions']));
+            @endphp
+
+            <div class="row text-center">
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-primary">{{ $totalSessions }}</h4>
+                        <small>Total Sessions</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-success">{{ $totalPresent }}</h4>
+                        <small>Present</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-danger">{{ $totalAbsent }}</h4>
+                        <small>Absent</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-warning">{{ $totalLate }}</h4>
+                        <small>Late</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-info">{{ $totalExcused }}</h4>
+                        <small>Excused</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="summary-card">
+                        <h4 class="text-success">{{ $attendanceRate }}%</h4>
+                        <small>Attendance Rate</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Legend -->
-        <div class="mt-3">
-            <h6>Legend:</h6>
-            <span class="badge bg-success me-2"><i class="fas fa-check"></i> Present</span>
-            <span class="badge bg-danger me-2"><i class="fas fa-times"></i> Absent</span>
-            <span class="badge bg-warning me-2"><i class="fas fa-clock"></i> Late</span>
-            <span class="badge bg-info"><i class="fas fa-user-slash"></i> Excused</span>
+        <div class="mt-3 p-3 bg-light rounded">
+            <h6 class="mb-2">Legend:</h6>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-success"><i class="fas fa-check"></i> Present</span>
+                <span class="badge bg-danger"><i class="fas fa-times"></i> Absent</span>
+                <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Late</span>
+                <span class="badge bg-info"><i class="fas fa-user-slash"></i> Excused</span>
+                <span class="badge bg-light text-dark border"><i class="fas fa-calendar-day"></i> Today</span>
+            </div>
         </div>
     </div>
 </div>
 @elseif($selectedClassId)
 <div class="alert alert-info">
     <i class="fas fa-info-circle me-2"></i> No attendance records found for the selected month.
+    <a href="{{ route('admin.attendance.student.mark') }}" class="alert-link">Start marking attendance</a>
 </div>
 @else
 <div class="alert alert-warning">
@@ -149,18 +254,29 @@
 
 @push('styles')
 <style>
+/* Calendar Table */
 .calendar-table {
     margin-bottom: 0;
 }
 
-.calendar-table td {
-    height: 120px;
-    vertical-align: top;
-    padding: 8px;
+.calendar-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 10px;
+    font-size: 14px;
 }
 
+.calendar-table td {
+    height: 140px;
+    vertical-align: top;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* Calendar Cells */
 .calendar-cell {
     position: relative;
+    min-height: 120px;
 }
 
 .calendar-cell.other-month {
@@ -170,33 +286,140 @@
 
 .calendar-cell.today {
     background-color: #fff3cd;
+    border: 2px solid #ffc107 !important;
 }
 
+/* Date Header */
 .date-header {
     font-size: 14px;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #495057;
 }
 
+.date-header .badge {
+    font-size: 8px;
+    padding: 2px 4px;
+}
+
+/* Attendance Data */
 .attendance-data {
     font-size: 11px;
 }
 
 .session-info {
-    padding: 4px;
+    padding: 6px;
     background: #f8f9fa;
     border-radius: 4px;
+    border-left: 3px solid #007bff;
 }
 
 .attendance-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px;
-    margin-top: 3px;
+    gap: 3px;
+    margin-top: 4px;
 }
 
 .attendance-badges .badge {
     font-size: 10px;
-    padding: 2px 5px;
+    padding: 3px 6px;
+    font-weight: 500;
+}
+
+/* Daily Summary */
+.daily-summary {
+    padding-top: 5px;
+    border-top: 1px dashed #dee2e6 !important;
+}
+
+.daily-summary .attendance-badges .badge {
+    font-size: 9px;
+    padding: 2px 4px;
+}
+
+/* No Record */
+.no-record {
+    padding: 30px 0;
+    color: #adb5bd;
+}
+
+/* Summary Cards */
+.summary-card {
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: #ffffff;
+    transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.summary-card h4 {
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.summary-card small {
+    color: #6c757d;
+    font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .calendar-table td {
+        height: 100px;
+        padding: 4px;
+    }
+
+    .date-header {
+        font-size: 12px;
+    }
+
+    .session-info {
+        padding: 4px;
+    }
+
+    .attendance-badges .badge {
+        font-size: 8px;
+        padding: 2px 4px;
+    }
+
+    .summary-card {
+        margin-bottom: 10px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .card-header,
+    .btn,
+    .alert,
+    .page-header nav {
+        display: none;
+    }
+
+    .calendar-table td {
+        height: auto;
+        page-break-inside: avoid;
+    }
 }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Auto-select current month if not selected
+    const monthInput = $('input[name="month"]');
+    if (!monthInput.val()) {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        monthInput.val(currentMonth);
+    }
+});
+</script>
 @endpush

@@ -50,41 +50,87 @@ class AttendanceController extends Controller
 
         $selectedDate = $request->input('date', now()->format('Y-m-d'));
         $selectedClassId = $request->input('class_id');
-        $selectedSessionId = $request->input('session_id');
 
-        $sessions = [];
         $students = [];
         $attendanceRecords = [];
+        $classInfo = null;
 
-        if ($selectedClassId) {
-            $sessions = ClassSession::where('class_id', $selectedClassId)
-                ->whereDate('session_date', $selectedDate)
-                ->orderBy('start_time')
-                ->get();
-        }
+        if ($selectedClassId && $selectedDate) {
+            // Get class information
+            $classInfo = ClassModel::with(['subject', 'teacher.user'])->find($selectedClassId);
 
-        if ($selectedSessionId) {
-            $session = ClassSession::with(['class.enrollments.student.user'])->findOrFail($selectedSessionId);
-            $students = $session->class->enrollments()
-                ->with('student.user')
-                ->whereHas('student', function($q) {
-                    $q->where('status', 'active');
-                })
-                ->get()
-                ->pluck('student');
+            if ($classInfo) {
+                // Get enrolled students for this class
+                $students = $classInfo->enrollments()
+                    ->with('student.user')
+                    ->whereHas('student', function($q) {
+                        $q->where('status', 'active');
+                    })
+                    ->get()
+                    ->pluck('student');
 
-            $attendanceRecords = $this->attendanceService->getSessionAttendance($selectedSessionId);
+                // Get or create a default session for this date and class
+                $session = $this->getOrCreateDefaultSession($selectedClassId, $selectedDate);
+
+                // Get existing attendance records for this session
+                if ($session) {
+                    $attendanceRecords = $this->attendanceService->getSessionAttendance($session->id);
+                }
+            }
         }
 
         return view('admin.attendance.student.mark', compact(
             'classes',
-            'sessions',
             'students',
             'attendanceRecords',
             'selectedDate',
             'selectedClassId',
-            'selectedSessionId'
+            'classInfo'
         ));
+    }
+
+    /**
+     * Get or create a default class session for the date
+     */
+    protected function getOrCreateDefaultSession($classId, $date)
+    {
+        $class = ClassModel::with('schedules')->find($classId);
+        if (!$class) {
+            return null;
+        }
+
+        $sessionDate = Carbon::parse($date);
+
+        // Try to find existing session for this class and date
+        $session = ClassSession::where('class_id', $classId)
+            ->whereDate('session_date', $date)
+            ->first();
+
+        if ($session) {
+            return $session;
+        }
+
+        // Get the class schedule for this day of week
+        $dayOfWeek = strtolower($sessionDate->format('l'));
+        $schedule = $class->schedules()
+            ->where('day_of_week', $dayOfWeek)
+            ->where('is_active', true)
+            ->first();
+
+        // Create default session
+        $startTime = $schedule ? $schedule->start_time : '09:00:00';
+        $endTime = $schedule ? $schedule->end_time : '10:00:00';
+
+        $session = ClassSession::create([
+            'class_id' => $classId,
+            'session_date' => $date,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'topic' => 'Regular Class',
+            'status' => 'scheduled',
+        ]);
+
+        return $session;
     }
 
     /**
@@ -93,14 +139,27 @@ class AttendanceController extends Controller
     public function storeStudent(StudentAttendanceRequest $request)
     {
         try {
-            $result = $this->attendanceService->markStudentAttendance(
-                $request->validated()
+            // Get or create session for the class and date
+            $session = $this->getOrCreateDefaultSession(
+                $request->class_id,
+                $request->date
             );
+
+            if (!$session) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Failed to create class session. Please check class configuration.');
+            }
+
+            // Add session_id to the data
+            $data = $request->validated();
+            $data['session_id'] = $session->id;
+
+            $result = $this->attendanceService->markStudentAttendance($data);
 
             return redirect()
                 ->route('admin.attendance.student.mark', [
                     'class_id' => $request->class_id,
-                    'session_id' => $request->session_id,
                     'date' => $request->date
                 ])
                 ->with('success', "Attendance marked for {$result['marked_count']} students. {$result['notifications_sent']} notifications sent.");
@@ -211,7 +270,7 @@ class AttendanceController extends Controller
     // ==================== AJAX ENDPOINTS ====================
 
     /**
-     * Get sessions for a class on a date (AJAX)
+     * Get sessions for a class on a date (AJAX) - DEPRECATED but kept for backward compatibility
      */
     public function getSessions(Request $request)
     {

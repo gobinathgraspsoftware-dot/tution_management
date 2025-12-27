@@ -21,7 +21,6 @@ class StudentAttendanceRequest extends FormRequest
     {
         return [
             'class_id' => 'required|exists:classes,id',
-            'session_id' => 'required|exists:class_sessions,id',
             'date' => 'required|date',
             'send_notifications' => 'nullable|boolean',
             'attendance' => 'required|array|min:1',
@@ -38,10 +37,26 @@ class StudentAttendanceRequest extends FormRequest
     {
         return [
             'class_id.required' => 'Please select a class.',
-            'session_id.required' => 'Please select a session.',
+            'class_id.exists' => 'The selected class does not exist.',
+            'date.required' => 'Please select a date.',
+            'date.date' => 'Please enter a valid date.',
             'attendance.required' => 'Please mark attendance for at least one student.',
+            'attendance.min' => 'Please mark attendance for at least one student.',
             'attendance.*.status.required' => 'Please select attendance status for all students.',
             'attendance.*.status.in' => 'Invalid attendance status selected.',
+            'attendance.*.check_in_time.date_format' => 'Check-in time must be in HH:MM format.',
+        ];
+    }
+
+    /**
+     * Get custom attribute names for validator errors.
+     */
+    public function attributes(): array
+    {
+        return [
+            'class_id' => 'class',
+            'date' => 'attendance date',
+            'send_notifications' => 'notification setting',
         ];
     }
 }
