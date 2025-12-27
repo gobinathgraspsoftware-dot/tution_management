@@ -1062,6 +1062,11 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             // AJAX endpoints
             Route::get('/class/{class}/fee', [AdminEnrollmentController::class, 'getClassFee'])->name('class.fee');
             Route::get('/package/{package}/details', [AdminEnrollmentController::class, 'getPackageDetails'])->name('package.details');
+
+            Route::get('/package/{package}/subjects-classes', [AdminEnrollmentController::class, 'getPackageSubjectsWithClasses'])->name('package.subjects-classes');
+            Route::get('/subject/{subject}/classes', [AdminEnrollmentController::class, 'getClassesBySubject'])->name('subject.classes');
+            Route::get('/student/{student}/enrollments', [AdminEnrollmentController::class, 'getStudentEnrollments'])->name('student.enrollments');
+
         });
 
     });

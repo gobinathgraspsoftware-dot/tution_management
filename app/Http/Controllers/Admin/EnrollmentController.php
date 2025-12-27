@@ -8,9 +8,12 @@ use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Package;
 use App\Models\ClassModel;
+use App\Models\Subject;
 use App\Models\ActivityLog;
 use App\Services\EnrollmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class EnrollmentController extends Controller
 {
@@ -94,27 +97,61 @@ class EnrollmentController extends Controller
     {
         try {
             $data = $request->validated();
+            $enrollmentType = $request->input('enrollment_type', 'package');
 
             // Check if enrolling in package
-            if ($request->filled('package_id')) {
+            if ($enrollmentType === 'package' && $request->filled('package_id')) {
                 $student = Student::findOrFail($data['student_id']);
-                $package = Package::findOrFail($data['package_id']);
+                $package = Package::with('subjects')->findOrFail($data['package_id']);
 
-                $enrollments = $this->enrollmentService->enrollInPackage($student, $package, $data);
+                // Get selected classes for each subject
+                $subjectClasses = $request->input('subject_classes', []);
+
+                // NOTE: Removed validatePackageClassSelection() call
+                // The service now handles duplicates gracefully by skipping them
+
+                // Create enrollments with selected classes
+                $result = $this->enrollmentService->enrollInPackageWithClasses(
+                    $student,
+                    $package,
+                    $subjectClasses,
+                    $data
+                );
 
                 ActivityLog::create([
                     'user_id' => auth()->id(),
                     'action' => 'create',
                     'model_type' => 'Enrollment',
-                    'description' => "Enrolled student {$student->user->name} in package {$package->name}",
+                    'description' => "Enrolled student {$student->user->name} in package {$package->name} with " . count($result['created']) . " classes",
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                 ]);
 
+                // Build success message
+                $message = "Student successfully enrolled in {$package->name} package with " . count($result['created']) . " class(es)!";
+
+                // Add info about skipped classes
+                if (!empty($result['skipped'])) {
+                    $skippedNames = array_map(fn($s) => $s['class_name'] ?? 'Unknown', $result['skipped']);
+                    $message .= " Skipped " . count($result['skipped']) . " class(es) (already enrolled): " . implode(', ', $skippedNames);
+                }
+
                 return redirect()->route('admin.enrollments.index')
-                    ->with('success', "Student successfully enrolled in {$package->name} package with " . count($enrollments) . " classes!");
+                    ->with('success', $message);
+
             } else {
-                // Single class enrollment
+                // Single class enrollment - check for existing enrollment first
+                $existingEnrollment = Enrollment::where('student_id', $data['student_id'])
+                    ->where('class_id', $data['class_id'])
+                    ->whereIn('status', ['active', 'trial', 'suspended'])
+                    ->first();
+
+                if ($existingEnrollment) {
+                    $class = ClassModel::find($data['class_id']);
+                    return back()->withInput()
+                        ->with('error', "Student is already enrolled in class '{$class->name}'. Please select a different class.");
+                }
+
                 $enrollment = $this->enrollmentService->createEnrollment($data);
 
                 ActivityLog::create([
@@ -152,19 +189,32 @@ class EnrollmentController extends Controller
         ]);
 
         // Get attendance summary
-        $attendanceSummary = \App\Models\StudentAttendance::whereHas('classSession', function ($q) use ($enrollment) {
-                $q->where('class_id', $enrollment->class_id);
-            })
-            ->where('student_id', $enrollment->student_id)
-            ->selectRaw('
-                COUNT(*) as total_sessions,
-                SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present_count,
-                SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent_count,
-                SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late_count
-            ')
-            ->first();
+        $attendanceSummary = null;
+        if ($enrollment->class_id) {
+            $attendanceSummary = \App\Models\StudentAttendance::whereHas('classSession', function ($q) use ($enrollment) {
+                    $q->where('class_id', $enrollment->class_id);
+                })
+                ->where('student_id', $enrollment->student_id)
+                ->selectRaw('
+                    COUNT(*) as total_sessions,
+                    SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present_count,
+                    SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent_count,
+                    SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late_count
+                ')
+                ->first();
+        }
 
-        return view('admin.enrollments.show', compact('enrollment', 'attendanceSummary'));
+        // Get related enrollments if this is a package enrollment
+        $relatedEnrollments = [];
+        if ($enrollment->package_id) {
+            $relatedEnrollments = Enrollment::where('student_id', $enrollment->student_id)
+                ->where('package_id', $enrollment->package_id)
+                ->where('id', '!=', $enrollment->id)
+                ->with(['class.subject', 'class.teacher.user'])
+                ->get();
+        }
+
+        return view('admin.enrollments.show', compact('enrollment', 'attendanceSummary', 'relatedEnrollments'));
     }
 
     /**
@@ -172,7 +222,7 @@ class EnrollmentController extends Controller
      */
     public function edit(Enrollment $enrollment)
     {
-        $enrollment->load(['student.user', 'package', 'class']);
+        $enrollment->load(['student.user', 'package', 'class', 'feeHistory']);
 
         $students = Student::approved()
             ->with('user')
@@ -364,7 +414,7 @@ class EnrollmentController extends Controller
     }
 
     /**
-     * Get package details via AJAX
+     * Get package details via AJAX (legacy - kept for backward compatibility)
      */
     public function getPackageDetails($packageId)
     {
@@ -384,6 +434,149 @@ class EnrollmentController extends Controller
                     'subject' => $class->subject->name,
                 ];
             }),
+        ]);
+    }
+
+    /**
+     * Get package subjects with their available classes via AJAX
+     * Now includes student's existing enrollments to mark classes as enrolled
+     */
+    public function getPackageSubjectsWithClasses(Request $request, $packageId)
+    {
+        $package = Package::with(['subjects' => function($query) {
+            $query->orderBy('name');
+        }])->findOrFail($packageId);
+
+        // Get student's existing enrollments if student_id is provided
+        $studentId = $request->query('student_id');
+        $existingEnrollments = [];
+
+        if ($studentId) {
+            $existingEnrollments = Enrollment::where('student_id', $studentId)
+                ->whereIn('status', ['active', 'trial', 'suspended'])
+                ->pluck('class_id')
+                ->toArray();
+        }
+
+        $subjects = $package->subjects->map(function ($subject) use ($existingEnrollments) {
+            // Get active classes for this subject with teacher info
+            $classes = ClassModel::where('subject_id', $subject->id)
+                ->where('status', 'active')
+                ->with(['teacher.user'])
+                ->orderBy('name')
+                ->get()
+                ->map(function ($class) use ($existingEnrollments) {
+                    $isEnrolled = in_array($class->id, $existingEnrollments);
+                    return [
+                        'id' => $class->id,
+                        'name' => $class->name,
+                        'code' => $class->code,
+                        'type' => $class->type,
+                        'grade_level' => $class->grade_level,
+                        'teacher_name' => $class->teacher ? $class->teacher->user->name : null,
+                        'capacity' => $class->capacity,
+                        'current_enrollment' => $class->current_enrollment,
+                        'available_seats' => $class->capacity - $class->current_enrollment,
+                        'location' => $class->location,
+                        'meeting_link' => $class->meeting_link,
+                        'is_enrolled' => $isEnrolled,
+                    ];
+                });
+
+            return [
+                'id' => $subject->id,
+                'name' => $subject->name,
+                'code' => $subject->code,
+                'sessions_per_month' => $subject->pivot->sessions_per_month ?? 4,
+                'classes' => $classes,
+            ];
+        });
+
+        return response()->json([
+            'id' => $package->id,
+            'name' => $package->name,
+            'price' => $package->price,
+            'duration_months' => $package->duration_months,
+            'type' => $package->type,
+            'subjects' => $subjects,
+            'existing_enrollments' => $existingEnrollments,
+        ]);
+    }
+
+    /**
+     * Get classes for a specific subject via AJAX
+     */
+    public function getClassesBySubject(Request $request, $subjectId)
+    {
+        $subject = Subject::findOrFail($subjectId);
+
+        // Get student's existing enrollments if student_id is provided
+        $studentId = $request->query('student_id');
+        $existingEnrollments = [];
+
+        if ($studentId) {
+            $existingEnrollments = Enrollment::where('student_id', $studentId)
+                ->whereIn('status', ['active', 'trial', 'suspended'])
+                ->pluck('class_id')
+                ->toArray();
+        }
+
+        $classes = ClassModel::where('subject_id', $subjectId)
+            ->where('status', 'active')
+            ->with(['teacher.user'])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($class) use ($existingEnrollments) {
+                $isEnrolled = in_array($class->id, $existingEnrollments);
+                return [
+                    'id' => $class->id,
+                    'name' => $class->name,
+                    'code' => $class->code,
+                    'type' => $class->type,
+                    'grade_level' => $class->grade_level,
+                    'teacher_name' => $class->teacher ? $class->teacher->user->name : null,
+                    'capacity' => $class->capacity,
+                    'current_enrollment' => $class->current_enrollment,
+                    'available_seats' => max(0, $class->capacity - $class->current_enrollment),
+                    'is_enrolled' => $isEnrolled,
+                ];
+            });
+
+        return response()->json([
+            'subject_id' => $subject->id,
+            'subject_name' => $subject->name,
+            'classes' => $classes,
+        ]);
+    }
+
+    /**
+     * Get student's existing active enrollments via AJAX
+     */
+    public function getStudentEnrollments($studentId)
+    {
+        $student = Student::findOrFail($studentId);
+
+        $enrollments = Enrollment::where('student_id', $studentId)
+            ->whereIn('status', ['active', 'trial', 'suspended'])
+            ->with(['class.subject', 'package'])
+            ->get()
+            ->map(function ($enrollment) {
+                return [
+                    'id' => $enrollment->id,
+                    'class_id' => $enrollment->class_id,
+                    'package_id' => $enrollment->package_id,
+                    'class_name' => $enrollment->class ? $enrollment->class->name : null,
+                    'subject_name' => $enrollment->class && $enrollment->class->subject ? $enrollment->class->subject->name : null,
+                    'package_name' => $enrollment->package ? $enrollment->package->name : null,
+                    'status' => $enrollment->status,
+                ];
+            });
+
+        return response()->json([
+            'student_id' => $studentId,
+            'student_name' => $student->user->name,
+            'enrollments' => $enrollments,
+            'enrolled_class_ids' => $enrollments->pluck('class_id')->filter()->toArray(),
         ]);
     }
 }

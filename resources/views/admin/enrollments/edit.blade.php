@@ -32,16 +32,20 @@
                         @method('PUT')
 
                         <!-- Student Info (Read-only) -->
-                        <div class="form-group">
-                            <label>Student</label>
-                            <input type="text" class="form-control" value="{{ $enrollment->student->user->name }} ({{ $enrollment->student->student_id }})" readonly>
+                        <div class="mb-3">
+                            <label class="form-label">Student</label>
+                            <input type="text" class="form-control" 
+                                   value="{{ $enrollment->student->user->name }} ({{ $enrollment->student->student_id }})" 
+                                   readonly>
                             <input type="hidden" name="student_id" value="{{ $enrollment->student_id }}">
                         </div>
 
                         <!-- Package/Class Info (Read-only) -->
-                        <div class="form-group">
-                            <label>Enrollment Type</label>
-                            <input type="text" class="form-control" value="@if($enrollment->package)Package: {{ $enrollment->package->name }}@else Class: {{ $enrollment->class->name }}@endif" readonly>
+                        <div class="mb-3">
+                            <label class="form-label">Enrollment Type</label>
+                            <input type="text" class="form-control" 
+                                   value="@if($enrollment->package)Package: {{ $enrollment->package->name }}@else Class: {{ $enrollment->class->name }}@endif" 
+                                   readonly>
                             @if($enrollment->package_id)
                                 <input type="hidden" name="package_id" value="{{ $enrollment->package_id }}">
                             @endif
@@ -53,8 +57,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <!-- Start Date -->
-                                <div class="form-group">
-                                    <label for="start_date">Start Date <span class="text-danger">*</span></label>
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control @error('start_date') is-invalid @enderror"
                                            id="start_date" name="start_date"
                                            value="{{ old('start_date', $enrollment->start_date->format('Y-m-d')) }}" required>
@@ -66,15 +70,15 @@
 
                             <div class="col-md-6">
                                 <!-- End Date -->
-                                <div class="form-group">
-                                    <label for="end_date">End Date</label>
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">End Date</label>
                                     <input type="date" class="form-control @error('end_date') is-invalid @enderror"
                                            id="end_date" name="end_date"
                                            value="{{ old('end_date', $enrollment->end_date ? $enrollment->end_date->format('Y-m-d') : '') }}">
                                     @error('end_date')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <small class="form-text text-muted">Leave empty for ongoing enrollment</small>
+                                    <small class="text-muted">Leave empty for ongoing enrollment</small>
                                 </div>
                             </div>
                         </div>
@@ -82,9 +86,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <!-- Payment Cycle Day -->
-                                <div class="form-group">
-                                    <label for="payment_cycle_day">Payment Cycle Day <span class="text-danger">*</span></label>
-                                    <select class="form-control @error('payment_cycle_day') is-invalid @enderror"
+                                <div class="mb-3">
+                                    <label for="payment_cycle_day" class="form-label">Payment Cycle Day <span class="text-danger">*</span></label>
+                                    <select class="form-select @error('payment_cycle_day') is-invalid @enderror"
                                             id="payment_cycle_day" name="payment_cycle_day" required>
                                         @for($i = 1; $i <= 28; $i++)
                                             <option value="{{ $i }}" {{ old('payment_cycle_day', $enrollment->payment_cycle_day) == $i ? 'selected' : '' }}>
@@ -100,8 +104,8 @@
 
                             <div class="col-md-6">
                                 <!-- Monthly Fee -->
-                                <div class="form-group">
-                                    <label for="monthly_fee">Monthly Fee (RM) <span class="text-danger">*</span></label>
+                                <div class="mb-3">
+                                    <label for="monthly_fee" class="form-label">Monthly Fee (RM) <span class="text-danger">*</span></label>
                                     <input type="number" step="0.01" class="form-control @error('monthly_fee') is-invalid @enderror"
                                            id="monthly_fee" name="monthly_fee"
                                            value="{{ old('monthly_fee', $enrollment->monthly_fee) }}" required>
@@ -113,17 +117,17 @@
                         </div>
 
                         <!-- Fee Change Reason (if fee is changed) -->
-                        <div class="form-group" id="fee_change_reason_group" style="display: none;">
-                            <label for="fee_change_reason">Reason for Fee Change <span class="text-danger">*</span></label>
+                        <div class="mb-3" id="fee_change_reason_group" style="display: none;">
+                            <label for="fee_change_reason" class="form-label">Reason for Fee Change <span class="text-danger">*</span></label>
                             <textarea class="form-control" id="fee_change_reason" name="fee_change_reason" rows="2"
                                       placeholder="Please provide a reason for changing the monthly fee...">{{ old('fee_change_reason') }}</textarea>
-                            <small class="form-text text-muted">This will be recorded in the fee history</small>
+                            <small class="text-muted">This will be recorded in the fee history</small>
                         </div>
 
                         <!-- Status -->
-                        <div class="form-group">
-                            <label for="status">Status <span class="text-danger">*</span></label>
-                            <select class="form-control @error('status') is-invalid @enderror" id="status" name="status" required>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                            <select class="form-select @error('status') is-invalid @enderror" id="status" name="status" required>
                                 <option value="active" {{ old('status', $enrollment->status) == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="suspended" {{ old('status', $enrollment->status) == 'suspended' ? 'selected' : '' }}>Suspended</option>
                                 <option value="expired" {{ old('status', $enrollment->status) == 'expired' ? 'selected' : '' }}>Expired</option>
@@ -137,14 +141,14 @@
 
                         <!-- Cancellation Reason (if status is cancelled) -->
                         @if($enrollment->cancellation_reason)
-                        <div class="form-group">
-                            <label>Previous Cancellation Reason</label>
+                        <div class="mb-3">
+                            <label class="form-label">Previous Cancellation Reason</label>
                             <textarea class="form-control" readonly rows="2">{{ $enrollment->cancellation_reason }}</textarea>
                         </div>
                         @endif
 
                         <!-- Submit Buttons -->
-                        <div class="form-group">
+                        <div class="mb-3">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Update Enrollment
                             </button>
@@ -165,24 +169,26 @@
                     <h6 class="m-0 font-weight-bold text-primary">Current Status</h6>
                 </div>
                 <div class="card-body">
-                    <p><strong>Status:</strong>
+                    <p class="mb-2"><strong>Status:</strong>
                         @if($enrollment->status == 'active')
-                            <span class="badge badge-success">Active</span>
+                            <span class="badge bg-success">Active</span>
                         @elseif($enrollment->status == 'suspended')
-                            <span class="badge badge-warning">Suspended</span>
+                            <span class="badge bg-warning">Suspended</span>
                         @elseif($enrollment->status == 'expired')
-                            <span class="badge badge-danger">Expired</span>
+                            <span class="badge bg-danger">Expired</span>
                         @elseif($enrollment->status == 'cancelled')
-                            <span class="badge badge-dark">Cancelled</span>
+                            <span class="badge bg-dark">Cancelled</span>
                         @elseif($enrollment->status == 'trial')
-                            <span class="badge badge-info">Trial</span>
+                            <span class="badge bg-info">Trial</span>
                         @endif
                     </p>
-                    <p><strong>Enrolled:</strong> {{ $enrollment->created_at->format('d M Y') }}</p>
+                    <p class="mb-2"><strong>Enrolled:</strong> {{ $enrollment->created_at->format('d M Y') }}</p>
                     @if($enrollment->end_date)
-                        <p><strong>Days Remaining:</strong>
+                        <p class="mb-0"><strong>Days Remaining:</strong>
                             @if($enrollment->days_remaining > 0)
-                                {{ $enrollment->days_remaining }} days
+                                <span class="{{ $enrollment->days_remaining > 30 ? 'text-success' : 'text-warning' }}">
+                                    {{ $enrollment->days_remaining }} days
+                                </span>
                             @else
                                 <span class="text-danger">Expired</span>
                             @endif
@@ -192,16 +198,17 @@
             </div>
 
             <!-- Fee History -->
-            @if($enrollment->feeHistory->count() > 0)
+            @if($enrollment->feeHistory && $enrollment->feeHistory->count() > 0)
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Fee Change History</h6>
                 </div>
                 <div class="card-body">
-                    @foreach($enrollment->feeHistory->take(5) as $history)
+                    @foreach($enrollment->feeHistory->sortByDesc('change_date')->take(5) as $history)
                     <div class="mb-2 pb-2 border-bottom">
                         <small class="text-muted">{{ $history->change_date->format('d M Y') }}</small><br>
-                        <strong>RM {{ number_format($history->old_fee, 2) }}</strong> →
+                        <strong>RM {{ number_format($history->old_fee, 2) }}</strong>
+                        <i class="fas fa-arrow-right mx-1 text-muted"></i>
                         <strong class="text-success">RM {{ number_format($history->new_fee, 2) }}</strong><br>
                         <small>{{ $history->reason }}</small>
                     </div>
@@ -211,10 +218,10 @@
             @endif
 
             <!-- Important Notes -->
-            <div class="card shadow mb-4 border-left-warning">
+            <div class="card shadow mb-4 border-start border-warning border-4">
                 <div class="card-body">
-                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> Important Notes</h6>
-                    <ul class="small mb-0">
+                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Important Notes</h6>
+                    <ul class="small mb-0 ps-3">
                         <li>Changing the monthly fee will be recorded in fee history</li>
                         <li>Start date changes may affect existing invoices</li>
                         <li>Status changes take effect immediately</li>

@@ -19,10 +19,10 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card border-start border-primary border-4 shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
+                        <div class="col me-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Enrollments</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total'] }}</div>
                         </div>
@@ -35,10 +35,10 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
+            <div class="card border-start border-success border-4 shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
+                        <div class="col me-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['active'] }}</div>
                         </div>
@@ -51,10 +51,10 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card border-start border-warning border-4 shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
+                        <div class="col me-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Expiring Soon</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expiring_soon'] }}</div>
                         </div>
@@ -67,10 +67,10 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card border-start border-danger border-4 shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
+                        <div class="col me-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Expired</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expired'] }}</div>
                         </div>
@@ -92,13 +92,13 @@
             <form method="GET" action="{{ route('admin.enrollments.index') }}">
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <label for="search">Search Student</label>
+                        <label for="search" class="form-label">Search Student</label>
                         <input type="text" class="form-control" id="search" name="search"
                                value="{{ request('search') }}" placeholder="Student name...">
                     </div>
                     <div class="col-md-2 mb-3">
-                        <label for="status">Status</label>
-                        <select class="form-control" id="status" name="status">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
                             <option value="">All Status</option>
                             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                             <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
@@ -108,8 +108,8 @@
                         </select>
                     </div>
                     <div class="col-md-2 mb-3">
-                        <label for="class_id">Class</label>
-                        <select class="form-control" id="class_id" name="class_id">
+                        <label for="class_id" class="form-label">Class</label>
+                        <select class="form-select" id="class_id" name="class_id">
                             <option value="">All Classes</option>
                             @foreach($classes as $class)
                                 <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
@@ -119,8 +119,8 @@
                         </select>
                     </div>
                     <div class="col-md-2 mb-3">
-                        <label for="package_id">Package</label>
-                        <select class="form-control" id="package_id" name="package_id">
+                        <label for="package_id" class="form-label">Package</label>
+                        <select class="form-select" id="package_id" name="package_id">
                             <option value="">All Packages</option>
                             @foreach($packages as $package)
                                 <option value="{{ $package->id }}" {{ request('package_id') == $package->id ? 'selected' : '' }}>
@@ -130,7 +130,7 @@
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label>&nbsp;</label>
+                        <label class="form-label">&nbsp;</label>
                         <div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i> Filter
@@ -179,7 +179,7 @@
                                 @else
                                     <span class="badge bg-secondary">Class</span>
                                     {{ $enrollment->class->name }}
-                                    <br><small class="text-muted">{{ $enrollment->class->subject->name }}</small>
+                                    <br><small class="text-muted">{{ $enrollment->class->subject->name ?? '' }}</small>
                                 @endif
                             </td>
                             <td>{{ $enrollment->start_date->format('d M Y') }}</td>
@@ -188,7 +188,7 @@
                                     {{ $enrollment->end_date->format('d M Y') }}
                                     @if($enrollment->end_date->isPast() && $enrollment->status == 'active')
                                         <span class="badge bg-danger">Expired</span>
-                                    @elseif($enrollment->days_remaining <= 30 && $enrollment->status == 'active')
+                                    @elseif($enrollment->days_remaining <= 30 && $enrollment->days_remaining > 0 && $enrollment->status == 'active')
                                         <span class="badge bg-warning">{{ $enrollment->days_remaining }} days left</span>
                                     @endif
                                 @else
@@ -242,7 +242,10 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center">No enrollments found</td>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No enrollments found</p>
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -258,27 +261,25 @@
 </div>
 
 <!-- Suspend Modal -->
-<div class="modal fade" id="suspendModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="suspendModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
             <form id="suspendForm" method="POST">
                 @csrf
                 @method('PATCH')
                 <div class="modal-header">
                     <h5 class="modal-title">Suspend Enrollment</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="reason">Reason for Suspension</label>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Suspension</label>
                         <textarea class="form-control" id="reason" name="reason" rows="3"
                                   placeholder="Enter reason for suspension..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-warning">Suspend Enrollment</button>
                 </div>
             </form>
@@ -292,7 +293,7 @@
 function suspendEnrollment(enrollmentId) {
     const form = document.getElementById('suspendForm');
     form.action = `/admin/enrollments/${enrollmentId}/suspend`;
-    $('#suspendModal').modal('show');
+    new bootstrap.Modal(document.getElementById('suspendModal')).show();
 }
 </script>
 @endpush
