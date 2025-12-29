@@ -243,6 +243,58 @@
                 </div>
             </div>
         </div>
+
+        <!-- WhatsApp Notification -->
+        <div class="col-md-12">
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fab fa-whatsapp me-2"></i> WhatsApp Notification
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="send_whatsapp" name="send_whatsapp"
+                               {{ old('send_whatsapp', true) ? 'checked' : '' }}
+                               {{ !$whatsappEnabled ? 'disabled' : '' }}>
+                        <label class="form-check-label" for="send_whatsapp">
+                            <strong>Send WhatsApp notification to student</strong>
+                        </label>
+                    </div>
+                    @if($whatsappEnabled)
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            When enabled, the student will receive a WhatsApp message with their login credentials and registration details.
+                        </small>
+                        <div class="alert alert-info mt-3 mb-0" id="whatsapp-preview">
+                            <strong><i class="fab fa-whatsapp me-1"></i> Message Preview:</strong>
+                            <hr class="my-2">
+                            <small>
+                                🎓 <strong>Arena Matriks Edu Group</strong><br>
+                                <strong>Student Registration Confirmation</strong><br>
+                                ━━━━━━━━━━━━━━━━━━━━━<br><br>
+                                Dear <strong>[Student Name]</strong>,<br><br>
+                                Welcome! Your registration has been successfully completed.<br><br>
+                                📋 <strong>Your Details:</strong><br>
+                                • Student ID: <strong>STU-XXXX-XXXX</strong><br>
+                                • Grade: [Grade Level]<br>
+                                • School: [School Name]<br>
+                                • Referral Code: [CODE]<br><br>
+                                🔐 <strong>Login Credentials:</strong><br>
+                                • Email: [Student Email]<br>
+                                • Password: [Password]<br>
+                                • Portal: {{ url('/login') }}<br><br>
+                                ⚠️ <strong>Important:</strong> Please keep these credentials safe.
+                            </small>
+                        </div>
+                    @else
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <strong>WhatsApp service is not enabled.</strong>
+                            Please contact administrator to enable WhatsApp notifications.
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="d-flex justify-content-end gap-2 mb-4">
@@ -286,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             cache: true
         },
-        templateResult: formatParentSelection,
+        templateResult: formatParentResult,
         templateSelection: formatParentSelection
     });
 
@@ -325,14 +377,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Format IC number as user types
     icInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/[^0-9]/g, ''); // Remove non-digits
+        let value = e.target.value.replace(/[^0-9]/g, '');
 
-        // Limit to 12 digits
         if (value.length > 12) {
             value = value.substring(0, 12);
         }
 
-        // Format with hyphens: YYMMDD-BP-XXXX
         let formatted = '';
         if (value.length > 0) {
             formatted = value.substring(0, 6);
@@ -346,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         e.target.value = formatted;
 
-        // Auto-extract DOB and Gender when IC is complete
         if (value.length === 12) {
             extractDOBAndGender(value);
         } else {
@@ -357,18 +406,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Extract Date of Birth and Gender from IC Number
     function extractDOBAndGender(icNumber) {
-        // Extract YYMMDD from first 6 digits
         const year = icNumber.substring(0, 2);
         const month = icNumber.substring(2, 4);
         const day = icNumber.substring(4, 6);
 
-        // Determine century (00-25 = 2000s, 26-99 = 1900s)
         const fullYear = (parseInt(year) <= 25) ? '20' + year : '19' + year;
 
-        // Set date of birth
         dobInput.value = fullYear + '-' + month + '-' + day;
 
-        // Extract gender from last digit (odd = male, even = female)
         const lastDigit = parseInt(icNumber.substring(11, 12));
         if (lastDigit % 2 === 0) {
             genderSelect.value = 'female';
@@ -382,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.target.value = e.target.value.toUpperCase();
     });
 
-    // Prevent manual changes to DOB and Gender (they should be auto-filled from IC)
+    // Prevent manual changes to DOB and Gender
     dobInput.addEventListener('click', function(e) {
         if (!this.value) {
             alert('Date of birth will be automatically extracted from IC Number.');
@@ -394,6 +439,16 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Gender will be automatically detected from IC Number.');
         }
     });
+
+    // Toggle WhatsApp preview visibility
+    const whatsappCheckbox = document.getElementById('send_whatsapp');
+    const whatsappPreview = document.getElementById('whatsapp-preview');
+
+    if (whatsappCheckbox && whatsappPreview) {
+        whatsappCheckbox.addEventListener('change', function() {
+            whatsappPreview.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 });
 </script>
 
@@ -420,6 +475,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .select2-result-parent__phone {
     color: #667eea;
+}
+
+/* WhatsApp notification card styling */
+.border-success {
+    border-color: #25D366 !important;
+}
+
+.bg-success {
+    background-color: #25D366 !important;
+}
+
+#whatsapp-preview {
+    background-color: #dcf8c6;
+    border: 1px solid #25D366;
+    border-radius: 8px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-check-input:checked {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+
+.form-switch .form-check-input:focus {
+    border-color: #25D366;
+    box-shadow: 0 0 0 0.25rem rgba(37, 211, 102, 0.25);
 }
 </style>
 @endpush

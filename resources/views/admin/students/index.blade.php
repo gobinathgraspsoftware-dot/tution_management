@@ -89,7 +89,7 @@
                         <th>Grade</th>
                         <th>Approval</th>
                         <th>Status</th>
-                        <th width="150">Actions</th>
+                        <th width="180">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,7 +113,8 @@
                             <td>
                                 @if($student->parent)
                                     {{ $student->parent->user->name }}
-                                    <br><small class="text-muted">{{ $student->parent->user->phone }}</small>
+                                    <br>
+                                    <small class="text-muted">{{ $student->parent->user->phone }}</small>
                                 @else
                                     <span class="text-muted">Not linked</span>
                                 @endif
@@ -148,6 +149,14 @@
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @endcan
+                                    @if(config('notification.whatsapp.enabled', false) && $student->user->phone)
+                                    <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
+                                       class="btn btn-outline-success"
+                                       title="Send WhatsApp to Student"
+                                       onclick="return confirm('Send registration details via WhatsApp to student?');">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                    @endif
                                     @can('delete-students')
                                     <button type="button" class="btn btn-outline-danger" title="Delete"
                                             onclick="confirmDelete({{ $student->id }}, '{{ $student->user->name }}')">
@@ -196,3 +205,48 @@
     'route' => 'admin.students.destroy'
 ])
 @endsection
+
+@push('scripts')
+<script>
+function confirmDelete(studentId, studentName) {
+    if (confirm('Are you sure you want to delete student "' + studentName + '"? This action cannot be undone.')) {
+        document.getElementById('delete-form-' + studentId).submit();
+    }
+}
+</script>
+@endpush
+
+@push('styles')
+<style>
+/* User avatar styling */
+.user-avatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+/* WhatsApp button styling */
+.btn-outline-success {
+    color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-outline-success:hover {
+    background-color: #25D366;
+    border-color: #25D366;
+    color: white;
+}
+
+.text-success {
+    color: #25D366 !important;
+}
+
+/* Action buttons group */
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+@endpush

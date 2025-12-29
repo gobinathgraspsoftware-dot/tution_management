@@ -80,7 +80,7 @@
                     <div class="mb-3">
                         <label class="form-label">Current Password</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" value="{{ $student->user->password_view ?? '••••••••' }}" disabled>
+                            <input type="text" class="form-control" id="currentPasswordDisplay" value="••••••••" disabled>
                             <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordDisplay()" id="toggleBtn">
                                 <i class="fas fa-eye" id="toggleIcon"></i>
                             </button>
@@ -91,7 +91,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">New Password</label>
-                            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror">
+                            <input type="password" name="password" id="newPassword" class="form-control @error('password') is-invalid @enderror">
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -184,7 +184,7 @@
             </div>
         </div>
 
-        <!-- Parent & Registration -->
+        <!-- Parent Information -->
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header">
@@ -195,19 +195,9 @@
                         <label class="form-label">Parent <span class="text-danger">*</span></label>
                         <select name="parent_id" id="parent_id" class="form-select @error('parent_id') is-invalid @enderror" required>
                             @if($student->parent)
-                                @php
-                                    $parentIcFormatted = $student->parent->ic_number;
-                                    if (strlen($student->parent->ic_number) === 12) {
-                                        $parentIcFormatted = substr($student->parent->ic_number, 0, 6) . '-' .
-                                                            substr($student->parent->ic_number, 6, 2) . '-' .
-                                                            substr($student->parent->ic_number, 8, 4);
-                                    }
-                                @endphp
                                 <option value="{{ $student->parent->id }}" selected>
-                                    {{ $student->parent->user->name }} ({{ $parentIcFormatted }})
+                                    {{ $student->parent->user->name }} ({{ substr($student->parent->ic_number, 0, 6) . '-' . substr($student->parent->ic_number, 6, 2) . '-' . substr($student->parent->ic_number, 8, 4) }})
                                 </option>
-                            @else
-                                <option value="">Search for a parent...</option>
                             @endif
                         </select>
                         @error('parent_id')
@@ -216,18 +206,6 @@
                         <small class="text-muted">
                             <i class="fas fa-search me-1"></i> Type to search by name, email, phone, or IC number
                         </small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Registration Type</label>
-                        <input type="text" class="form-control" value="{{ ucfirst($student->registration_type) }}" disabled>
-                        <small class="text-muted">Registration type cannot be changed</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Referral Code</label>
-                        <input type="text" class="form-control" value="{{ $student->referral_code }}" disabled>
-                        <small class="text-muted">Auto-generated, cannot be changed</small>
                     </div>
                 </div>
             </div>
@@ -261,11 +239,57 @@
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
                         <textarea name="notes" class="form-control @error('notes') is-invalid @enderror"
-                                  rows="2" placeholder="Internal notes (visible only on student view page)">{{ old('notes', $student->notes) }}</textarea>
+                                  rows="2">{{ old('notes', $student->notes) }}</textarea>
                         @error('notes')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="text-muted">This information will only be visible on the student view page.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WhatsApp Notification (for password change) -->
+        <div class="col-md-12">
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fab fa-whatsapp me-2"></i> WhatsApp Notification
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="send_whatsapp" name="send_whatsapp"
+                                       {{ !$whatsappEnabled ? 'disabled' : '' }}>
+                                <label class="form-check-label" for="send_whatsapp">
+                                    <strong>Send WhatsApp notification to student when password is changed</strong>
+                                </label>
+                            </div>
+                            @if($whatsappEnabled)
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    When enabled and a new password is set, the student will receive a WhatsApp message with the updated credentials.
+                                </small>
+                            @else
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>WhatsApp service is not enabled.</strong>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="col-md-6">
+                            @if($whatsappEnabled)
+                                <div class="d-grid">
+                                    <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
+                                       class="btn btn-outline-success"
+                                       onclick="return confirm('Are you sure you want to resend WhatsApp credentials to the student?');">
+                                        <i class="fab fa-whatsapp me-2"></i> Resend WhatsApp Credentials
+                                    </a>
+                                    <small class="text-muted mt-2 text-center">
+                                        Resend registration details with current password to student's WhatsApp
+                                    </small>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -352,14 +376,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Format IC number as user types
     icInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/[^0-9]/g, ''); // Remove non-digits
+        let value = e.target.value.replace(/[^0-9]/g, '');
 
-        // Limit to 12 digits
         if (value.length > 12) {
             value = value.substring(0, 12);
         }
 
-        // Format with hyphens: YYMMDD-BP-XXXX
         let formatted = '';
         if (value.length > 0) {
             formatted = value.substring(0, 6);
@@ -373,7 +395,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         e.target.value = formatted;
 
-        // Auto-extract DOB and Gender when IC is complete
         if (value.length === 12) {
             extractDOBAndGender(value);
         }
@@ -381,18 +402,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Extract Date of Birth and Gender from IC Number
     function extractDOBAndGender(icNumber) {
-        // Extract YYMMDD from first 6 digits
         const year = icNumber.substring(0, 2);
         const month = icNumber.substring(2, 4);
         const day = icNumber.substring(4, 6);
 
-        // Determine century (00-25 = 2000s, 26-99 = 1900s)
         const fullYear = (parseInt(year) <= 25) ? '20' + year : '19' + year;
 
-        // Set date of birth
         dobInput.value = fullYear + '-' + month + '-' + day;
 
-        // Extract gender from last digit (odd = male, even = female)
         const lastDigit = parseInt(icNumber.substring(11, 12));
         if (lastDigit % 2 === 0) {
             genderSelect.value = 'female';
@@ -414,6 +431,21 @@ document.addEventListener('DOMContentLoaded', function() {
     genderSelect.addEventListener('focus', function(e) {
         alert('Gender will be automatically detected from IC Number.');
     });
+
+    // Toggle WhatsApp checkbox based on password input
+    const newPasswordInput = document.getElementById('newPassword');
+    const whatsappCheckbox = document.getElementById('send_whatsapp');
+
+    if (newPasswordInput && whatsappCheckbox) {
+        newPasswordInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                whatsappCheckbox.disabled = false;
+            } else {
+                whatsappCheckbox.checked = false;
+                whatsappCheckbox.disabled = {{ $whatsappEnabled ? 'false' : 'true' }};
+            }
+        });
+    }
 });
 
 // Toggle password display
@@ -421,7 +453,7 @@ let passwordVisible = false;
 const originalPassword = '{{ $student->user->password_view ?? "" }}';
 
 function togglePasswordDisplay() {
-    const passwordInput = document.querySelector('input[value="{{ $student->user->password_view ?? '••••••••' }}"]');
+    const passwordInput = document.getElementById('currentPasswordDisplay');
     const toggleIcon = document.getElementById('toggleIcon');
 
     if (!passwordVisible && originalPassword) {
@@ -461,6 +493,36 @@ function togglePasswordDisplay() {
 
 .select2-result-parent__phone {
     color: #667eea;
+}
+
+/* WhatsApp notification card styling */
+.border-success {
+    border-color: #25D366 !important;
+}
+
+.bg-success {
+    background-color: #25D366 !important;
+}
+
+.btn-outline-success {
+    color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-outline-success:hover {
+    background-color: #25D366;
+    border-color: #25D366;
+    color: white;
+}
+
+.form-check-input:checked {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+
+.form-switch .form-check-input:focus {
+    border-color: #25D366;
+    box-shadow: 0 0 0 0.25rem rgba(37, 211, 102, 0.25);
 }
 </style>
 @endpush

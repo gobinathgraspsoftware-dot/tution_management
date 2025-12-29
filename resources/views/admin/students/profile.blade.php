@@ -15,7 +15,14 @@
             </ol>
         </nav>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        @if(($whatsappEnabled ?? config('notification.whatsapp.enabled', false)) && $student->user->phone)
+            <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
+               class="btn btn-success"
+               onclick="return confirm('Send registration details with login credentials via WhatsApp to student?');">
+                <i class="fab fa-whatsapp me-1"></i> Send WhatsApp
+            </a>
+        @endif
         <a href="{{ route('admin.students.history', $student) }}" class="btn btn-info">
             <i class="fas fa-history me-1"></i> View History
         </a>
@@ -49,8 +56,18 @@
                     @endif
                     <span class="badge bg-info">{{ ucfirst($student->registration_type) }}</span>
                 </p>
-                <p class="mb-1"><i class="fas fa-envelope me-2"></i> {{ $student->user->email }}</p>
-                <p class="mb-1"><i class="fas fa-phone me-2"></i> {{ $student->user->phone ?? 'N/A' }}</p>
+                <p class="mb-1">
+                    <i class="fas fa-envelope me-2"></i> {{ $student->user->email }}
+                </p>
+                <p class="mb-1">
+                    <i class="fas fa-phone me-2"></i> {{ $student->user->phone ?? 'N/A' }}
+                    @if(($whatsappEnabled ?? config('notification.whatsapp.enabled', false)) && $student->user->phone)
+                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->user->phone) }}"
+                           target="_blank" class="text-success ms-2" title="Open WhatsApp">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                    @endif
+                </p>
                 <p class="mb-0"><i class="fas fa-school me-2"></i> {{ $student->school_name ?? 'N/A' }} - {{ $student->grade_level ?? 'N/A' }}</p>
             </div>
             <div class="col-md-4">
@@ -131,7 +148,16 @@
                 <table class="table table-borderless">
                     <tr>
                         <td class="text-muted" width="40%">IC Number</td>
-                        <td><strong>{{ $student->ic_number ?? 'N/A' }}</strong></td>
+                        <td><strong>
+                            @php
+                                $ic = $student->ic_number ?? '';
+                                if (strlen($ic) === 12) {
+                                    echo substr($ic, 0, 6) . '-' . substr($ic, 6, 2) . '-' . substr($ic, 8, 4);
+                                } else {
+                                    echo $ic ?: 'N/A';
+                                }
+                            @endphp
+                        </strong></td>
                     </tr>
                     <tr>
                         <td class="text-muted">Date of Birth</td>
@@ -164,8 +190,14 @@
         <!-- Parent Information -->
         @if($student->parent)
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-user-friends me-2"></i> Parent/Guardian Information
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user-friends me-2"></i> Parent/Guardian Information</span>
+                @if(($whatsappEnabled ?? config('notification.whatsapp.enabled', false)) && $student->parent->user->phone)
+                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->parent->user->phone) }}"
+                       target="_blank" class="btn btn-sm btn-success" title="Chat on WhatsApp">
+                        <i class="fab fa-whatsapp me-1"></i> Chat
+                    </a>
+                @endif
             </div>
             <div class="card-body">
                 <table class="table table-borderless">
@@ -179,13 +211,48 @@
                     </tr>
                     <tr>
                         <td class="text-muted">Phone</td>
-                        <td><strong>{{ $student->parent->user->phone ?? 'N/A' }}</strong></td>
+                        <td>
+                            <strong>{{ $student->parent->user->phone ?? 'N/A' }}</strong>
+                            @if(($whatsappEnabled ?? config('notification.whatsapp.enabled', false)) && $student->parent->user->phone)
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->parent->user->phone) }}"
+                                   target="_blank" class="text-success ms-2" title="Open WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                            @endif
+                        </td>
                     </tr>
                     <tr>
                         <td class="text-muted">Relationship</td>
                         <td><strong>{{ ucfirst($student->parent->relationship ?? 'N/A') }}</strong></td>
                     </tr>
                 </table>
+            </div>
+        </div>
+        @endif
+
+        <!-- WhatsApp Quick Actions -->
+        @if($whatsappEnabled ?? config('notification.whatsapp.enabled', false))
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <i class="fab fa-whatsapp me-2"></i> WhatsApp Actions
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
+                       class="btn btn-outline-success"
+                       onclick="return confirm('Send registration details with login credentials via WhatsApp?');">
+                        <i class="fab fa-whatsapp me-1"></i> Send Credentials to Parent
+                    </a>
+                    @if($student->parent && $student->parent->user->phone)
+                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->parent->user->phone) }}"
+                           target="_blank" class="btn btn-outline-secondary">
+                            <i class="fas fa-comments me-1"></i> Direct Chat with Parent
+                        </a>
+                    @endif
+                </div>
+                <small class="text-muted d-block mt-2 text-center">
+                    Send login credentials or chat directly with parent
+                </small>
             </div>
         </div>
         @endif
@@ -205,11 +272,11 @@
                         <small class="text-muted">Referrals</small>
                     </div>
                     <div class="col-4">
-                        <h4 class="text-success">RM {{ number_format($stats['voucher_balance'], 2) }}</h4>
+                        <h4 class="text-success">RM {{ number_format($stats['voucher_balance'] ?? 0, 2) }}</h4>
                         <small class="text-muted">Voucher Balance</small>
                     </div>
                     <div class="col-4">
-                        <h4 class="text-info">{{ $student->referralVouchers->where('status', 'active')->count() }}</h4>
+                        <h4 class="text-info">{{ $student->referralVouchers->where('status', 'active')->count() ?? 0 }}</h4>
                         <small class="text-muted">Active Vouchers</small>
                     </div>
                 </div>
@@ -220,7 +287,7 @@
                 <p><strong>{{ $student->referrer->user->name }}</strong> ({{ $student->referrer->student_id }})</p>
                 @endif
 
-                @if($referredStudents->count() > 0)
+                @if(isset($referredStudents) && $referredStudents->count() > 0)
                 <hr>
                 <p class="mb-2"><small class="text-muted">Students Referred:</small></p>
                 @foreach($referredStudents as $referred)
@@ -253,8 +320,8 @@
         <!-- Reviews -->
         <div class="card mb-4">
             <div class="card-header">
-                <i class="fas fa-star me-2"></i> Reviews ({{ $stats['reviews_count'] }})
-                @if($stats['average_rating'] > 0)
+                <i class="fas fa-star me-2"></i> Reviews ({{ $stats['reviews_count'] ?? 0 }})
+                @if(($stats['average_rating'] ?? 0) > 0)
                 <span class="float-end">
                     @for($i = 1; $i <= 5; $i++)
                         @if($i <= round($stats['average_rating']))
@@ -394,3 +461,67 @@
 </div>
 @endif
 @endsection
+
+@push('styles')
+<style>
+/* WhatsApp themed elements */
+.border-success {
+    border-color: #25D366 !important;
+}
+
+.bg-success {
+    background-color: #25D366 !important;
+}
+
+.btn-success {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-success:hover {
+    background-color: #1da851;
+    border-color: #1da851;
+}
+
+.btn-outline-success {
+    color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-outline-success:hover {
+    background-color: #25D366;
+    border-color: #25D366;
+    color: white;
+}
+
+.text-success {
+    color: #25D366 !important;
+}
+
+/* Stat card styling */
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-right: 15px;
+}
+
+.stat-details h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+</style>
+@endpush

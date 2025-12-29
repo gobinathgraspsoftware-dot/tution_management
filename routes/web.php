@@ -311,9 +311,11 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('students/search-parents', [StudentController::class, 'searchParents'])->name('students.search-parents');
         Route::resource('students', StudentController::class);
         Route::patch('/students/{student}/toggle-status', [StudentController::class, 'toggleStatus'])->name('students.toggle-status');
-        Route::patch('/students/{student}/approve', [StudentController::class, 'approve'])->name('students.approve');
-        Route::patch('/students/{student}/reject', [StudentController::class, 'reject'])->name('students.reject');
+        // Route::patch('/students/{student}/approve', [StudentController::class, 'approve'])->name('students.approve');
+        // Route::patch('/students/{student}/reject', [StudentController::class, 'reject'])->name('students.reject');
         Route::get('/students-export', [StudentController::class, 'export'])->name('students.export');
+        // WhatsApp resend route
+        Route::get('/{student}/resend-whatsapp', [StudentController::class, 'resendWhatsApp'])->name('students.resend-whatsapp');
 
         // SUBJECT MANAGEMENT
         Route::resource('subjects', SubjectController::class);

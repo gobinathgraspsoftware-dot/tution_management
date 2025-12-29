@@ -15,7 +15,14 @@
             </ol>
         </nav>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        @if($whatsappEnabled && $student->user->phone)
+            <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
+               class="btn btn-success"
+               onclick="return confirm('Are you sure you want to send WhatsApp credentials to the student?');">
+                <i class="fab fa-whatsapp me-1"></i> Send WhatsApp
+            </a>
+        @endif
         @can('edit-students')
         <a href="{{ route('admin.students.edit', $student) }}" class="btn btn-primary">
             <i class="fas fa-edit me-1"></i> Edit
@@ -69,16 +76,26 @@
                     </p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label text-muted small mb-1">Password View</label>
-                    <p class="mb-0">
-                        <p class="mb-0">{{ $student->user->password_view ?? 'Please once update your password.' }}</p>
-                    </p>
+                    <label class="form-label text-muted small mb-1">Password</label>
+                    <div class="input-group input-group-sm">
+                        <input type="password" class="form-control" id="passwordView"
+                               value="{{ $student->user->password_view ?? '••••••••' }}" disabled>
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordView()">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Phone</label>
                     <p class="mb-0">
                         @if($student->user->phone)
                             <a href="tel:{{ $student->user->phone }}">{{ $student->user->phone }}</a>
+                            @if($whatsappEnabled)
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->user->phone) }}"
+                                   target="_blank" class="text-success ms-2" title="Open WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                            @endif
                         @else
                             N/A
                         @endif
@@ -117,6 +134,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- WhatsApp Quick Actions -->
+        @if($whatsappEnabled)
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <i class="fab fa-whatsapp me-2"></i> WhatsApp Actions
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    @if($student->user->phone)
+                        <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
+                           class="btn btn-outline-success btn-sm"
+                           onclick="return confirm('Send registration details with login credentials via WhatsApp to student?');">
+                            <i class="fab fa-whatsapp me-1"></i> Send Credentials to Student
+                        </a>
+                    @else
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Student has no phone number registered.
+                        </div>
+                    @endif
+                </div>
+                <small class="text-muted d-block mt-2 text-center">
+                    Send login credentials to student's WhatsApp
+                </small>
+            </div>
+        </div>
+        @endif
     </div>
 
     <div class="col-md-8">
@@ -168,25 +213,17 @@
                 @if($student->medical_conditions)
                 <div class="mt-3">
                     <label class="form-label text-muted small mb-1">Medical Conditions</label>
-                    <p class="mb-0 text-warning"><i class="fas fa-exclamation-triangle me-1"></i> {{ $student->medical_conditions }}</p>
+                    <p class="mb-0">{{ $student->medical_conditions }}</p>
+                </div>
+                @endif
+                @if($student->notes)
+                <div class="mt-3">
+                    <label class="form-label text-muted small mb-1">Notes</label>
+                    <p class="mb-0">{{ $student->notes }}</p>
                 </div>
                 @endif
             </div>
         </div>
-
-        <!-- Internal Notes (Visible only on View Page) -->
-        @if($student->notes)
-        <div class="card mb-4">
-            <div class="card-header bg-warning bg-opacity-25">
-                <i class="fas fa-sticky-note me-2"></i> Internal Notes
-                <span class="badge bg-warning text-dark ms-2">Confidential</span>
-            </div>
-            <div class="card-body">
-                <p class="mb-0">{{ $student->notes }}</p>
-                <small class="text-muted"><i class="fas fa-info-circle me-1"></i> This information is visible only on this view page and not exposed elsewhere in the application.</small>
-            </div>
-        </div>
-        @endif
 
         <!-- Parent Information -->
         <div class="card mb-4">
@@ -206,12 +243,18 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Relationship</label>
-                        <p class="mb-0">{{ ucfirst($student->parent->relationship) }}</p>
+                        <p class="mb-0">{{ ucfirst($student->parent->relationship ?? 'N/A') }}</p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Phone</label>
                         <p class="mb-0">
                             <a href="tel:{{ $student->parent->user->phone }}">{{ $student->parent->user->phone }}</a>
+                            @if($whatsappEnabled && $student->parent->user->phone)
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->parent->user->phone) }}"
+                                   target="_blank" class="text-success ms-2" title="Open WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                            @endif
                         </p>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -360,3 +403,74 @@
     </a>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+let passwordShowing = false;
+const storedPassword = '{{ $student->user->password_view ?? "" }}';
+
+function togglePasswordView() {
+    const passwordInput = document.getElementById('passwordView');
+    const toggleIcon = document.getElementById('passwordToggleIcon');
+
+    if (!passwordShowing && storedPassword) {
+        passwordInput.type = 'text';
+        passwordInput.value = storedPassword;
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+        passwordShowing = true;
+    } else {
+        passwordInput.type = 'password';
+        passwordInput.value = '••••••••';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+        passwordShowing = false;
+    }
+}
+</script>
+
+<style>
+/* WhatsApp themed elements */
+.border-success {
+    border-color: #25D366 !important;
+}
+
+.bg-success {
+    background-color: #25D366 !important;
+}
+
+.btn-success {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-success:hover {
+    background-color: #1da851;
+    border-color: #1da851;
+}
+
+.btn-outline-success {
+    color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-outline-success:hover {
+    background-color: #25D366;
+    border-color: #25D366;
+    color: white;
+}
+
+.text-success {
+    color: #25D366 !important;
+}
+
+.user-avatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+</style>
+@endpush
