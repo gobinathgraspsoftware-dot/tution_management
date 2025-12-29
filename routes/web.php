@@ -295,6 +295,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::resource('teachers', TeacherController::class);
         Route::patch('/teachers/{teacher}/toggle-status', [TeacherController::class, 'toggleStatus'])->name('teachers.toggle-status');
         Route::get('/teachers-export', [TeacherController::class, 'export'])->name('teachers.export');
+        Route::get('/teachers/{teacher}/resend-whatsapp', [TeacherController::class, 'resendWhatsApp'])->name('teachers.resend-whatsapp');
 
         // Parent Management
         Route::get('/parents/postcode-data', [ParentController::class, 'getPostcodeData'])->name('parents.postcode-data');

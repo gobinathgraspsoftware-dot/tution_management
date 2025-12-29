@@ -109,7 +109,7 @@
                     <div class="mb-3">
                         <label class="form-label">IC Number <span class="text-danger">*</span></label>
                         <input type="text" name="ic_number" id="ic_number" class="form-control @error('ic_number') is-invalid @enderror"
-                               value="{{ old('ic_number') }}" placeholder="001005-10-1519" maxlength="14" required>
+                               value="{{ old('ic_number') }}" placeholder="XXXXXX-XX-XXXX" maxlength="14" required>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

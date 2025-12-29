@@ -53,7 +53,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                        <label class="form-label">Phone Number (WhatsApp) <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <select name="country_code" class="form-select" style="max-width: 120px;">
                                 @foreach(config('country_codes.countries', []) as $country)
@@ -70,6 +70,10 @@
                                    placeholder="e.g., 123456789"
                                    required>
                         </div>
+                        <small class="text-muted">
+                            <i class="fab fa-whatsapp text-success"></i>
+                            This number will be used for WhatsApp notifications
+                        </small>
                         @error('phone')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -128,7 +132,7 @@
                                placeholder="XXXXXX-XX-XXXX"
                                maxlength="14"
                                required>
-                        <small class="text-muted">Format: 001005-10-1519 (12 digits)</small>
+                        <small class="text-muted">Format: XXXXXX-XX-XXXX (12 digits)</small>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -167,13 +171,13 @@
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Experience (Years) <span class="text-danger">*</span></label>
+                            <label class="form-label">Years of Experience <span class="text-danger">*</span></label>
                             <input type="number"
                                    name="experience_years"
-                                   min="0"
-                                   max="50"
                                    class="form-control @error('experience_years') is-invalid @enderror"
                                    value="{{ old('experience_years', 0) }}"
+                                   min="0"
+                                   max="50"
                                    required>
                             @error('experience_years')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -192,10 +196,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Bio</label>
+                        <label class="form-label">Bio / About</label>
                         <textarea name="bio"
                                   class="form-control @error('bio') is-invalid @enderror"
-                                  rows="2">{{ old('bio') }}</textarea>
+                                  rows="2"
+                                  placeholder="Brief description about the teacher...">{{ old('bio') }}</textarea>
                         @error('bio')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -204,11 +209,11 @@
             </div>
         </div>
 
-        <!-- Employment & Payment Details -->
+        <!-- Employment Information -->
         <div class="col-md-12">
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="fas fa-briefcase me-2"></i> Employment & Payment Details
+                    <i class="fas fa-briefcase me-2"></i> Employment Information
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -226,8 +231,8 @@
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Employment Type <span class="text-danger">*</span></label>
                             <select name="employment_type" class="form-select @error('employment_type') is-invalid @enderror" required>
-                                <option value="full_time" {{ old('employment_type') == 'full_time' ? 'selected' : '' }}>Full Time</option>
-                                <option value="part_time" {{ old('employment_type', 'part_time') == 'part_time' ? 'selected' : '' }}>Part Time</option>
+                                <option value="full_time" {{ old('employment_type', 'full_time') == 'full_time' ? 'selected' : '' }}>Full Time</option>
+                                <option value="part_time" {{ old('employment_type') == 'part_time' ? 'selected' : '' }}>Part Time</option>
                                 <option value="contract" {{ old('employment_type') == 'contract' ? 'selected' : '' }}>Contract</option>
                             </select>
                             @error('employment_type')
@@ -236,10 +241,10 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Pay Type <span class="text-danger">*</span></label>
-                            <select name="pay_type" id="payType" class="form-select @error('pay_type') is-invalid @enderror" required onchange="togglePayFields()">
-                                <option value="hourly" {{ old('pay_type') == 'hourly' ? 'selected' : '' }}>Hourly Rate</option>
+                            <select name="pay_type" id="payType" class="form-select @error('pay_type') is-invalid @enderror" onchange="togglePayFields()" required>
+                                <option value="hourly" {{ old('pay_type', 'hourly') == 'hourly' ? 'selected' : '' }}>Hourly Rate</option>
                                 <option value="monthly" {{ old('pay_type') == 'monthly' ? 'selected' : '' }}>Monthly Salary</option>
-                                <option value="per_class" {{ old('pay_type', 'per_class') == 'per_class' ? 'selected' : '' }}>Per Class</option>
+                                <option value="per_class" {{ old('pay_type') == 'per_class' ? 'selected' : '' }}>Per Class</option>
                             </select>
                             @error('pay_type')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -343,6 +348,54 @@
                 </div>
             </div>
         </div>
+
+        <!-- WhatsApp Notification Section -->
+        <div class="col-md-12">
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fab fa-whatsapp me-2"></i> WhatsApp Notification
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               name="send_whatsapp"
+                               id="sendWhatsapp"
+                               value="1"
+                               {{ old('send_whatsapp', true) ? 'checked' : '' }}
+                               {{ !($whatsappEnabled ?? false) ? 'disabled' : '' }}>
+                        <label class="form-check-label" for="sendWhatsapp">
+                            <strong>Send Welcome Notification via WhatsApp</strong>
+                        </label>
+                    </div>
+
+                    @if($whatsappEnabled ?? false)
+                        <div class="mt-3 p-3 bg-light rounded" id="whatsappPreview">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-eye me-1"></i> Notification Preview:
+                            </h6>
+                            <div class="whatsapp-message-preview p-3 bg-white rounded border">
+                                <div class="text-success fw-bold mb-2">🎓 Welcome to {{ config('app.name', 'Arena Matriks Edu Group') }}!</div>
+                                <small class="text-muted d-block mb-2">The teacher will receive:</small>
+                                <ul class="small mb-0">
+                                    <li>Welcome message with login credentials</li>
+                                    <li>Teacher ID</li>
+                                    <li>Email & Password</li>
+                                    <li>Login portal link</li>
+                                    <li>Assigned subjects</li>
+                                </ul>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>WhatsApp service is not enabled.</strong>
+                            <p class="mb-0 small">Please configure WhatsApp settings in the notification settings to enable this feature.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Action Buttons -->
@@ -395,6 +448,15 @@ $(document).ready(function() {
     $('#name').on('input', function() {
         $(this).val($(this).val().toUpperCase());
     });
+
+    // Toggle WhatsApp preview based on checkbox
+    $('#sendWhatsapp').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#whatsappPreview').slideDown();
+        } else {
+            $('#whatsappPreview').slideUp();
+        }
+    });
 });
 
 function togglePayFields() {
@@ -418,4 +480,17 @@ document.addEventListener('DOMContentLoaded', function() {
     togglePayFields();
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+.whatsapp-message-preview {
+    border-left: 4px solid #25D366 !important;
+    font-size: 0.9rem;
+}
+.form-check-input:checked {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+</style>
 @endpush

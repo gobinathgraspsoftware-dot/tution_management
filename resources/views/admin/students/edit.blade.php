@@ -128,7 +128,7 @@
                         <label class="form-label">IC Number <span class="text-danger">*</span></label>
                         <input type="text" name="ic_number" id="ic_number" class="form-control @error('ic_number') is-invalid @enderror"
                                value="{{ old('ic_number', substr($student->ic_number, 0, 6) . '-' . substr($student->ic_number, 6, 2) . '-' . substr($student->ic_number, 8, 4)) }}"
-                               placeholder="001005-10-1519" maxlength="14" required>
+                               placeholder="XXXXXX-XX-XXXX" maxlength="14" required>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

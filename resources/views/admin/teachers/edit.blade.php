@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-header">
-    <h1><i class="fas fa-edit me-2"></i> Edit Teacher</h1>
+    <h1><i class="fas fa-user-edit me-2"></i> Edit Teacher</h1>
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
@@ -23,22 +23,18 @@
         <!-- Account Information -->
         <div class="col-md-6">
             <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-user me-2"></i> Account Information
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-user me-2"></i> Account Information</span>
+                    <span class="badge bg-info">{{ $teacher->teacher_id }}</span>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Teacher ID</label>
-                        <input type="text" class="form-control" value="{{ $teacher->teacher_id }}" disabled>
-                    </div>
-
                     <div class="mb-3">
                         <label class="form-label">Full Name <span class="text-danger">*</span></label>
                         <input type="text"
                                id="name"
                                name="name"
                                class="form-control @error('name') is-invalid @enderror"
-                               value="{{ old('name', strtoupper($teacher->user->name)) }}"
+                               value="{{ old('name', $teacher->user->name) }}"
                                style="text-transform: uppercase;"
                                required>
                         @error('name')
@@ -58,12 +54,11 @@
                         @enderror
                     </div>
 
-                    @php
-                        $phoneData = \App\Helpers\CountryCodeHelper::extractCountryCode($teacher->user->phone);
-                    @endphp
-
                     <div class="mb-3">
-                        <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                        <label class="form-label">Phone Number (WhatsApp) <span class="text-danger">*</span></label>
+                        @php
+                            $phoneData = \App\Helpers\CountryCodeHelper::extractCountryCode($teacher->user->phone);
+                        @endphp
                         <div class="input-group">
                             <select name="country_code" class="form-select" style="max-width: 120px;">
                                 @foreach(config('country_codes.countries', []) as $country)
@@ -80,15 +75,13 @@
                                    placeholder="e.g., 123456789"
                                    required>
                         </div>
+                        <small class="text-muted">
+                            <i class="fab fa-whatsapp text-success"></i>
+                            This number will be used for WhatsApp notifications
+                        </small>
                         @error('phone')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Current Password (Reference)</label>
-                        <input type="text" class="form-control" value="{{ $teacher->user->password_view ?? '********' }}" disabled>
-                        <small class="text-muted">For reference only. Use fields below to change password.</small>
                     </div>
 
                     <div class="row">
@@ -96,17 +89,20 @@
                             <label class="form-label">New Password</label>
                             <input type="password"
                                    name="password"
-                                   class="form-control @error('password') is-invalid @enderror">
+                                   id="password"
+                                   class="form-control @error('password') is-invalid @enderror"
+                                   placeholder="Leave blank to keep current">
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Leave blank to keep current</small>
+                            <small class="text-muted">Minimum 8 characters</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Confirm Password</label>
                             <input type="password"
                                    name="password_confirmation"
-                                   class="form-control">
+                                   class="form-control"
+                                   placeholder="Confirm new password">
                         </div>
                     </div>
 
@@ -142,7 +138,7 @@
                                placeholder="XXXXXX-XX-XXXX"
                                maxlength="14"
                                required>
-                        <small class="text-muted">Format: 001005-10-1519</small>
+                        <small class="text-muted">Format: XXXXXX-XX-XXXX (12 digits)</small>
                         @error('ic_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -175,19 +171,19 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Select subjects</small>
+                            <small class="text-muted">Select one or more subjects</small>
                             @error('specialization')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Experience (Years) <span class="text-danger">*</span></label>
+                            <label class="form-label">Years of Experience <span class="text-danger">*</span></label>
                             <input type="number"
                                    name="experience_years"
-                                   min="0"
-                                   max="50"
                                    class="form-control @error('experience_years') is-invalid @enderror"
                                    value="{{ old('experience_years', $teacher->experience_years) }}"
+                                   min="0"
+                                   max="50"
                                    required>
                             @error('experience_years')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -206,10 +202,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Bio</label>
+                        <label class="form-label">Bio / About</label>
                         <textarea name="bio"
                                   class="form-control @error('bio') is-invalid @enderror"
-                                  rows="2">{{ old('bio', $teacher->bio) }}</textarea>
+                                  rows="2"
+                                  placeholder="Brief description about the teacher...">{{ old('bio', $teacher->bio) }}</textarea>
                         @error('bio')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -218,11 +215,11 @@
             </div>
         </div>
 
-        <!-- Employment & Payment Details -->
+        <!-- Employment Information -->
         <div class="col-md-12">
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="fas fa-briefcase me-2"></i> Employment & Payment Details
+                    <i class="fas fa-briefcase me-2"></i> Employment Information
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -250,7 +247,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Pay Type <span class="text-danger">*</span></label>
-                            <select name="pay_type" id="payType" class="form-select @error('pay_type') is-invalid @enderror" required onchange="togglePayFields()">
+                            <select name="pay_type" id="payType" class="form-select @error('pay_type') is-invalid @enderror" onchange="togglePayFields()" required>
                                 <option value="hourly" {{ old('pay_type', $teacher->pay_type) == 'hourly' ? 'selected' : '' }}>Hourly Rate</option>
                                 <option value="monthly" {{ old('pay_type', $teacher->pay_type) == 'monthly' ? 'selected' : '' }}>Monthly Salary</option>
                                 <option value="per_class" {{ old('pay_type', $teacher->pay_type) == 'per_class' ? 'selected' : '' }}>Per Class</option>
@@ -357,16 +354,63 @@
                 </div>
             </div>
         </div>
+
+        <!-- WhatsApp Notification Section -->
+        <div class="col-md-12">
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fab fa-whatsapp me-2"></i> WhatsApp Notification
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               name="send_whatsapp"
+                               id="sendWhatsapp"
+                               value="1"
+                               {{ !($whatsappEnabled ?? false) ? 'disabled' : '' }}>
+                        <label class="form-check-label" for="sendWhatsapp">
+                            <strong>Send Password Update Notification via WhatsApp</strong>
+                        </label>
+                    </div>
+
+                    @if($whatsappEnabled ?? false)
+                        <div class="alert alert-info mt-3 mb-0" id="whatsappInfo">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> WhatsApp notification will only be sent if you change the password above.
+                            <br><small class="text-muted">The teacher will receive their new login credentials via WhatsApp.</small>
+                        </div>
+                    @else
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>WhatsApp service is not enabled.</strong>
+                            <p class="mb-0 small">Please configure WhatsApp settings in the notification settings to enable this feature.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Action Buttons -->
-    <div class="d-flex justify-content-end gap-2 mb-4">
-        <a href="{{ route('admin.teachers.index') }}" class="btn btn-secondary">
-            <i class="fas fa-times me-1"></i> Cancel
-        </a>
-        <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save me-1"></i> Update Teacher
-        </button>
+    <div class="d-flex justify-content-between mb-4">
+        <div>
+            @if($whatsappEnabled ?? false)
+            <a href="{{ route('admin.teachers.resend-whatsapp', $teacher) }}"
+               class="btn btn-outline-success"
+               onclick="return confirm('Resend WhatsApp credentials to this teacher?')">
+                <i class="fab fa-whatsapp me-1"></i> Resend WhatsApp Credentials
+            </a>
+            @endif
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.teachers.index') }}" class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Update Teacher
+            </button>
+        </div>
     </div>
 </form>
 @endsection
@@ -409,6 +453,24 @@ $(document).ready(function() {
     $('#name').on('input', function() {
         $(this).val($(this).val().toUpperCase());
     });
+
+    // Show/hide WhatsApp checkbox based on password field
+    $('#password').on('input', function() {
+        if ($(this).val().length > 0) {
+            $('#sendWhatsapp').prop('disabled', false);
+            $('#whatsappInfo').html(
+                '<i class="fas fa-check-circle me-2 text-success"></i>' +
+                '<strong>Password detected!</strong> Check the box above to send the new password via WhatsApp.'
+            ).removeClass('alert-info').addClass('alert-success');
+        } else {
+            $('#sendWhatsapp').prop('checked', false);
+            $('#whatsappInfo').html(
+                '<i class="fas fa-info-circle me-2"></i>' +
+                '<strong>Note:</strong> WhatsApp notification will only be sent if you change the password above.' +
+                '<br><small class="text-muted">The teacher will receive their new login credentials via WhatsApp.</small>'
+            ).removeClass('alert-success').addClass('alert-info');
+        }
+    });
 });
 
 function togglePayFields() {
@@ -432,4 +494,13 @@ document.addEventListener('DOMContentLoaded', function() {
     togglePayFields();
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+.form-check-input:checked {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+</style>
 @endpush

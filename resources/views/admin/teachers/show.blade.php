@@ -15,7 +15,14 @@
             </ol>
         </nav>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        @if(config('notification.whatsapp.enabled', false))
+        <a href="{{ route('admin.teachers.resend-whatsapp', $teacher) }}" 
+           class="btn btn-success"
+           onclick="return confirm('Send WhatsApp credentials to {{ $teacher->user->name }}?')">
+            <i class="fab fa-whatsapp me-1"></i> Send WhatsApp
+        </a>
+        @endif
         @can('edit-teachers')
         <a href="{{ route('admin.teachers.edit', $teacher) }}" class="btn btn-primary">
             <i class="fas fa-edit me-1"></i> Edit
@@ -70,12 +77,16 @@
                     </p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label text-muted small mb-1">Phone</label>
+                    <label class="form-label text-muted small mb-1">Phone (WhatsApp)</label>
                     <p class="mb-0">
                         @if($teacher->user->phone)
-                            <a href="tel:{{ $teacher->user->phone }}">{{ $teacher->user->phone }}</a>
+                            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $teacher->user->phone) }}" 
+                               target="_blank" 
+                               class="text-success">
+                                <i class="fab fa-whatsapp me-1"></i>{{ $teacher->user->phone }}
+                            </a>
                         @else
-                            N/A
+                            <span class="text-muted">N/A</span>
                         @endif
                     </p>
                 </div>
@@ -108,6 +119,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Quick Actions -->
+        @if(config('notification.whatsapp.enabled', false))
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <i class="fab fa-whatsapp me-2"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <a href="{{ route('admin.teachers.resend-whatsapp', $teacher) }}" 
+                   class="btn btn-outline-success w-100 mb-2"
+                   onclick="return confirm('Send WhatsApp credentials to this teacher?')">
+                    <i class="fab fa-whatsapp me-1"></i> Resend Credentials
+                </a>
+                <small class="text-muted d-block text-center">
+                    Send login credentials via WhatsApp
+                </small>
+            </div>
+        </div>
+        @endif
     </div>
 
     <div class="col-md-8">
@@ -166,9 +196,17 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Current Password</label>
                         <p class="mb-0">
-                            <code>{{ $teacher->user->password_view ?? '********' }}</code>
+                            <code id="passwordDisplay">••••••••</code>
+                            @if($teacher->user->password_view)
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-secondary ms-2" 
+                                    onclick="togglePassword()">
+                                <i class="fas fa-eye" id="passwordIcon"></i>
+                            </button>
+                            @endif
                         </p>
                         <small class="text-muted">For reference only</small>
+                        <input type="hidden" id="actualPassword" value="{{ $teacher->user->password_view ?? '' }}">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Account Created</label>
@@ -240,6 +278,70 @@
                         <p class="mb-0">{{ $teacher->socso_number ?? 'N/A' }}</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Notification History -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fab fa-whatsapp me-2"></i> WhatsApp Notification History</span>
+            </div>
+            <div class="card-body">
+                @php
+                    $notifications = \App\Models\NotificationLog::where('user_id', $teacher->user_id)
+                        ->where('channel', 'whatsapp')
+                        ->latest()
+                        ->take(5)
+                        ->get();
+                @endphp
+                
+                @if($notifications->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Recipient</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($notifications as $notification)
+                            <tr>
+                                <td>{{ $notification->created_at->format('d M Y, h:i A') }}</td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ ucwords(str_replace('_', ' ', $notification->type)) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($notification->status == 'sent')
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Sent
+                                        </span>
+                                    @elseif($notification->status == 'pending')
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i>Pending
+                                        </span>
+                                    @else
+                                        <span class="badge bg-danger" title="{{ $notification->error_message }}">
+                                            <i class="fas fa-times me-1"></i>Failed
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>{{ $notification->recipient }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <p class="text-muted mb-0 text-center py-3">
+                    <i class="fab fa-whatsapp fa-2x mb-2 d-block"></i>
+                    No WhatsApp notifications sent yet.
+                </p>
+                @endif
             </div>
         </div>
 
@@ -337,3 +439,23 @@
     </a>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function togglePassword() {
+    const display = document.getElementById('passwordDisplay');
+    const actual = document.getElementById('actualPassword').value;
+    const icon = document.getElementById('passwordIcon');
+    
+    if (display.textContent === '••••••••') {
+        display.textContent = actual || 'N/A';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        display.textContent = '••••••••';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+</script>
+@endpush

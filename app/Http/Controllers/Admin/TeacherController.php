@@ -8,13 +8,23 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Subject;
 use App\Models\ActivityLog;
+use App\Models\NotificationLog;
+use App\Services\WhatsappService;
 use App\Helpers\CountryCodeHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class TeacherController extends Controller
 {
+    protected $whatsappService;
+
+    public function __construct(WhatsappService $whatsappService)
+    {
+        $this->whatsappService = $whatsappService;
+    }
+
     /**
      * Display a listing of teachers.
      */
@@ -59,7 +69,11 @@ class TeacherController extends Controller
     public function create()
     {
         $subjects = Subject::where('status', 'active')->orderBy('name')->get();
-        return view('admin.teachers.create', compact('subjects'));
+
+        // Check if WhatsApp service is enabled
+        $whatsappEnabled = config('notification.whatsapp.enabled', false);
+
+        return view('admin.teachers.create', compact('subjects', 'whatsappEnabled'));
     }
 
     /**
@@ -71,7 +85,7 @@ class TeacherController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'country_code' => 'nullable|string|max:5',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'ic_number' => [
                 'required',
@@ -107,6 +121,7 @@ class TeacherController extends Controller
             'epf_number' => 'nullable|string|max:50',
             'socso_number' => 'nullable|string|max:50',
             'status' => 'required|in:active,inactive,on_leave',
+            'send_whatsapp' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -142,7 +157,7 @@ class TeacherController extends Controller
             $teacherId = 'TCH-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
             // Create Teacher profile
-            Teacher::create([
+            $teacher = Teacher::create([
                 'user_id' => $user->id,
                 'teacher_id' => $teacherId,
                 'ic_number' => $cleanedIcNumber,
@@ -169,21 +184,127 @@ class TeacherController extends Controller
                 'user_id' => auth()->id(),
                 'action' => 'create',
                 'model_type' => 'Teacher',
-                'model_id' => $user->teacher->id,
+                'model_id' => $teacher->id,
                 'description' => 'Created teacher: ' . $name,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
 
             DB::commit();
+
+            // Send WhatsApp notification if requested (after successful commit)
+            $whatsappResult = null;
+            if ($request->boolean('send_whatsapp') && $phoneNumber) {
+                $whatsappResult = $this->sendTeacherWelcomeWhatsApp($user, $teacher, $validated['password']);
+            }
+
+            $successMessage = 'Teacher created successfully.';
+            if ($whatsappResult) {
+                if ($whatsappResult['success']) {
+                    $successMessage .= ' WhatsApp notification sent successfully.';
+                } else {
+                    $successMessage .= ' However, WhatsApp notification failed: ' . ($whatsappResult['error'] ?? 'Unknown error');
+                }
+            }
+
             return redirect()->route('admin.teachers.index')
-                ->with('success', 'Teacher created successfully.');
+                ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Teacher creation failed: ' . $e->getMessage());
             return back()->withInput()
                 ->with('error', 'Failed to create teacher. ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Send WhatsApp welcome notification to teacher.
+     */
+    protected function sendTeacherWelcomeWhatsApp(User $user, Teacher $teacher, string $plainPassword): array
+    {
+        try {
+            // Build welcome message
+            $message = $this->buildTeacherWelcomeMessage($user, $teacher, $plainPassword);
+
+            // Send WhatsApp notification
+            $result = $this->whatsappService->send($user->phone, $message);
+
+            // Log notification
+            NotificationLog::create([
+                'user_id' => $user->id,
+                'channel' => 'whatsapp',
+                'recipient' => $user->phone,
+                'type' => 'teacher_welcome',
+                'subject' => null,
+                'message' => $message,
+                'status' => $result['success'] ? 'sent' : 'failed',
+                'error_message' => $result['error'] ?? null,
+                'sent_at' => $result['success'] ? now() : null,
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Teacher WhatsApp notification failed: ' . $e->getMessage());
+
+            // Log failed notification
+            NotificationLog::create([
+                'user_id' => $user->id,
+                'channel' => 'whatsapp',
+                'recipient' => $user->phone,
+                'type' => 'teacher_welcome',
+                'subject' => null,
+                'message' => 'Failed to send',
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Build teacher welcome WhatsApp message.
+     */
+    protected function buildTeacherWelcomeMessage(User $user, Teacher $teacher, string $plainPassword): string
+    {
+        $centerName = config('app.name', 'Arena Matriks Edu Group');
+        $loginUrl = url('/login');
+        $joinDate = $teacher->join_date ? $teacher->join_date->format('d M Y') : date('d M Y');
+
+        // Get specialization names
+        $specializations = '';
+        if (!empty($teacher->specialization_names)) {
+            $specializations = implode(', ', $teacher->specialization_names);
+        }
+
+        $message = "🎓 *Welcome to {$centerName}!*\n\n";
+        $message .= "Greetings,\n\n";
+        $message .= "Dear *{$user->name}*,\n\n";
+        $message .= "Congratulations! You have been successfully registered as a *Teacher* at {$centerName}.\n\n";
+        $message .= "📋 *Your Account Details:*\n";
+        $message .= "━━━━━━━━━━━━━━━━━━━━━\n";
+        $message .= "👤 Teacher ID: *{$teacher->teacher_id}*\n";
+        $message .= "📧 Email: {$user->email}\n";
+        $message .= "🔑 Password: *{$plainPassword}*\n";
+        $message .= "📅 Join Date: {$joinDate}\n";
+
+        if ($specializations) {
+            $message .= "📚 Subjects: {$specializations}\n";
+        }
+
+        $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
+        $message .= "🔗 *Login Portal:*\n{$loginUrl}\n\n";
+        $message .= "⚠️ _Please change your password after your first login for security._\n\n";
+        $message .= "If you have any questions, please contact our admin team.\n\n";
+        $message .= "Thank you for joining us!\n";
+        $message .= "_{$centerName}_";
+
+        return $message;
     }
 
     /**
@@ -199,7 +320,10 @@ class TeacherController extends Controller
         $stats = [
             'total_classes' => $teacher->classes()->count(),
             'active_classes' => $teacher->classes()->where('status', 'active')->count(),
-            'total_students' => $teacher->classes()->withCount('enrollments')->get()->sum('enrollments_count'),
+            'total_students' => $teacher->classes()
+                ->withCount('enrollments')
+                ->get()
+                ->sum('enrollments_count'),
         ];
 
         return view('admin.teachers.show', compact('teacher', 'stats'));
@@ -212,7 +336,11 @@ class TeacherController extends Controller
     {
         $teacher->load('user');
         $subjects = Subject::where('status', 'active')->orderBy('name')->get();
-        return view('admin.teachers.edit', compact('teacher', 'subjects'));
+
+        // Check if WhatsApp service is enabled
+        $whatsappEnabled = config('notification.whatsapp.enabled', false);
+
+        return view('admin.teachers.edit', compact('teacher', 'subjects', 'whatsappEnabled'));
     }
 
     /**
@@ -224,7 +352,7 @@ class TeacherController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($teacher->user_id)],
             'country_code' => 'nullable|string|max:5',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'ic_number' => [
                 'required',
@@ -260,6 +388,7 @@ class TeacherController extends Controller
             'epf_number' => 'nullable|string|max:50',
             'socso_number' => 'nullable|string|max:50',
             'status' => 'required|in:active,inactive,on_leave',
+            'send_whatsapp' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -286,9 +415,13 @@ class TeacherController extends Controller
             ];
 
             // Only update password if provided
+            $passwordChanged = false;
+            $newPassword = null;
             if (!empty($validated['password'])) {
                 $userData['password'] = Hash::make($validated['password']);
                 $userData['password_view'] = $validated['password'];
+                $passwordChanged = true;
+                $newPassword = $validated['password'];
             }
 
             $teacher->user->update($userData);
@@ -326,14 +459,120 @@ class TeacherController extends Controller
             ]);
 
             DB::commit();
+
+            // Send WhatsApp notification if password changed and requested
+            $whatsappResult = null;
+            if ($request->boolean('send_whatsapp') && $passwordChanged && $phoneNumber) {
+                $whatsappResult = $this->sendPasswordUpdateWhatsApp($teacher->user, $teacher, $newPassword);
+            }
+
+            $successMessage = 'Teacher updated successfully.';
+            if ($whatsappResult) {
+                if ($whatsappResult['success']) {
+                    $successMessage .= ' WhatsApp notification sent with new password.';
+                } else {
+                    $successMessage .= ' However, WhatsApp notification failed: ' . ($whatsappResult['error'] ?? 'Unknown error');
+                }
+            }
+
             return redirect()->route('admin.teachers.index')
-                ->with('success', 'Teacher updated successfully.');
+                ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Teacher update failed: ' . $e->getMessage());
             return back()->withInput()
                 ->with('error', 'Failed to update teacher. ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Send WhatsApp notification for password update.
+     */
+    protected function sendPasswordUpdateWhatsApp(User $user, Teacher $teacher, string $newPassword): array
+    {
+        try {
+            $centerName = config('app.name', 'Arena Matriks Edu Group');
+            $loginUrl = url('/login');
+
+            $message = "🔐 *Password Update Notification*\n\n";
+            $message .= "Dear *{$user->name}*,\n\n";
+            $message .= "Your account password has been updated by the administrator.\n\n";
+            $message .= "📋 *Updated Login Details:*\n";
+            $message .= "━━━━━━━━━━━━━━━━━━━━━\n";
+            $message .= "📧 Email: {$user->email}\n";
+            $message .= "🔑 New Password: *{$newPassword}*\n";
+            $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
+            $message .= "🔗 *Login Portal:*\n{$loginUrl}\n\n";
+            $message .= "⚠️ _Please change your password after login for security._\n\n";
+            $message .= "_{$centerName}_";
+
+            $result = $this->whatsappService->send($user->phone, $message);
+
+            // Log notification
+            NotificationLog::create([
+                'user_id' => $user->id,
+                'channel' => 'whatsapp',
+                'recipient' => $user->phone,
+                'type' => 'teacher_password_update',
+                'subject' => null,
+                'message' => $message,
+                'status' => $result['success'] ? 'sent' : 'failed',
+                'error_message' => $result['error'] ?? null,
+                'sent_at' => $result['success'] ? now() : null,
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Teacher password update WhatsApp failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Resend WhatsApp credentials to teacher.
+     */
+    public function resendWhatsApp(Teacher $teacher)
+    {
+        $teacher->load('user');
+
+        if (!$teacher->user->phone) {
+            return back()->with('error', 'Teacher does not have a phone number registered.');
+        }
+
+        // Check if WhatsApp service is enabled
+        if (!config('notification.whatsapp.enabled', false)) {
+            return back()->with('error', 'WhatsApp service is not enabled.');
+        }
+
+        // Get password from password_view or generate new one
+        $password = $teacher->user->password_view;
+        if (!$password) {
+            return back()->with('error', 'Cannot resend credentials. Password is not available. Please update the teacher with a new password.');
+        }
+
+        $result = $this->sendTeacherWelcomeWhatsApp($teacher->user, $teacher, $password);
+
+        if ($result['success']) {
+            // Log activity
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'resend_whatsapp',
+                'model_type' => 'Teacher',
+                'model_id' => $teacher->id,
+                'description' => 'Resent WhatsApp credentials to teacher: ' . $teacher->user->name,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            return back()->with('success', 'WhatsApp notification sent successfully to ' . $teacher->user->phone);
+        }
+
+        return back()->with('error', 'Failed to send WhatsApp notification: ' . ($result['error'] ?? 'Unknown error'));
     }
 
     /**

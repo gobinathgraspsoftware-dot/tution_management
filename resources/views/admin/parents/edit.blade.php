@@ -92,7 +92,7 @@
                         <label for="ic_number" class="form-label">IC Number <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @error('ic_number') is-invalid @enderror"
                                id="ic_number" name="ic_number" value="{{ old('ic_number', $parent->ic_number) }}"
-                               placeholder="e.g., 001005-10-1519" maxlength="14" required>
+                               placeholder="e.g., XXXXXX-XX-XXXX" maxlength="14" required>
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i> Format: XXXXXX-XX-XXXX (12 digits)
                         </small>

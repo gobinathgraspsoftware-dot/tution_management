@@ -254,7 +254,7 @@ class ParentController extends Controller
     {
         try {
             $whatsappNumber = $parent->whatsapp_number ?? $parent->user->phone;
-            
+
             if (!$whatsappNumber) {
                 Log::warning('No WhatsApp number available for parent: ' . $parent->parent_id);
                 return;
@@ -291,34 +291,35 @@ class ParentController extends Controller
         $centrePhone = config('app.centre_phone', '03-7972 3663');
         $loginUrl = url('/login');
 
-        $message = "🎉 *Selamat Datang ke {$centreName}!*\n\n";
-        $message .= "Salam sejahtera, *{$parent->user->name}*!\n\n";
-        $message .= "Akaun ibu bapa anda telah berjaya didaftarkan.\n\n";
-        
-        $message .= "📋 *Maklumat Akaun Anda:*\n";
+        $message = "🎉 *Welcome to {$centreName}!*\n\n";
+        $message .= "Greetings, *{$parent->user->name}*!\n\n";
+        $message .= "Your parent account has been successfully registered.\n\n";
+
+        $message .= "📋 *Your Account Details:*\n";
         $message .= "━━━━━━━━━━━━━━━━━\n";
-        $message .= "🆔 ID Ibu Bapa: *{$parent->parent_id}*\n";
+        $message .= "🆔 Parent ID: *{$parent->parent_id}*\n";
         $message .= "📧 Email: {$parent->user->email}\n";
-        $message .= "🔑 Kata Laluan: {$password}\n\n";
+        $message .= "🔑 Password: {$password}\n\n";
 
         if ($studentCount > 0) {
-            $message .= "👨‍👩‍👧‍👦 *Anak yang didaftarkan:*\n";
+            $message .= "👨‍👩‍👧‍👦 *Registered Children:*\n";
             $message .= "{$studentNames}\n\n";
         }
 
-        $message .= "🔗 *Log Masuk Portal Ibu Bapa:*\n";
+        $message .= "🔗 *Parent Portal Login:*\n";
         $message .= "{$loginUrl}\n\n";
 
-        $message .= "Melalui portal ini, anda boleh:\n";
-        $message .= "✅ Melihat jadual kelas anak\n";
-        $message .= "✅ Menyemak kehadiran\n";
-        $message .= "✅ Melihat keputusan peperiksaan\n";
-        $message .= "✅ Membuat pembayaran\n\n";
+        $message .= "Through this portal, you can:\n";
+        $message .= "✅ View your child’s class schedule\n";
+        $message .= "✅ Check attendance\n";
+        $message .= "✅ View examination results\n";
+        $message .= "✅ Make payments\n\n";
 
-        $message .= "📞 Untuk sebarang pertanyaan:\n";
+        $message .= "📞 For any inquiries:\n";
         $message .= "Tel: {$centrePhone}\n\n";
 
-        $message .= "Terima kasih kerana memilih {$centreName}! 🙏";
+        $message .= "Thank you for choosing {$centreName}! 🙏";
+
 
         return $message;
     }
@@ -592,7 +593,7 @@ class ParentController extends Controller
         try {
             // Get password from user record (stored in password_view)
             $password = $parent->user->password_view ?? 'Password was changed, please use current password';
-            
+
             $this->sendWhatsAppWelcomeNotification($parent, $password);
 
             return back()->with('success', 'WhatsApp welcome notification resent successfully.');
