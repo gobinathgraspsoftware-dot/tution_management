@@ -91,7 +91,7 @@
                         <label for="ic_number" class="form-label">IC Number <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @error('ic_number') is-invalid @enderror"
                                id="ic_number" name="ic_number" value="{{ old('ic_number') }}"
-                               placeholder="e.g., 001005-10-1519" maxlength="14" required>
+                               placeholder="e.g., 123456-78-9012" maxlength="14" required>
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i> Format: XXXXXX-XX-XXXX (12 digits)
                         </small>
@@ -301,7 +301,7 @@
                 </div>
             </div>
 
-            <!-- Notification Preferences -->
+            <!-- Notification Preferences - WhatsApp Only -->
             <div class="card mb-4">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notification Preferences</h5>
@@ -309,8 +309,7 @@
                 <div class="card-body">
                     <p class="text-muted mb-3">Configure how the parent receives notifications:</p>
 
-                    <div class="form-check">
-                                            <!-- WhatsApp Notifications -->
+                    <!-- WhatsApp Notifications Only -->
                     <div class="form-check mb-3">
                         <input type="checkbox" class="form-check-input" id="whatsapp_notifications"
                                name="whatsapp_notifications" value="1"
@@ -321,13 +320,9 @@
                         <br><small class="text-muted">Receive updates and notifications via WhatsApp</small>
                     </div>
 
-<input type="checkbox" class="form-check-input" id="email_notifications"
-                               name="email_notifications" value="1"
-                               {{ old('email_notifications', true) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="email_notifications">
-                            <i class="fas fa-envelope text-primary me-1"></i> Email Notifications
-                        </label>
-                        <br><small class="text-muted">Receive updates and notifications via email</small>
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>When enabled, a welcome message will be sent to the parent's WhatsApp number upon registration.</small>
                     </div>
                 </div>
             </div>
@@ -560,8 +555,6 @@ $(document).ready(function() {
         }
     });
 
-    // Form validation
-
     // Auto-fill WhatsApp number from phone if empty
     $('#phone').on('blur', function() {
         var phone = $(this).val();
@@ -569,9 +562,11 @@ $(document).ready(function() {
         var countryCode = $('#country_code').val();
         var whatsappCountryCode = $('#whatsapp_country_code');
 
-        if (phone && !whatsapp.val()) {
+        if (phone && whatsapp.length && !whatsapp.val()) {
             whatsapp.val(phone);
-            whatsappCountryCode.val(countryCode);
+            if (whatsappCountryCode.length) {
+                whatsappCountryCode.val(countryCode);
+            }
         }
     });
 
@@ -582,15 +577,12 @@ $(document).ready(function() {
 
     // Form submission - combine country codes with numbers
     $('#parentForm').on('submit', function(e) {
-        // Existing validation...
-
-        // Combine WhatsApp country code with number
-        var whatsappCountryCode = $('#whatsapp_country_code').val();
-        var whatsappNumber = $('#whatsapp_number').val();
-        if (whatsappNumber) {
-            $('#whatsapp_number').val(whatsappCountryCode + whatsappNumber);
+        // Combine WhatsApp country code with number if exists
+        var whatsappCountryCode = $('#whatsapp_country_code');
+        var whatsappNumber = $('#whatsapp_number');
+        if (whatsappCountryCode.length && whatsappNumber.length && whatsappNumber.val()) {
+            whatsappNumber.val(whatsappCountryCode.val() + whatsappNumber.val());
         }
-
     });
 });
 </script>

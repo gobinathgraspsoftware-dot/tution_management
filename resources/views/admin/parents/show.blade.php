@@ -24,6 +24,21 @@
     </div>
 </div>
 
+<!-- Alert Messages -->
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <div class="row">
     <!-- Profile Card -->
     <div class="col-md-4">
@@ -65,9 +80,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Password</label>
-                    <p class="mb-0">
-                        <p class="mb-0">{{ isset($parent->user->password_view)? $parent->user->password_view : 'Please once change your password.' }}</p>
-                    </p>
+                    <p class="mb-0">{{ isset($parent->user->password_view) ? $parent->user->password_view : 'Please once change your password.' }}</p>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Phone</label>
@@ -146,30 +159,38 @@
             </div>
         </div>
 
-        <!-- @php
-                $whatsappEnabled = $parent->notification_preference['whatsapp'] ?? true;
-                $emailEnabled = $parent->notification_preference['email'] ?? true;
-            @endphp
+        <!-- Notification Preferences -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-bell me-2"></i> Notification Preferences
+            </div>
+            <div class="card-body">
+                @php
+                    $whatsappEnabled = $parent->notification_preference['whatsapp'] ?? true;
+                @endphp
 
-            <div class="mb-2">
-                <i class="fab fa-whatsapp text-success me-2"></i>
-                <span>WhatsApp Notifications: </span>
-                @if($whatsappEnabled)
-                    <span class="badge bg-success">Enabled</span>
-                @else
-                    <span class="badge bg-secondary">Disabled</span>
+                <div class="mb-3">
+                    <i class="fab fa-whatsapp text-success me-2"></i>
+                    <span>WhatsApp Notifications: </span>
+                    @if($whatsappEnabled)
+                        <span class="badge bg-success">Enabled</span>
+                    @else
+                        <span class="badge bg-secondary">Disabled</span>
+                    @endif
+                </div>
+
+                @if($whatsappEnabled && $parent->whatsapp_number)
+                <hr>
+                <form action="{{ route('admin.parents.resend-welcome', $parent) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-success w-100" 
+                            onclick="return confirm('Are you sure you want to resend the welcome notification?')">
+                        <i class="fab fa-whatsapp me-1"></i> Resend Welcome Notification
+                    </button>
+                </form>
                 @endif
             </div>
-
-            <div>
-                <i class="fas fa-envelope text-primary me-2"></i>
-                <span>Email Notifications: </span>
-                @if($emailEnabled)
-                    <span class="badge bg-success">Enabled</span>
-                @else
-                    <span class="badge bg-secondary">Disabled</span>
-                @endif
-            </div> -->
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -197,7 +218,7 @@
             <div class="card-body">
                 @if($parent->students->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-sm">
                             <thead>
                                 <tr>
                                     <th>Student ID</th>

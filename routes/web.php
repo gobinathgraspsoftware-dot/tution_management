@@ -301,6 +301,9 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::resource('parents', ParentController::class);
         Route::patch('/parents/{parent}/toggle-status', [ParentController::class, 'toggleStatus'])->name('parents.toggle-status');
         Route::get('/parents-export', [ParentController::class, 'export'])->name('parents.export');
+        // Inside your admin parents route group, add:
+        Route::post('/{parent}/resend-welcome', [ParentController::class, 'resendWelcomeNotification'])->name('parents.resend-welcome');
+
 
         // Student Management
         Route::get('students/search-parents', [StudentController::class, 'searchParents'])->name('students.search-parents');

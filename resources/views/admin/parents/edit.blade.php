@@ -302,7 +302,7 @@
                 </div>
             </div>
 
-            <!-- Notification Preferences -->
+            <!-- Notification Preferences - WhatsApp Only -->
             <div class="card mb-4">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notification Preferences</h5>
@@ -311,28 +311,23 @@
                     <p class="text-muted mb-3">Configure how the parent receives notifications:</p>
 
                     @php
-                        $emailEnabled = old('email_notifications', $parent->notification_preference['email'] ?? true);
+                        $whatsappEnabled = old('whatsapp_notifications', $parent->notification_preference['whatsapp'] ?? true);
                     @endphp
 
-                    <div class="form-check">
-                                            <!-- WhatsApp Notifications -->
+                    <!-- WhatsApp Notifications Only -->
                     <div class="form-check mb-3">
                         <input type="checkbox" class="form-check-input" id="whatsapp_notifications"
                                name="whatsapp_notifications" value="1"
-                               {{ old('whatsapp_notifications', $parent->whatsapp_notification_enabled) ? 'checked' : '' }}>
+                               {{ $whatsappEnabled ? 'checked' : '' }}>
                         <label class="form-check-label" for="whatsapp_notifications">
                             <i class="fab fa-whatsapp text-success me-1"></i> WhatsApp Notifications
                         </label>
                         <br><small class="text-muted">Receive updates and notifications via WhatsApp</small>
                     </div>
 
-<input type="checkbox" class="form-check-input" id="email_notifications"
-                               name="email_notifications" value="1"
-                               {{ $emailEnabled ? 'checked' : '' }}>
-                        <label class="form-check-label" for="email_notifications">
-                            <i class="fas fa-envelope text-primary me-1"></i> Email Notifications
-                        </label>
-                        <br><small class="text-muted">Receive updates and notifications via email</small>
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>All system notifications will be sent to the parent's WhatsApp number when enabled.</small>
                     </div>
                 </div>
             </div>
@@ -426,23 +421,23 @@ $(document).ready(function() {
 
                     // Populate city dropdown
                     var citySelect = $('#city');
-                    var currentCity = citySelect.val();
+                    var currentCity = '{{ old("city", $parent->city) }}';
                     citySelect.empty();
                     citySelect.append('<option value="">-- Select City --</option>');
 
                     response.cities.forEach(function(city) {
-                        citySelect.append('<option value="' + city.toUpperCase() + '">' + city + '</option>');
+                        var upperCity = city.toUpperCase();
+                        var selected = (upperCity === currentCity) ? 'selected' : '';
+                        citySelect.append('<option value="' + upperCity + '" ' + selected + '>' + city + '</option>');
                     });
 
-                    // Reselect current city or select first city
-                    if (currentCity && citySelect.find('option[value="' + currentCity + '"]').length) {
-                        citySelect.val(currentCity);
-                    } else if (response.city) {
+                    // Select first city as default if no match
+                    if (citySelect.val() === '' && response.city) {
                         citySelect.val(response.city.toUpperCase());
                     }
                 },
                 error: function() {
-                    // If postcode not found, keep current values
+                    // Keep existing values if postcode not found
                 }
             });
         }
@@ -457,7 +452,10 @@ $(document).ready(function() {
             $('#relationship_description').prop('required', false);
             $('#relationship_description').closest('.mb-3').find('label').html('Description (if Other)');
         }
-    }).trigger('change');
+    });
+
+    // Trigger relationship change on page load
+    $('#relationship').trigger('change');
 
     // Phone number validation - only allow numbers
     $('#phone, #emergency_phone').on('input', function() {
@@ -572,8 +570,6 @@ $(document).ready(function() {
         }
     });
 
-    // Form validation
-
     // Auto-fill WhatsApp number from phone if empty
     $('#phone').on('blur', function() {
         var phone = $(this).val();
@@ -581,9 +577,11 @@ $(document).ready(function() {
         var countryCode = $('#country_code').val();
         var whatsappCountryCode = $('#whatsapp_country_code');
 
-        if (phone && !whatsapp.val()) {
+        if (phone && whatsapp.length && !whatsapp.val()) {
             whatsapp.val(phone);
-            whatsappCountryCode.val(countryCode);
+            if (whatsappCountryCode.length) {
+                whatsappCountryCode.val(countryCode);
+            }
         }
     });
 
@@ -594,15 +592,12 @@ $(document).ready(function() {
 
     // Form submission - combine country codes with numbers
     $('#parentForm').on('submit', function(e) {
-        // Existing validation...
-
-        // Combine WhatsApp country code with number
-        var whatsappCountryCode = $('#whatsapp_country_code').val();
-        var whatsappNumber = $('#whatsapp_number').val();
-        if (whatsappNumber) {
-            $('#whatsapp_number').val(whatsappCountryCode + whatsappNumber);
+        // Combine WhatsApp country code with number if exists
+        var whatsappCountryCode = $('#whatsapp_country_code');
+        var whatsappNumber = $('#whatsapp_number');
+        if (whatsappCountryCode.length && whatsappNumber.length && whatsappNumber.val()) {
+            whatsappNumber.val(whatsappCountryCode.val() + whatsappNumber.val());
         }
-
     });
 });
 </script>

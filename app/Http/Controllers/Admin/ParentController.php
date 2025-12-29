@@ -9,12 +9,21 @@ use App\Models\User;
 use App\Models\Student;
 use App\Models\ActivityLog;
 use App\Helpers\CountryCodeHelper;
+use App\Services\WhatsappService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class ParentController extends Controller
 {
+    protected $whatsappService;
+
+    public function __construct(WhatsappService $whatsappService)
+    {
+        $this->whatsappService = $whatsappService;
+    }
+
     /**
      * Display a listing of parents.
      */
@@ -114,7 +123,6 @@ class ParentController extends Controller
             'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
             'whatsapp_notifications' => 'nullable|boolean',
-            'email_notifications' => 'nullable|boolean',
             'status' => 'required|in:active,inactive',
             'link_students' => 'nullable|array',
             'link_students.*' => 'exists:students,id',
@@ -182,17 +190,16 @@ class ParentController extends Controller
             // Generate parent ID
             $parentId = 'PAR-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
-            // Build notification preferences (WhatsApp and Email only, NO SMS)
+            // Build notification preferences (WhatsApp only)
             $notificationPrefs = [
                 'whatsapp' => $validated['whatsapp_notifications'] ?? true,
-                'email' => $validated['email_notifications'] ?? true,
             ];
 
             // Create Parent profile
             $parent = Parents::create([
                 'user_id' => $user->id,
                 'parent_id' => $parentId,
-                'ic_number' => $validated['ic_number'], // Already cleaned, 12 digits only
+                'ic_number' => $validated['ic_number'],
                 'occupation' => $validated['occupation'],
                 'address' => $validated['address'],
                 'city' => $validated['city'],
@@ -224,6 +231,12 @@ class ParentController extends Controller
             ]);
 
             DB::commit();
+
+            // Send WhatsApp welcome notification if enabled
+            if ($notificationPrefs['whatsapp'] && $validated['status'] === 'active') {
+                $this->sendWhatsAppWelcomeNotification($parent, $validated['password']);
+            }
+
             return redirect()->route('admin.parents.index')
                 ->with('success', 'Parent created successfully.');
 
@@ -232,6 +245,82 @@ class ParentController extends Controller
             return back()->withInput()
                 ->with('error', 'Failed to create parent. ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Send WhatsApp welcome notification to newly registered parent.
+     */
+    protected function sendWhatsAppWelcomeNotification(Parents $parent, string $password): void
+    {
+        try {
+            $whatsappNumber = $parent->whatsapp_number ?? $parent->user->phone;
+            
+            if (!$whatsappNumber) {
+                Log::warning('No WhatsApp number available for parent: ' . $parent->parent_id);
+                return;
+            }
+
+            // Get linked students names
+            $parent->load('students.user');
+            $studentNames = $parent->students->pluck('user.name')->implode(', ');
+            $studentCount = $parent->students->count();
+
+            // Build welcome message
+            $message = $this->buildWelcomeMessage($parent, $password, $studentNames, $studentCount);
+
+            // Send WhatsApp message
+            $result = $this->whatsappService->send($whatsappNumber, $message);
+
+            if ($result['success']) {
+                Log::info('WhatsApp welcome notification sent to parent: ' . $parent->parent_id);
+            } else {
+                Log::warning('Failed to send WhatsApp welcome notification to parent: ' . $parent->parent_id . ' - ' . ($result['error'] ?? 'Unknown error'));
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error sending WhatsApp welcome notification: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Build WhatsApp welcome message for parent.
+     */
+    protected function buildWelcomeMessage(Parents $parent, string $password, string $studentNames, int $studentCount): string
+    {
+        $centreName = config('app.name', 'Arena Matriks Edu Group');
+        $centrePhone = config('app.centre_phone', '03-7972 3663');
+        $loginUrl = url('/login');
+
+        $message = "🎉 *Selamat Datang ke {$centreName}!*\n\n";
+        $message .= "Salam sejahtera, *{$parent->user->name}*!\n\n";
+        $message .= "Akaun ibu bapa anda telah berjaya didaftarkan.\n\n";
+        
+        $message .= "📋 *Maklumat Akaun Anda:*\n";
+        $message .= "━━━━━━━━━━━━━━━━━\n";
+        $message .= "🆔 ID Ibu Bapa: *{$parent->parent_id}*\n";
+        $message .= "📧 Email: {$parent->user->email}\n";
+        $message .= "🔑 Kata Laluan: {$password}\n\n";
+
+        if ($studentCount > 0) {
+            $message .= "👨‍👩‍👧‍👦 *Anak yang didaftarkan:*\n";
+            $message .= "{$studentNames}\n\n";
+        }
+
+        $message .= "🔗 *Log Masuk Portal Ibu Bapa:*\n";
+        $message .= "{$loginUrl}\n\n";
+
+        $message .= "Melalui portal ini, anda boleh:\n";
+        $message .= "✅ Melihat jadual kelas anak\n";
+        $message .= "✅ Menyemak kehadiran\n";
+        $message .= "✅ Melihat keputusan peperiksaan\n";
+        $message .= "✅ Membuat pembayaran\n\n";
+
+        $message .= "📞 Untuk sebarang pertanyaan:\n";
+        $message .= "Tel: {$centrePhone}\n\n";
+
+        $message .= "Terima kasih kerana memilih {$centreName}! 🙏";
+
+        return $message;
     }
 
     /**
@@ -329,7 +418,6 @@ class ParentController extends Controller
             'emergency_country_code' => 'nullable|string|max:5',
             'emergency_phone' => 'nullable|string|max:20',
             'whatsapp_notifications' => 'nullable|boolean',
-            'email_notifications' => 'nullable|boolean',
             'status' => 'required|in:active,inactive',
             'link_students' => 'nullable|array',
             'link_students.*' => 'exists:students,id',
@@ -358,7 +446,7 @@ class ParentController extends Controller
                 $validated['phone']
             );
 
-            // WhatsApp number handling
+            // WhatsApp number handling - if empty, use phone number
             if (!empty($validated['whatsapp_number'])) {
                 $whatsappCountryCode = $validated['whatsapp_country_code'] ?? $validated['country_code'];
                 $whatsappNumber = CountryCodeHelper::formatPhoneNumber(
@@ -396,15 +484,14 @@ class ParentController extends Controller
 
             $parent->user->update($userData);
 
-            // Build notification preferences (WhatsApp and Email only, NO SMS)
+            // Build notification preferences (WhatsApp only)
             $notificationPrefs = [
                 'whatsapp' => $validated['whatsapp_notifications'] ?? ($parent->notification_preference['whatsapp'] ?? true),
-                'email' => $validated['email_notifications'] ?? ($parent->notification_preference['email'] ?? true),
             ];
 
             // Update Parent profile
             $parent->update([
-                'ic_number' => $validated['ic_number'], // Already cleaned, 12 digits only
+                'ic_number' => $validated['ic_number'],
                 'occupation' => $validated['occupation'],
                 'address' => $validated['address'],
                 'city' => $validated['city'],
@@ -498,6 +585,24 @@ class ParentController extends Controller
     }
 
     /**
+     * Resend WhatsApp welcome notification to parent.
+     */
+    public function resendWelcomeNotification(Request $request, Parents $parent)
+    {
+        try {
+            // Get password from user record (stored in password_view)
+            $password = $parent->user->password_view ?? 'Password was changed, please use current password';
+            
+            $this->sendWhatsAppWelcomeNotification($parent, $password);
+
+            return back()->with('success', 'WhatsApp welcome notification resent successfully.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to resend notification: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Export parents list to CSV.
      * IC numbers and phone numbers are exported as text to preserve format
      */
@@ -523,13 +628,16 @@ class ParentController extends Controller
             // Header row
             fputcsv($file, [
                 'Parent ID', 'Name', 'Email', 'Phone', 'WhatsApp', 'IC Number',
-                'Relationship', 'City', 'State', 'Children Count', 'Status'
+                'Relationship', 'City', 'State', 'Children Count', 'WhatsApp Enabled', 'Status'
             ]);
 
             // Data rows
             foreach ($parents as $p) {
                 // Format IC number for export with hyphens
                 $icFormatted = Parents::formatIcNumber($p->raw_ic_number);
+
+                // Get WhatsApp notification status
+                $whatsappEnabled = ($p->notification_preference['whatsapp'] ?? true) ? 'Yes' : 'No';
 
                 fputcsv($file, [
                     $p->parent_id,
@@ -544,6 +652,7 @@ class ParentController extends Controller
                     $p->city,
                     $p->state,
                     $p->students->count(),
+                    $whatsappEnabled,
                     ucfirst($p->user->status),
                 ]);
             }

@@ -28,6 +28,21 @@
     </div>
 </div>
 
+<!-- Alert Messages -->
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
@@ -77,6 +92,7 @@
                         <th>Contact</th>
                         <th>Children</th>
                         <th>City</th>
+                        <th class="text-center">WhatsApp</th>
                         <th>Status</th>
                         <th width="150">Actions</th>
                     </tr>
@@ -106,6 +122,14 @@
                                 <small>
                                     <i class="fas fa-envelope me-1 text-muted"></i> {{ $parent->user->email }}<br>
                                     <i class="fas fa-phone me-1 text-muted"></i> {{ $parent->user->phone }}
+                                    @if($parent->whatsapp_number)
+                                        <br>
+                                        <a href="https://wa.me/{{ str_replace('+', '', $parent->whatsapp_number) }}" 
+                                           target="_blank" class="text-decoration-none" title="Chat on WhatsApp">
+                                            <i class="fab fa-whatsapp text-success me-1"></i>
+                                            <span class="text-muted">{{ $parent->whatsapp_number }}</span>
+                                        </a>
+                                    @endif
                                 </small>
                             </td>
                             <td>
@@ -121,6 +145,20 @@
                                 @endif
                             </td>
                             <td>{{ $parent->city ?? '-' }}</td>
+                            <td class="text-center">
+                                @php
+                                    $whatsappEnabled = $parent->notification_preference['whatsapp'] ?? true;
+                                @endphp
+                                @if($whatsappEnabled)
+                                    <span class="badge bg-success" title="WhatsApp Notifications Enabled">
+                                        <i class="fab fa-whatsapp"></i> On
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary" title="WhatsApp Notifications Disabled">
+                                        <i class="fab fa-whatsapp"></i> Off
+                                    </span>
+                                @endif
+                            </td>
                             <td>
                                 @if($parent->user->status == 'active')
                                     <span class="badge bg-success">Active</span>
@@ -158,7 +196,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-4">
+                            <td colspan="8" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-user-friends fa-3x mb-3"></i>
                                     <p>No parents found.</p>
@@ -196,4 +234,17 @@ function confirmDelete(id, name) {
     }
 }
 </script>
+@endpush
+
+@push('styles')
+<style>
+    .user-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+    }
+</style>
 @endpush
