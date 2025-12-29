@@ -233,6 +233,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- WhatsApp Notification -->
+        <div class="col-md-12">
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fab fa-whatsapp me-2"></i> WhatsApp Notification
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1">
+                                <strong>Resend login credentials via WhatsApp</strong>
+                            </p>
+                            <small class="text-muted">
+                                Send staff member their login credentials via WhatsApp to: <strong>{{ $staff->user->phone }}</strong>
+                            </small>
+                        </div>
+                        <div>
+                            @if($staff->user->password_view)
+                                <button type="button" class="btn btn-success" id="resendWhatsAppBtn" 
+                                        onclick="confirmResendWhatsApp()">
+                                    <i class="fab fa-whatsapp me-1"></i> Resend WhatsApp
+                                </button>
+                            @else
+                                <button type="button" class="btn btn-secondary" disabled title="Password not available">
+                                    <i class="fab fa-whatsapp me-1"></i> Resend WhatsApp
+                                </button>
+                                <br>
+                                <small class="text-warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Password not available. Set a new password to enable this feature.
+                                </small>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Action Buttons -->
@@ -245,6 +283,43 @@
         </button>
     </div>
 </form>
+
+<!-- Resend WhatsApp Confirmation Modal -->
+<div class="modal fade" id="resendWhatsAppModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fab fa-whatsapp me-2"></i> Resend WhatsApp Notification
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to resend the login credentials to <strong>{{ $staff->user->name }}</strong>?</p>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    The following information will be sent:
+                    <ul class="mb-0 mt-2">
+                        <li>Staff ID: {{ $staff->staff_id }}</li>
+                        <li>Email: {{ $staff->user->email }}</li>
+                        <li>Password: {{ $staff->user->password_view ? '********' : 'Not available' }}</li>
+                        <li>Role: {{ ucwords(str_replace('-', ' ', $currentRole ?? 'Staff')) }}</li>
+                        <li>Login URL</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ route('admin.staff.resend-whatsapp', $staff) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        <i class="fab fa-whatsapp me-1"></i> Send Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -288,5 +363,9 @@ $(document).ready(function() {
         }
     });
 });
+
+function confirmResendWhatsApp() {
+    new bootstrap.Modal(document.getElementById('resendWhatsAppModal')).show();
+}
 </script>
 @endpush

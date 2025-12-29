@@ -290,6 +290,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::resource('staff', StaffController::class);
         Route::patch('/staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
         Route::get('/staff-export', [TeacherController::class, 'export'])->name('staff.export');
+        Route::post('/staff/{staff}/resend-whatsapp', [StaffController::class, 'resendWhatsApp'])->name('staff.resend-whatsapp');
 
         // Teacher Management
         Route::resource('teachers', TeacherController::class);

@@ -100,7 +100,7 @@
                         <th>Department</th>
                         <th>Role</th>
                         <th>Status</th>
-                        <th width="150">Actions</th>
+                        <th width="180">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -119,7 +119,13 @@
                                 </div>
                             </td>
                             <td>{{ $member->user->email }}</td>
-                            <td>{{ $member->user->phone }}</td>
+                            <td>
+                                {{ $member->user->phone }}
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $member->user->phone) }}"
+                                   target="_blank" class="ms-1 text-success" title="Open WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                            </td>
                             <td>{{ $member->position ?? '-' }}</td>
                             <td>{{ $member->department ?? '-' }}</td>
                             <td>
@@ -149,6 +155,12 @@
                                     <a href="{{ route('admin.staff.edit', $member) }}" class="btn btn-outline-primary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    @if($member->user->password_view)
+                                    <button type="button" class="btn btn-outline-success" title="Send WhatsApp"
+                                            onclick="confirmResendWhatsApp('{{ $member->id }}', '{{ $member->user->name }}', '{{ $member->user->phone }}')">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </button>
+                                    @endif
                                     @endcan
                                     @can('delete-staff')
                                     <button type="button" class="btn btn-outline-danger" title="Delete"
@@ -204,6 +216,36 @@
         </div>
     </div>
 </div>
+
+<!-- WhatsApp Resend Confirmation Modal -->
+<div class="modal fade" id="whatsappModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fab fa-whatsapp me-2"></i> Send WhatsApp Notification
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Send login credentials to <strong id="whatsappName"></strong>?</p>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Login credentials will be sent to: <strong id="whatsappPhone"></strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="whatsappForm" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        <i class="fab fa-whatsapp me-1"></i> Send Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -212,6 +254,13 @@ function confirmDelete(id, name) {
     document.getElementById('deleteName').textContent = name;
     document.getElementById('deleteForm').action = '{{ route("admin.staff.index") }}/' + id;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function confirmResendWhatsApp(id, name, phone) {
+    document.getElementById('whatsappName').textContent = name;
+    document.getElementById('whatsappPhone').textContent = phone;
+    document.getElementById('whatsappForm').action = '{{ route("admin.staff.index") }}/' + id + '/resend-whatsapp';
+    new bootstrap.Modal(document.getElementById('whatsappModal')).show();
 }
 </script>
 @endpush

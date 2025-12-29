@@ -8,13 +8,28 @@ use App\Models\Staff;
 use App\Models\User;
 use App\Models\ActivityLog;
 use App\Helpers\CountryCodeHelper;
+use App\Services\WhatsappService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
 {
+    /**
+     * WhatsApp service instance.
+     */
+    protected $whatsappService;
+
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(WhatsappService $whatsappService)
+    {
+        $this->whatsappService = $whatsappService;
+    }
+
     /**
      * Display a listing of staff members.
      */
@@ -62,7 +77,7 @@ class StaffController extends Controller
         // Get unique departments and positions for filters
         $departments = Staff::distinct()->pluck('department')->filter()->values();
         $positions = Staff::distinct()->pluck('position')->filter()->values();
-        
+
         // Get all roles for filter dropdown
         $roles = Role::orderBy('name')->get();
 
@@ -77,7 +92,7 @@ class StaffController extends Controller
         // Get all countries for dropdown
         $countries = CountryCodeHelper::getAllCountries();
         $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
-        
+
         // Get all roles for dropdown
         $roles = Role::orderBy('name')->get();
 
@@ -123,6 +138,7 @@ class StaffController extends Controller
             'emergency_phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'status' => 'required|in:active,inactive',
+            'send_whatsapp' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -149,6 +165,9 @@ class StaffController extends Controller
                 );
             }
 
+            // Store plain password before hashing for WhatsApp notification
+            $plainPassword = $validated['password'];
+
             // Create User account
             $user = User::create([
                 'name' => $name,
@@ -167,7 +186,7 @@ class StaffController extends Controller
             $staffId = 'STF-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
             // Create Staff profile
-            Staff::create([
+            $staff = Staff::create([
                 'user_id' => $user->id,
                 'staff_id' => $staffId,
                 'ic_number' => $cleanedIcNumber,
@@ -186,15 +205,32 @@ class StaffController extends Controller
                 'user_id' => auth()->id(),
                 'action' => 'create',
                 'model_type' => 'Staff',
-                'model_id' => $user->staff->id,
+                'model_id' => $staff->id,
                 'description' => 'Created staff member: ' . $name . ' with role: ' . $validated['role'],
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
 
             DB::commit();
+
+            // Send WhatsApp notification if checkbox is checked
+            $whatsappResult = null;
+            if ($request->boolean('send_whatsapp')) {
+                $whatsappResult = $this->sendWhatsAppWelcomeNotification($staff, $plainPassword, $validated['role']);
+            }
+
+            // Build success message
+            $successMessage = 'Staff member created successfully.';
+            if ($whatsappResult) {
+                if ($whatsappResult['success']) {
+                    $successMessage .= ' WhatsApp notification sent.';
+                } else {
+                    $successMessage .= ' WhatsApp notification failed: ' . ($whatsappResult['error'] ?? 'Unknown error');
+                }
+            }
+
             return redirect()->route('admin.staff.index')
-                ->with('success', 'Staff member created successfully.');
+                ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -223,25 +259,25 @@ class StaffController extends Controller
         $countries = CountryCodeHelper::getAllCountries();
         $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
 
-        // Extract country code from phone number
+        // Extract current phone country code and number
         $phoneData = CountryCodeHelper::extractCountryCode($staff->user->phone);
-        $selectedCountryCode = $phoneData['country_code'];
-        $phoneNumber = $phoneData['number'];
+        $selectedCountryCode = $phoneData['country_code'] ?? $defaultCountryCode;
+        $phoneNumber = $phoneData['number'] ?? '';
 
-        // Extract country code from emergency phone
+        // Extract emergency phone country code and number
         $emergencyCountryCode = $defaultCountryCode;
         $emergencyPhoneNumber = '';
         if ($staff->emergency_phone) {
             $emergencyPhoneData = CountryCodeHelper::extractCountryCode($staff->emergency_phone);
-            $emergencyCountryCode = $emergencyPhoneData['country_code'];
-            $emergencyPhoneNumber = $emergencyPhoneData['number'];
+            $emergencyCountryCode = $emergencyPhoneData['country_code'] ?? $defaultCountryCode;
+            $emergencyPhoneNumber = $emergencyPhoneData['number'] ?? '';
         }
-        
+
         // Get all roles for dropdown
         $roles = Role::orderBy('name')->get();
-        
-        // Get current user role
-        $currentRole = $staff->user->roles->first()?->name ?? '';
+
+        // Get current role
+        $currentRole = $staff->user->roles->first()?->name;
 
         return view('admin.staff.edit', compact(
             'staff',
@@ -376,6 +412,50 @@ class StaffController extends Controller
     }
 
     /**
+     * Resend WhatsApp notification to staff member.
+     */
+    public function resendWhatsApp(Staff $staff)
+    {
+        try {
+            $staff->load(['user.roles']);
+
+            // Get password from password_view field
+            $password = $staff->user->password_view;
+
+            if (!$password) {
+                return back()->with('error', 'Cannot send WhatsApp notification: Password not available.');
+            }
+
+            // Get role name
+            $roleName = $staff->user->roles->first()?->name ?? 'Staff';
+
+            // Send WhatsApp notification
+            $result = $this->sendWhatsAppWelcomeNotification($staff, $password, $roleName);
+
+            if ($result['success']) {
+                // Log activity
+                ActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'action' => 'resend_whatsapp',
+                    'model_type' => 'Staff',
+                    'model_id' => $staff->id,
+                    'description' => 'Resent WhatsApp credentials to staff: ' . $staff->user->name,
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
+
+                return back()->with('success', 'WhatsApp notification sent successfully to ' . $staff->user->name);
+            }
+
+            return back()->with('error', 'Failed to send WhatsApp notification: ' . ($result['error'] ?? 'Unknown error'));
+
+        } catch (\Exception $e) {
+            Log::error('Resend WhatsApp to staff failed: ' . $e->getMessage());
+            return back()->with('error', 'Failed to send WhatsApp notification. ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Remove the specified staff member (soft delete).
      */
     public function destroy(Request $request, Staff $staff)
@@ -451,6 +531,83 @@ class StaffController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Send WhatsApp welcome notification to newly registered staff.
+     */
+    protected function sendWhatsAppWelcomeNotification(Staff $staff, string $password, string $roleName): array
+    {
+        try {
+            $phoneNumber = $staff->user->phone;
+
+            if (!$phoneNumber) {
+                Log::warning('No phone number available for staff: ' . $staff->staff_id);
+                return [
+                    'success' => false,
+                    'error' => 'No phone number available',
+                ];
+            }
+
+            // Build welcome message
+            $message = $this->buildStaffWelcomeMessage($staff, $password, $roleName);
+
+            // Send WhatsApp message
+            $result = $this->whatsappService->send($phoneNumber, $message);
+
+            if ($result['success']) {
+                Log::info('WhatsApp welcome notification sent to staff: ' . $staff->staff_id);
+                return ['success' => true];
+            }
+
+            Log::warning('Failed to send WhatsApp welcome notification to staff: ' . $staff->staff_id . ' - ' . ($result['error'] ?? 'Unknown error'));
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Unknown error',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error sending WhatsApp welcome notification to staff: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Build WhatsApp welcome message for staff.
+     */
+    protected function buildStaffWelcomeMessage(Staff $staff, string $password, string $roleName): string
+    {
+        $centreName = config('app.name', 'Arena Matriks Edu Group');
+        $centrePhone = config('app.centre_phone', '03-7972 3663');
+        $loginUrl = url('/login');
+
+        $formattedRole = ucwords(str_replace('-', ' ', $roleName));
+        $joinDate = $staff->join_date ? $staff->join_date->format('d M Y') : date('d M Y');
+
+        $message = "🎉 *Welcome to {$centreName}!*\n\n";
+        $message .= "Greetings, *{$staff->user->name}*\n\n";
+        $message .= "Congratulations! Your staff account has been successfully registered.\n\n";
+        $message .= "📋 *Account Details:*\n";
+        $message .= "━━━━━━━━━━━━━━━━\n";
+        $message .= "🆔 Staff ID: *{$staff->staff_id}*\n";
+        $message .= "📧 Email: {$staff->user->email}\n";
+        $message .= "🔑 Password: *{$password}*\n";
+        $message .= "👤 Role: {$formattedRole}\n";
+        $message .= "💼 Position: {$staff->position}\n";
+        $message .= "🏢 Department: {$staff->department}\n";
+        $message .= "📅 Join Date: {$joinDate}\n";
+        $message .= "━━━━━━━━━━━━━━━━\n\n";
+        $message .= "🔗 *Login at:*\n{$loginUrl}\n\n";
+        $message .= "⚠️ *IMPORTANT:* Please change your password after your first login to keep your account secure.\n\n";
+        $message .= "📞 For any inquiries:\n";
+        $message .= "Tel: {$centrePhone}\n\n";
+        $message .= "Wishing you success in your role! 💪\n";
+        $message .= "_{$centreName}_";
+
+        return $message;
     }
 
     /**

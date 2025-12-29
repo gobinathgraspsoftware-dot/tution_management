@@ -66,12 +66,13 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+                        <small class="text-muted">WhatsApp notification will be sent to this number</small>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Password <span class="text-danger">*</span></label>
-                            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" required>
+                            <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" required>
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -227,6 +228,37 @@
                 </div>
             </div>
         </div>
+
+        <!-- WhatsApp Notification -->
+        <div class="col-md-12">
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fab fa-whatsapp me-2"></i> WhatsApp Notification
+                </div>
+                <div class="card-body">
+                    <div class="form-check">
+                        <input type="hidden" name="send_whatsapp" value="0">
+                        <input type="checkbox" name="send_whatsapp" id="send_whatsapp" value="1"
+                               class="form-check-input" {{ old('send_whatsapp', true) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="send_whatsapp">
+                            <strong>Send WhatsApp notification with login credentials</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        When checked, the staff member will receive a WhatsApp message containing their Staff ID, email, password, role, and login URL.
+                    </small>
+
+                    <!-- Preview Section -->
+                    <div class="mt-3" id="whatsappPreview" style="display: none;">
+                        <hr>
+                        <label class="form-label text-muted"><i class="fas fa-eye me-1"></i> Message Preview:</label>
+                        <div class="bg-light p-3 rounded border" style="font-family: 'Segoe UI', sans-serif; font-size: 0.9rem; white-space: pre-wrap;" id="previewContent">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Action Buttons -->
@@ -281,6 +313,80 @@ $(document).ready(function() {
             return false;
         }
     });
+
+    // WhatsApp Preview Toggle
+    $('#send_whatsapp').on('change', function() {
+        if ($(this).is(':checked')) {
+            updateWhatsappPreview();
+            $('#whatsappPreview').slideDown();
+        } else {
+            $('#whatsappPreview').slideUp();
+        }
+    });
+
+    // Update preview when form fields change
+    $('#name, [name="email"], [name="phone"], #password, [name="role"], [name="position"], [name="department"]').on('input change', function() {
+        if ($('#send_whatsapp').is(':checked')) {
+            updateWhatsappPreview();
+        }
+    });
+
+    // Initial preview update
+    if ($('#send_whatsapp').is(':checked')) {
+        updateWhatsappPreview();
+        $('#whatsappPreview').show();
+    }
+
+    function updateWhatsappPreview() {
+        let name = $('#name').val() || '[Staff Name]';
+        let email = $('[name="email"]').val() || '[email@example.com]';
+        let password = $('#password').val() || '[password]';
+        let role = $('[name="role"]').find('option:selected').text() || '[Role]';
+        let position = $('[name="position"]').val() || '[Position]';
+        let department = $('[name="department"]').val() || '[Department]';
+        let joinDate = $('[name="join_date"]').val() ? formatDate($('[name="join_date"]').val()) : '{{ date("d M Y") }}';
+
+        if (role === '-- Select Role --') {
+            role = '[Role]';
+        }
+
+        let preview = `🎉 *Welcome to Arena Matriks Edu Group!*
+
+            Greetings, *${name}*
+
+            Congratulations! Your staff account has been successfully registered.
+
+            📋 *Account Details:*
+            ━━━━━━━━━━━━━━━━
+            🆔 Staff ID: *[Auto-generated]*
+            📧 Email: ${email}
+            🔑 Password: *${password || '[password]'}*
+            👤 Role: ${role}
+            💼 Position: ${position}
+            🏢 Department: ${department}
+            📅 Join Date: ${joinDate}
+            ━━━━━━━━━━━━━━━━
+
+            🔗 *Login at:*
+            {{ url('/login') }}
+
+            ⚠️ *IMPORTANT:* Please change your password after your first login to keep your account secure.
+
+            📞 For any inquiries:
+            Tel: {{ config('app.centre_phone', '03-7972 3663') }}
+
+            Wishing you success in your role! 💪
+            _Arena Matriks Edu Group_`;
+
+
+        $('#previewContent').text(preview);
+    }
+
+    function formatDate(dateStr) {
+        let date = new Date(dateStr);
+        let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return date.getDate().toString().padStart(2, '0') + ' ' + months[date.getMonth()] + ' ' + date.getFullYear();
+    }
 });
 </script>
 @endpush

@@ -15,7 +15,12 @@
             </ol>
         </nav>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        @if($staff->user->password_view)
+        <button type="button" class="btn btn-success" onclick="confirmResendWhatsApp()">
+            <i class="fab fa-whatsapp me-1"></i> Send WhatsApp
+        </button>
+        @endif
         @can('edit-staff')
         <a href="{{ route('admin.staff.edit', $staff) }}" class="btn btn-primary">
             <i class="fas fa-edit me-1"></i> Edit
@@ -68,9 +73,13 @@
                     </p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label text-muted small mb-1">Phone</label>
+                    <label class="form-label text-muted small mb-1">Phone / WhatsApp</label>
                     <p class="mb-0">
                         <a href="tel:{{ $staff->user->phone }}">{{ $staff->user->phone }}</a>
+                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $staff->user->phone) }}" 
+                           target="_blank" class="ms-2 text-success" title="Open in WhatsApp">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
                     </p>
                 </div>
                 <div class="mb-3">
@@ -207,4 +216,51 @@
         <i class="fas fa-arrow-left me-1"></i> Back to List
     </a>
 </div>
+
+<!-- Resend WhatsApp Confirmation Modal -->
+@if($staff->user->password_view)
+<div class="modal fade" id="resendWhatsAppModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fab fa-whatsapp me-2"></i> Send WhatsApp Notification
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Send login credentials to <strong>{{ $staff->user->name }}</strong>?</p>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    The following information will be sent to <strong>{{ $staff->user->phone }}</strong>:
+                    <ul class="mb-0 mt-2">
+                        <li>Staff ID: {{ $staff->staff_id }}</li>
+                        <li>Email: {{ $staff->user->email }}</li>
+                        <li>Password: ********</li>
+                        <li>Role: {{ ucwords(str_replace('-', ' ', $staff->user->roles->first()->name ?? 'Staff')) }}</li>
+                        <li>Login URL</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ route('admin.staff.resend-whatsapp', $staff) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        <i class="fab fa-whatsapp me-1"></i> Send Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
+
+@push('scripts')
+<script>
+function confirmResendWhatsApp() {
+    new bootstrap.Modal(document.getElementById('resendWhatsAppModal')).show();
+}
+</script>
+@endpush
