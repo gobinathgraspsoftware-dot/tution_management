@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Models\Subject;
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use App\Helpers\CountryCodeHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +20,7 @@ class TeacherController extends Controller
 {
     protected $whatsappService;
 
-    public function __construct(WhatsappService $whatsappService)
+    public function __construct(WhatsAppService $whatsappService)
     {
         $this->whatsappService = $whatsappService;
     }

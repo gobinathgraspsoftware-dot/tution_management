@@ -8,7 +8,7 @@ use App\Models\Parents;
 use App\Models\User;
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use App\Helpers\CountryCodeHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +25,7 @@ class StudentController extends Controller
     /**
      * Create a new controller instance.
      */
-    public function __construct(WhatsappService $whatsappService)
+    public function __construct(WhatsAppService $whatsappService)
     {
         $this->whatsappService = $whatsappService;
     }

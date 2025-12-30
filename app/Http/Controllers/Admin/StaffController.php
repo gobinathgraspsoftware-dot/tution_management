@@ -8,7 +8,7 @@ use App\Models\Staff;
 use App\Models\User;
 use App\Models\ActivityLog;
 use App\Helpers\CountryCodeHelper;
-use App\Services\WhatsappService;
+use App\Services\WhatsAppService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +25,7 @@ class StaffController extends Controller
     /**
      * Create a new controller instance.
      */
-    public function __construct(WhatsappService $whatsappService)
+    public function __construct(WhatsAppService $whatsappService)
     {
         $this->whatsappService = $whatsappService;
     }
