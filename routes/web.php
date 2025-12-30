@@ -1055,6 +1055,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             // ->middleware('permission:view-enrollments');
             Route::get('/create', [AdminEnrollmentController::class, 'create'])->name('create')->middleware('permission:create-enrollments');
             Route::post('/', [AdminEnrollmentController::class, 'store'])->name('store')->middleware('permission:create-enrollments');
+            // Student Search AJAX endpoint for Select2 (searches by name, student_id, email, phone)
+            Route::get('/search-students', [AdminEnrollmentController::class, 'searchStudents'])->name('search-students');
             Route::get('/{enrollment}', [AdminEnrollmentController::class, 'show'])->name('show')->middleware('permission:view-enrollments');
             Route::get('/{enrollment}/edit', [AdminEnrollmentController::class, 'edit'])->name('edit')->middleware('permission:edit-enrollments');
             Route::put('/{enrollment}', [AdminEnrollmentController::class, 'update'])->name('update')->middleware('permission:edit-enrollments');

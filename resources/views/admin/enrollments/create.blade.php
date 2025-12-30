@@ -36,16 +36,18 @@
                         <div class="mb-3">
                             <label class="form-label">Select Student <span class="text-danger">*</span></label>
                             <select name="student_id" id="student_id" class="form-select @error('student_id') is-invalid @enderror" required>
-                                <option value="">-- Select Student --</option>
-                                @foreach($students as $student)
-                                    <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>
-                                        {{ $student->user->name }} ({{ $student->student_id ?? 'ID: '.$student->id }})
-                                    </option>
-                                @endforeach
+                                <option value="">-- Search and Select Student --</option>
+                                @if(isset($selectedStudent))
+                                    <option value="{{ $selectedStudent['id'] }}" selected>{{ $selectedStudent['text'] }}</option>
+                                @endif
                             </select>
                             @error('student_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Type student name or student ID to search
+                            </small>
                         </div>
 
                         <!-- Student Existing Enrollments Alert -->
@@ -230,6 +232,75 @@ $(document).ready(function() {
     let selectedPackageData = null;
     let studentEnrollments = [];
 
+    // Initialize Select2 for Student dropdown with AJAX search
+    $('#student_id').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Type student name or ID to search...',
+        allowClear: true,
+        minimumInputLength: 1,
+        ajax: {
+            url: '{{ route("admin.enrollments.search-students") }}',
+            dataType: 'json',
+            delay: 300,
+            data: function(params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function(data, params) {
+                params.page = params.page || 1;
+                return {
+                    results: data.results,
+                    pagination: {
+                        more: data.pagination.more
+                    }
+                };
+            },
+            cache: true
+        }
+    });
+
+    // When student is selected
+    $('#student_id').on('select2:select', function(e) {
+        fetchStudentEnrollments(e.params.data.id);
+    });
+
+    // When student selection is cleared
+    $('#student_id').on('select2:clear', function() {
+        studentEnrollments = [];
+        $('#studentEnrollmentsAlert').addClass('d-none');
+        updateSummary();
+    });
+
+    // Fetch student enrollments
+    function fetchStudentEnrollments(studentId) {
+        studentEnrollments = [];
+
+        $.get(`/admin/enrollments/student/${studentId}/enrollments`, function(data) {
+            studentEnrollments = data.enrolled_class_ids || [];
+
+            if (studentEnrollments.length > 0) {
+                $('#studentEnrollmentsAlert').removeClass('d-none');
+                $('#studentEnrollmentsText').text(`This student is already enrolled in ${studentEnrollments.length} class(es).`);
+            } else {
+                $('#studentEnrollmentsAlert').addClass('d-none');
+            }
+
+            if ($('#package_id').val()) {
+                loadPackageSubjects($('#package_id').val());
+            }
+        }).fail(function() {
+            studentEnrollments = [];
+            $('#studentEnrollmentsAlert').addClass('d-none');
+            if ($('#package_id').val()) {
+                loadPackageSubjects($('#package_id').val());
+            }
+        });
+
+        updateSummary();
+    }
+
     // Toggle enrollment type sections
     $('input[name="enrollment_type"]').change(function() {
         const type = $(this).val();
@@ -249,44 +320,7 @@ $(document).ready(function() {
         updateSummary();
     });
 
-    // When student changes, fetch their existing enrollments
-    $('#student_id').change(function() {
-        const studentId = $(this).val();
-        studentEnrollments = [];
-
-        if (studentId) {
-            // Fetch student's existing enrollments
-            $.get(`/admin/enrollments/student/${studentId}/enrollments`, function(data) {
-                studentEnrollments = data.enrolled_class_ids || [];
-
-                if (studentEnrollments.length > 0) {
-                    $('#studentEnrollmentsAlert').removeClass('d-none');
-                    $('#studentEnrollmentsText').text(`This student is already enrolled in ${studentEnrollments.length} class(es). Already enrolled classes will be shown as disabled.`);
-                } else {
-                    $('#studentEnrollmentsAlert').addClass('d-none');
-                }
-
-                // Reload package subjects if package is selected
-                if ($('#package_id').val()) {
-                    loadPackageSubjects($('#package_id').val());
-                }
-            }).fail(function() {
-                // Endpoint might not exist yet, continue without enrollment data
-                studentEnrollments = [];
-                $('#studentEnrollmentsAlert').addClass('d-none');
-
-                if ($('#package_id').val()) {
-                    loadPackageSubjects($('#package_id').val());
-                }
-            });
-        } else {
-            $('#studentEnrollmentsAlert').addClass('d-none');
-        }
-
-        updateSummary();
-    });
-
-    // When package changes, load subjects
+    // When package changes
     $('#package_id').change(function() {
         const packageId = $(this).val();
         if (packageId) {
@@ -302,21 +336,17 @@ $(document).ready(function() {
         updateSummary();
     });
 
-    // Load package subjects with classes
+    // Load package subjects
     function loadPackageSubjects(packageId) {
         const studentId = $('#student_id').val();
         let url = `/admin/enrollments/package/${packageId}/subjects-classes`;
-
-        // Add student_id as query param to get enrollment status
         if (studentId) {
             url += `?student_id=${studentId}`;
         }
 
         $('#subjectsContainer').html(`
             <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+                <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 mb-0">Loading subjects and classes...</p>
             </div>
         `);
@@ -335,7 +365,7 @@ $(document).ready(function() {
         });
     }
 
-    // Render subjects and their classes
+    // Render subjects and classes
     function renderSubjectsAndClasses(data) {
         if (!data.subjects || data.subjects.length === 0) {
             $('#subjectsContainer').html(`
@@ -352,23 +382,17 @@ $(document).ready(function() {
                 <div class="alert alert-info">
                     <i class="fas fa-lightbulb me-2"></i>
                     <strong>Package:</strong> ${data.name} - RM ${parseFloat(data.price).toFixed(2)} for ${data.duration_months} month(s)
-                    <br><small>Select one class for each subject below. Already enrolled classes are marked and disabled.</small>
+                    <br><small>Select one class for each subject below.</small>
                 </div>
             </div>
         `;
 
         data.subjects.forEach(function(subject) {
-            const hasAvailableClasses = subject.classes && subject.classes.some(c => !c.is_enrolled && c.available_seats > 0);
-
             html += `
-                <div class="card mb-3 border ${hasAvailableClasses ? '' : 'border-warning'}">
+                <div class="card mb-3 border">
                     <div class="card-header bg-light py-2">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="fas fa-book me-2"></i>
-                                <strong>${subject.name}</strong>
-                                ${subject.code ? `<small class="text-muted">(${subject.code})</small>` : ''}
-                            </span>
+                            <span><i class="fas fa-book me-2"></i><strong>${subject.name}</strong></span>
                             <span class="badge bg-secondary">${subject.sessions_per_month || 4} sessions/month</span>
                         </div>
                     </div>
@@ -376,193 +400,105 @@ $(document).ready(function() {
             `;
 
             if (!subject.classes || subject.classes.length === 0) {
-                html += `
-                    <div class="alert alert-warning mb-0">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        No active classes available for this subject.
-                    </div>
-                `;
+                html += `<div class="alert alert-warning mb-0">No active classes available.</div>`;
             } else {
-                html += `
-                    <select name="subject_classes[${subject.id}]" class="form-select subject-class-select" data-subject="${subject.name}">
-                        <option value="">-- Select a class --</option>
-                `;
+                html += `<select name="subject_classes[${subject.id}]" class="form-select subject-class-select" data-subject="${subject.name}"><option value="">-- Select a class --</option>`;
 
                 subject.classes.forEach(function(cls) {
                     const isEnrolled = cls.is_enrolled;
                     const isFull = cls.available_seats <= 0;
                     const isDisabled = isEnrolled || isFull;
+                    let statusText = isEnrolled ? ' [ALREADY ENROLLED]' : (isFull ? ' [FULL]' : '');
 
-                    let statusText = '';
-                    if (isEnrolled) {
-                        statusText = ' [ALREADY ENROLLED]';
-                    } else if (isFull) {
-                        statusText = ' [FULL]';
-                    }
-
-                    html += `
-                        <option value="${cls.id}"
-                                data-teacher="${cls.teacher_name || 'No Teacher'}"
-                                data-seats="${cls.available_seats}"
-                                data-enrolled="${isEnrolled ? '1' : '0'}"
-                                ${isDisabled ? 'disabled' : ''}>
-                            ${cls.name} - ${cls.teacher_name || 'No Teacher'}
-                            (${cls.available_seats} seats available)${statusText}
-                        </option>
-                    `;
+                    html += `<option value="${cls.id}" data-enrolled="${isEnrolled ? '1' : '0'}" ${isDisabled ? 'disabled' : ''}>
+                        ${cls.name} - ${cls.teacher_name || 'No Teacher'} (${cls.available_seats} seats)${statusText}
+                    </option>`;
                 });
 
                 html += `</select>`;
-
-                // Add helper text
-                const enrolledCount = subject.classes.filter(c => c.is_enrolled).length;
-                if (enrolledCount > 0) {
-                    html += `<small class="text-warning d-block mt-1"><i class="fas fa-info-circle me-1"></i>${enrolledCount} class(es) disabled (already enrolled)</small>`;
-                }
             }
 
-            html += `
-                    </div>
-                </div>
-            `;
+            html += `</div></div>`;
         });
 
         $('#subjectsContainer').html(html);
-
-        // Attach change event to class selects
-        $('.subject-class-select').change(function() {
-            updateSummary();
-        });
+        $('.subject-class-select').change(updateSummary);
     }
 
-    // When single class changes, update fee
+    // When single class changes
     $('#class_id').change(function() {
-        const selectedOption = $(this).find(':selected');
-        const fee = selectedOption.data('fee');
-        if (fee) {
-            $('#monthly_fee').val(parseFloat(fee).toFixed(2));
-        }
+        const fee = $(this).find(':selected').data('fee');
+        if (fee) $('#monthly_fee').val(parseFloat(fee).toFixed(2));
         updateSummary();
     });
 
-    // Update summary panel
+    // Update summary
     function updateSummary() {
         const studentId = $('#student_id').val();
-        const studentName = $('#student_id option:selected').text();
         const enrollmentType = $('input[name="enrollment_type"]:checked').val();
         const startDate = $('#start_date').val();
-        const paymentDay = $('#payment_cycle_day').val();
 
         let html = '';
         let isValid = false;
 
+        // Get student name from Select2
+        let studentName = 'Not Selected';
+        const studentData = $('#student_id').select2('data');
+        if (studentData && studentData.length > 0 && studentData[0].text) {
+            studentName = studentData[0].text;
+        }
+
         if (!studentId) {
             html = '<p class="text-muted mb-0">Please select a student.</p>';
         } else {
-            html = `
-                <div class="mb-3 pb-3 border-bottom">
-                    <small class="text-muted d-block">Student</small>
-                    <strong>${studentName}</strong>
-                </div>
-            `;
+            html = `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Student</small><strong>${studentName}</strong></div>`;
 
             if (enrollmentType === 'package') {
                 const packageId = $('#package_id').val();
-                const packageName = $('#package_id option:selected').text();
 
                 if (packageId && selectedPackageData) {
-                    // Count selected classes
                     let selectedClasses = [];
                     let totalNewClasses = 0;
 
                     $('.subject-class-select').each(function() {
                         const classId = $(this).val();
-                        const subjectName = $(this).data('subject');
-                        const selectedOption = $(this).find(':selected');
-
                         if (classId) {
-                            const isAlreadyEnrolled = selectedOption.data('enrolled') === 1 || selectedOption.data('enrolled') === '1';
+                            const isAlreadyEnrolled = $(this).find(':selected').data('enrolled') == 1;
                             selectedClasses.push({
-                                subject: subjectName,
-                                class: selectedOption.text().split(' - ')[0],
+                                subject: $(this).data('subject'),
+                                class: $(this).find(':selected').text().split(' - ')[0],
                                 enrolled: isAlreadyEnrolled
                             });
-
-                            if (!isAlreadyEnrolled) {
-                                totalNewClasses++;
-                            }
+                            if (!isAlreadyEnrolled) totalNewClasses++;
                         }
                     });
 
-                    html += `
-                        <div class="mb-3 pb-3 border-bottom">
-                            <small class="text-muted d-block">Package</small>
-                            <strong>${selectedPackageData.name}</strong>
-                            <div class="mt-1">
-                                <span class="badge bg-info">RM ${parseFloat(selectedPackageData.price).toFixed(2)}</span>
-                                <span class="badge bg-secondary">${selectedPackageData.duration_months} months</span>
-                            </div>
-                        </div>
-                    `;
+                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Package</small><strong>${selectedPackageData.name}</strong>
+                        <div class="mt-1"><span class="badge bg-info">RM ${parseFloat(selectedPackageData.price).toFixed(2)}</span>
+                        <span class="badge bg-secondary">${selectedPackageData.duration_months} months</span></div></div>`;
 
                     if (selectedClasses.length > 0) {
-                        html += `
-                            <div class="mb-3 pb-3 border-bottom">
-                                <small class="text-muted d-block">Selected Classes (${selectedClasses.length})</small>
-                                <ul class="list-unstyled mb-0 mt-2">
-                        `;
-
+                        html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Selected Classes (${selectedClasses.length})</small><ul class="list-unstyled mb-0 mt-2">`;
                         selectedClasses.forEach(function(cls) {
-                            const statusBadge = cls.enrolled
-                                ? '<span class="badge bg-warning ms-1">Already Enrolled</span>'
-                                : '<span class="badge bg-success ms-1">New</span>';
-                            html += `<li class="small"><i class="fas fa-check text-success me-1"></i> ${cls.subject}: ${cls.class} ${statusBadge}</li>`;
+                            const badge = cls.enrolled ? '<span class="badge bg-warning ms-1">Enrolled</span>' : '<span class="badge bg-success ms-1">New</span>';
+                            html += `<li class="small"><i class="fas fa-check text-success me-1"></i> ${cls.subject}: ${cls.class} ${badge}</li>`;
                         });
-
                         html += `</ul></div>`;
 
-                        // Show new enrollment count
                         if (totalNewClasses > 0) {
-                            html += `
-                                <div class="alert alert-success py-2 mb-3">
-                                    <small><i class="fas fa-plus-circle me-1"></i> ${totalNewClasses} new enrollment(s) will be created</small>
-                                </div>
-                            `;
                             isValid = true;
-                        } else {
-                            html += `
-                                <div class="alert alert-warning py-2 mb-3">
-                                    <small><i class="fas fa-exclamation-triangle me-1"></i> All selected classes are already enrolled</small>
-                                </div>
-                            `;
                         }
-                    } else {
-                        html += `
-                            <div class="alert alert-warning py-2 mb-0">
-                                <small><i class="fas fa-exclamation-circle me-1"></i> Please select at least one class</small>
-                            </div>
-                        `;
                     }
                 } else {
                     html += '<p class="text-muted mb-0">Please select a package.</p>';
                 }
             } else {
-                // Single class enrollment
                 const classId = $('#class_id').val();
-                const className = $('#class_id option:selected').text();
                 const monthlyFee = $('#monthly_fee').val();
 
                 if (classId && monthlyFee) {
-                    html += `
-                        <div class="mb-3 pb-3 border-bottom">
-                            <small class="text-muted d-block">Class</small>
-                            <strong>${className}</strong>
-                        </div>
-                        <div class="mb-3 pb-3 border-bottom">
-                            <small class="text-muted d-block">Monthly Fee</small>
-                            <strong class="text-success">RM ${parseFloat(monthlyFee).toFixed(2)}</strong>
-                        </div>
-                    `;
+                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Class</small><strong>${$('#class_id option:selected').text()}</strong></div>`;
+                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Monthly Fee</small><strong class="text-success">RM ${parseFloat(monthlyFee).toFixed(2)}</strong></div>`;
                     isValid = true;
                 } else {
                     html += '<p class="text-muted mb-0">Please select a class.</p>';
@@ -570,13 +506,7 @@ $(document).ready(function() {
             }
 
             if (startDate) {
-                html += `
-                    <div class="mb-0">
-                        <small class="text-muted d-block">Start Date</small>
-                        <strong>${startDate}</strong>
-                        <small class="text-muted d-block mt-1">Payment on ${paymentDay}${getOrdinalSuffix(paymentDay)} of each month</small>
-                    </div>
-                `;
+                html += `<div class="mb-0"><small class="text-muted d-block">Start Date</small><strong>${startDate}</strong></div>`;
             }
         }
 
@@ -584,47 +514,29 @@ $(document).ready(function() {
         $('#submitBtn').prop('disabled', !isValid);
     }
 
-    function getOrdinalSuffix(n) {
-        const s = ["th", "st", "nd", "rd"];
-        const v = n % 100;
-        return (s[(v - 20) % 10] || s[v] || s[0]);
-    }
-
-    // Validate before submit
+    // Form validation
     $('#enrollmentForm').submit(function(e) {
-        const enrollmentType = $('input[name="enrollment_type"]:checked').val();
-
-        if (enrollmentType === 'package') {
-            let hasSelection = false;
+        if ($('input[name="enrollment_type"]:checked').val() === 'package') {
             let hasNewEnrollment = false;
-
             $('.subject-class-select').each(function() {
-                const classId = $(this).val();
-                if (classId) {
-                    hasSelection = true;
-                    const selectedOption = $(this).find(':selected');
-                    const isAlreadyEnrolled = selectedOption.data('enrolled') === 1 || selectedOption.data('enrolled') === '1';
-                    if (!isAlreadyEnrolled) {
-                        hasNewEnrollment = true;
-                    }
+                if ($(this).val() && $(this).find(':selected').data('enrolled') != 1) {
+                    hasNewEnrollment = true;
                 }
             });
 
-            if (!hasSelection) {
-                e.preventDefault();
-                alert('Please select at least one class for the package enrollment.');
-                return false;
-            }
-
             if (!hasNewEnrollment) {
                 e.preventDefault();
-                alert('All selected classes are already enrolled. Please select at least one new class.');
+                alert('Please select at least one new class.');
                 return false;
             }
         }
     });
 
-    // Initialize
+    // Initialize if pre-selected student exists
+    @if(isset($selectedStudent))
+        fetchStudentEnrollments({{ $selectedStudent['id'] }});
+    @endif
+
     updateSummary();
 });
 </script>

@@ -79,15 +79,63 @@ class EnrollmentController extends Controller
      */
     public function create()
     {
-        $students = Student::approved()
-            ->with('user')
-            ->get()
-            ->sortBy('user.name');
-
         $packages = Package::active()->with('subjects')->get();
         $classes = ClassModel::active()->with(['subject', 'teacher.user'])->get();
 
-        return view('admin.enrollments.create', compact('students', 'packages', 'classes'));
+        // If there's old student_id (validation error), fetch that student for pre-population
+        $selectedStudent = null;
+        if (old('student_id')) {
+            $student = Student::with('user')->find(old('student_id'));
+            if ($student) {
+                $selectedStudent = [
+                    'id' => $student->id,
+                    'text' => $student->user->name . ' (' . ($student->student_id ?? 'ID: ' . $student->id) . ')',
+                ];
+            }
+        }
+
+        return view('admin.enrollments.create', compact('packages', 'classes', 'selectedStudent'));
+    }
+
+    /**
+     * Search students via AJAX for Select2
+     * Searches by: student name or student ID
+     */
+    public function searchStudents(Request $request)
+    {
+        $search = $request->get('q', '');
+        $page = $request->get('page', 1);
+        $perPage = 15;
+
+        $query = Student::approved()
+            ->with('user')
+            ->where(function ($q) use ($search) {
+                $q->where('student_id', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+
+        $total = $query->count();
+
+        $students = $query->orderBy('created_at', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get();
+
+        $results = $students->map(function ($student) {
+            return [
+                'id' => $student->id,
+                'text' => $student->user->name . ' (' . ($student->student_id ?? 'ID: ' . $student->id) . ')',
+            ];
+        });
+
+        return response()->json([
+            'results' => $results,
+            'pagination' => [
+                'more' => ($page * $perPage) < $total
+            ]
+        ]);
     }
 
     /**
@@ -106,9 +154,6 @@ class EnrollmentController extends Controller
 
                 // Get selected classes for each subject
                 $subjectClasses = $request->input('subject_classes', []);
-
-                // NOTE: Removed validatePackageClassSelection() call
-                // The service now handles duplicates gracefully by skipping them
 
                 // Create enrollments with selected classes
                 $result = $this->enrollmentService->enrollInPackageWithClasses(
@@ -224,15 +269,10 @@ class EnrollmentController extends Controller
     {
         $enrollment->load(['student.user', 'package', 'class', 'feeHistory']);
 
-        $students = Student::approved()
-            ->with('user')
-            ->get()
-            ->sortBy('user.name');
-
         $packages = Package::active()->with('subjects')->get();
         $classes = ClassModel::active()->with(['subject', 'teacher.user'])->get();
 
-        return view('admin.enrollments.edit', compact('enrollment', 'students', 'packages', 'classes'));
+        return view('admin.enrollments.edit', compact('enrollment', 'packages', 'classes'));
     }
 
     /**
@@ -439,7 +479,6 @@ class EnrollmentController extends Controller
 
     /**
      * Get package subjects with their available classes via AJAX
-     * Now includes student's existing enrollments to mark classes as enrolled
      */
     public function getPackageSubjectsWithClasses(Request $request, $packageId)
     {
@@ -459,7 +498,6 @@ class EnrollmentController extends Controller
         }
 
         $subjects = $package->subjects->map(function ($subject) use ($existingEnrollments) {
-            // Get active classes for this subject with teacher info
             $classes = ClassModel::where('subject_id', $subject->id)
                 ->where('status', 'active')
                 ->with(['teacher.user'])
@@ -510,7 +548,6 @@ class EnrollmentController extends Controller
     {
         $subject = Subject::findOrFail($subjectId);
 
-        // Get student's existing enrollments if student_id is provided
         $studentId = $request->query('student_id');
         $existingEnrollments = [];
 
