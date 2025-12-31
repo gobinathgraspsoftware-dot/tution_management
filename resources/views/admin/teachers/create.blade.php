@@ -295,59 +295,6 @@
         </div>
 
         <!-- Bank & Statutory Information -->
-        {{-- <div class="col-md-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-university me-2"></i> Bank & Statutory Information
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Bank Name</label>
-                            <input type="text"
-                                   name="bank_name"
-                                   class="form-control @error('bank_name') is-invalid @enderror"
-                                   value="{{ old('bank_name') }}"
-                                   placeholder="e.g., Maybank">
-                            @error('bank_name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Bank Account</label>
-                            <input type="text"
-                                   name="bank_account"
-                                   class="form-control @error('bank_account') is-invalid @enderror"
-                                   value="{{ old('bank_account') }}"
-                                   placeholder="e.g., 1234567890">
-                            @error('bank_account')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">EPF Number</label>
-                            <input type="text"
-                                   name="epf_number"
-                                   class="form-control @error('epf_number') is-invalid @enderror"
-                                   value="{{ old('epf_number') }}">
-                            @error('epf_number')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">SOCSO Number</label>
-                            <input type="text"
-                                   name="socso_number"
-                                   class="form-control @error('socso_number') is-invalid @enderror"
-                                   value="{{ old('socso_number') }}">
-                            @error('socso_number')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
         @include('admin.teachers.partials.statutory-settings')
         <!-- WhatsApp Notification Section -->
         <div class="col-md-12">

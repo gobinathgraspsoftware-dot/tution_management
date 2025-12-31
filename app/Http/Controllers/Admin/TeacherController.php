@@ -159,29 +159,35 @@ class TeacherController extends Controller
             // Generate teacher ID
             $teacherId = 'TCH-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
+            // Determine EPF and SOCSO enabled status
+            $epfEnabled = $request->boolean('epf_enabled', true);
+            $socsoEnabled = $request->boolean('socso_enabled', true);
+
             // Create Teacher profile
             $teacher = Teacher::create([
                 'user_id' => $user->id,
                 'teacher_id' => $teacherId,
                 'ic_number' => $cleanedIcNumber,
-                'address' => $validated['address'],
-                'qualification' => $validated['qualification'],
+                'address' => $validated['address'] ?? null,
+                'qualification' => $validated['qualification'] ?? null,
                 'experience_years' => $validated['experience_years'],
                 'specialization' => $validated['specialization'] ?? [], // Store as array
-                'bio' => $validated['bio'],
+                'bio' => $validated['bio'] ?? null,
                 'join_date' => $validated['join_date'],
                 'employment_type' => $validated['employment_type'],
                 'pay_type' => $validated['pay_type'],
-                'hourly_rate' => $validated['hourly_rate'],
-                'monthly_salary' => $validated['monthly_salary'],
-                'per_class_rate' => $validated['per_class_rate'],
-                'bank_name' => $validated['bank_name'],
-                'bank_account' => $validated['bank_account'],
-                'epf_number' => $validated['epf_number'],
-                'socso_number' => $validated['socso_number'],
-                'epf_enabled' => $request->boolean('epf_enabled', true),
-                'socso_enabled' => $request->boolean('socso_enabled', true),
-                'socso_type' => $validated['socso_type'] ?? 'regular',
+                'hourly_rate' => $validated['hourly_rate'] ?? null,
+                'monthly_salary' => $validated['monthly_salary'] ?? null,
+                'per_class_rate' => $validated['per_class_rate'] ?? null,
+                'bank_name' => $validated['bank_name'] ?? null,
+                'bank_account' => $validated['bank_account'] ?? null,
+                // EPF fields - only use if enabled
+                'epf_enabled' => $epfEnabled,
+                'epf_number' => $epfEnabled ? ($validated['epf_number'] ?? null) : null,
+                // SOCSO fields - only use if enabled
+                'socso_enabled' => $socsoEnabled,
+                'socso_number' => $socsoEnabled ? ($validated['socso_number'] ?? null) : null,
+                'socso_type' => $socsoEnabled ? ($validated['socso_type'] ?? 'regular') : 'regular',
                 'status' => $validated['status'],
             ]);
 
@@ -204,10 +210,10 @@ class TeacherController extends Controller
                 $whatsappResult = $this->sendTeacherWelcomeWhatsApp($user, $teacher, $validated['password']);
             }
 
-            $successMessage = 'Teacher created successfully.';
+            $successMessage = 'Teacher created successfully. Teacher ID: ' . $teacherId;
             if ($whatsappResult) {
                 if ($whatsappResult['success']) {
-                    $successMessage .= ' WhatsApp notification sent successfully.';
+                    $successMessage .= ' WhatsApp notification sent.';
                 } else {
                     $successMessage .= ' However, WhatsApp notification failed: ' . ($whatsappResult['error'] ?? 'Unknown error');
                 }
@@ -230,10 +236,7 @@ class TeacherController extends Controller
     protected function sendTeacherWelcomeWhatsApp(User $user, Teacher $teacher, string $plainPassword): array
     {
         try {
-            // Build welcome message
-            $message = $this->buildTeacherWelcomeMessage($user, $teacher, $plainPassword);
-
-            // Send WhatsApp notification
+            $message = $this->buildWelcomeMessage($user, $teacher, $plainPassword);
             $result = $this->whatsappService->send($user->phone, $message);
 
             // Log notification
@@ -253,19 +256,6 @@ class TeacherController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Teacher WhatsApp notification failed: ' . $e->getMessage());
-
-            // Log failed notification
-            NotificationLog::create([
-                'user_id' => $user->id,
-                'channel' => 'whatsapp',
-                'recipient' => $user->phone,
-                'type' => 'teacher_welcome',
-                'subject' => null,
-                'message' => 'Failed to send',
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
-            ]);
-
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -274,19 +264,16 @@ class TeacherController extends Controller
     }
 
     /**
-     * Build teacher welcome WhatsApp message.
+     * Build welcome message for WhatsApp notification.
      */
-    protected function buildTeacherWelcomeMessage(User $user, Teacher $teacher, string $plainPassword): string
+    protected function buildWelcomeMessage(User $user, Teacher $teacher, string $plainPassword): string
     {
         $centerName = config('app.name', 'Arena Matriks Edu Group');
         $loginUrl = url('/login');
-        $joinDate = $teacher->join_date ? $teacher->join_date->format('d M Y') : date('d M Y');
-
-        // Get specialization names
-        $specializations = '';
-        if (!empty($teacher->specialization_names)) {
-            $specializations = implode(', ', $teacher->specialization_names);
-        }
+        $joinDate = $teacher->join_date?->format('d/m/Y') ?? 'N/A';
+        $specializations = !empty($teacher->specialization_names)
+            ? implode(', ', $teacher->specialization_names)
+            : null;
 
         $message = "🎓 *Welcome to {$centerName}!*\n\n";
         $message .= "Greetings,\n\n";
@@ -391,6 +378,7 @@ class TeacherController extends Controller
             'per_class_rate' => 'nullable|numeric|min:0',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
+            // EPF/SOCSO fields are nullable - may not be present when toggles are disabled
             'epf_number' => 'nullable|string|max:50',
             'socso_number' => 'nullable|string|max:50',
             'epf_enabled' => 'nullable|boolean',
@@ -435,29 +423,64 @@ class TeacherController extends Controller
 
             $teacher->user->update($userData);
 
-            // Update Teacher profile
-            $teacher->update([
+            // ================================================================
+            // FIX: Handle EPF/SOCSO fields safely when toggles are disabled
+            // When form fields are disabled by JavaScript, they are NOT submitted
+            // with the form, so we need to use null coalescing and preserve values
+            // ================================================================
+
+            // Determine EPF enabled status (checkbox sends "1" when checked, nothing when unchecked)
+            $epfEnabled = $request->boolean('epf_enabled', false);
+
+            // Determine SOCSO enabled status
+            $socsoEnabled = $request->boolean('socso_enabled', false);
+
+            // Build teacher update data
+            $teacherData = [
                 'ic_number' => $cleanedIcNumber,
-                'address' => $validated['address'],
-                'qualification' => $validated['qualification'],
+                'address' => $validated['address'] ?? null,
+                'qualification' => $validated['qualification'] ?? null,
                 'experience_years' => $validated['experience_years'],
                 'specialization' => $validated['specialization'] ?? [], // Store as array
-                'bio' => $validated['bio'],
+                'bio' => $validated['bio'] ?? null,
                 'join_date' => $validated['join_date'],
                 'employment_type' => $validated['employment_type'],
                 'pay_type' => $validated['pay_type'],
-                'hourly_rate' => $validated['hourly_rate'],
-                'monthly_salary' => $validated['monthly_salary'],
-                'per_class_rate' => $validated['per_class_rate'],
-                'bank_name' => $validated['bank_name'],
-                'bank_account' => $validated['bank_account'],
-                'epf_number' => $validated['epf_number'],
-                'epf_enabled' => $request->boolean('epf_enabled', true),
-                'socso_enabled' => $request->boolean('socso_enabled', true),
-                'socso_type' => $validated['socso_type'] ?? 'regular',
-                'socso_number' => $validated['socso_number'],
+                'hourly_rate' => $validated['hourly_rate'] ?? null,
+                'monthly_salary' => $validated['monthly_salary'] ?? null,
+                'per_class_rate' => $validated['per_class_rate'] ?? null,
+                'bank_name' => $validated['bank_name'] ?? null,
+                'bank_account' => $validated['bank_account'] ?? null,
                 'status' => $validated['status'],
-            ]);
+                // EPF/SOCSO enabled flags
+                'epf_enabled' => $epfEnabled,
+                'socso_enabled' => $socsoEnabled,
+            ];
+
+            // Handle EPF number: Use submitted value if enabled, otherwise preserve existing or null
+            if ($epfEnabled) {
+                // EPF is enabled - use the submitted value (from validated or request)
+                // Use null coalescing to safely get value (may be missing if just enabled)
+                $teacherData['epf_number'] = $validated['epf_number'] ?? $request->input('epf_number') ?? $teacher->epf_number;
+            } else {
+                // EPF is disabled - preserve existing value (don't clear it)
+                // This allows re-enabling without re-entering the number
+                $teacherData['epf_number'] = $teacher->epf_number;
+            }
+
+            // Handle SOCSO fields: Use submitted values if enabled, otherwise preserve existing
+            if ($socsoEnabled) {
+                // SOCSO is enabled - use the submitted values
+                $teacherData['socso_number'] = $validated['socso_number'] ?? $request->input('socso_number') ?? $teacher->socso_number;
+                $teacherData['socso_type'] = $validated['socso_type'] ?? $request->input('socso_type') ?? $teacher->socso_type ?? 'regular';
+            } else {
+                // SOCSO is disabled - preserve existing values
+                $teacherData['socso_number'] = $teacher->socso_number;
+                $teacherData['socso_type'] = $teacher->socso_type ?? 'regular';
+            }
+
+            // Update Teacher profile
+            $teacher->update($teacherData);
 
             // Log activity
             ActivityLog::create([
