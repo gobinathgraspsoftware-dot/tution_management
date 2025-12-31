@@ -90,7 +90,13 @@
                                     </div>
                                     <div>
                                         <strong>{{ $teacher->user->name }}</strong><br>
-                                        <small class="text-muted">{{ $teacher->specialization ?? 'Teacher' }}</small>
+                                        <small class="text-muted">
+                                            {{
+                                                is_array($teacher->specialization)
+                                                    ? implode(', ', $teacher->specialization)
+                                                    : ($teacher->specialization ?? 'Teacher')
+                                            }}
+                                        </small>
                                     </div>
                                 </div>
                             </td>
