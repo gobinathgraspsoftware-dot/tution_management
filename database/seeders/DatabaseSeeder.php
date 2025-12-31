@@ -15,7 +15,10 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             PermissionSeeder::class,
             UserSeeder::class,
-            MessageTemplateSeeder::class
+            MessageTemplateSeeder::class,
+            EpfSeeder::class,
+            SocsoSeeder::class,
+            SocsoInsuranceSeeder::class
         ]);
     }
 }
