@@ -1,269 +1,328 @@
 @extends('layouts.app')
 
-@section('title', 'Payslip Details')
-@section('page-title', 'Payslip Details')
+@section('title', 'Payslip Details - ' . $payslip->payslip_number)
 
 @section('content')
-<div class="page-header">
-    <h1>
-        <i class="fas fa-file-invoice-dollar me-2"></i> Payslip Details
-    </h1>
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.teacher-payslips.index') }}">Teacher Payslips</a></li>
-            <li class="breadcrumb-item active">{{ $payslip->payslip_number }}</li>
-        </ol>
-    </nav>
-</div>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Payslip Details</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.teacher-payslips.index') }}">Payslips</a></li>
+                    <li class="breadcrumb-item active">{{ $payslip->payslip_number }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.teacher-payslips.print', $payslip) }}" class="btn btn-outline-secondary" target="_blank">
+                <i class="fas fa-print me-1"></i> Print
+            </a>
+            <a href="{{ route('admin.teacher-payslips.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
 
-<div class="row">
-    <!-- Payslip Information -->
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{{ $payslip->payslip_number }}</h5>
-                @if($payslip->status == 'draft')
-                    <span class="badge bg-warning text-dark">Draft</span>
-                @elseif($payslip->status == 'approved')
-                    <span class="badge bg-info">Approved</span>
-                @else
-                    <span class="badge bg-success">Paid</span>
-                @endif
-            </div>
-            <div class="card-body">
-                <!-- Teacher Details -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">Teacher Information</h6>
-                        <p class="mb-1"><strong>Name:</strong> {{ $payslip->teacher->user->name }}</p>
-                        <p class="mb-1"><strong>Email:</strong> {{ $payslip->teacher->user->email }}</p>
-                        <p class="mb-1"><strong>Phone:</strong> {{ $payslip->teacher->user->phone }}</p>
-                        <p class="mb-1"><strong>Employment Type:</strong>
-                            <span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $payslip->teacher->employment_type)) }}</span>
-                        </p>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="row">
+        <!-- Main Payslip Details -->
+        <div class="col-lg-8">
+            <!-- Payslip Header -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ $payslip->payslip_number }}</h5>
+                        <small class="text-muted">Generated on {{ $payslip->created_at->format('d M Y, h:i A') }}</small>
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">Period Information</h6>
-                        <p class="mb-1"><strong>Period:</strong> {{ $payslip->period_start->format('d M Y') }} to {{ $payslip->period_end->format('d M Y') }}</p>
-                        <p class="mb-1"><strong>Pay Type:</strong>
-                            <span class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) }}</span>
-                        </p>
-                        <p class="mb-1"><strong>Total Hours:</strong> {{ number_format($payslip->total_hours, 2) }}</p>
-                        <p class="mb-1"><strong>Total Classes:</strong> {{ $payslip->total_classes }}</p>
+                    <div>
+                        @if($payslip->status == 'draft')
+                            <span class="badge bg-warning fs-6">Draft</span>
+                        @elseif($payslip->status == 'approved')
+                            <span class="badge bg-info fs-6">Approved</span>
+                        @elseif($payslip->status == 'paid')
+                            <span class="badge bg-success fs-6">Paid</span>
+                        @endif
                     </div>
                 </div>
-
-                <hr>
-
-                <!-- Salary Breakdown -->
-                <h6 class="text-muted mb-3">Salary Breakdown</h6>
-                <table class="table table-bordered">
-                    <tbody>
-                        <tr>
-                            <td><strong>Basic Pay</strong></td>
-                            <td class="text-end">RM {{ number_format($payslip->basic_pay, 2) }}</td>
-                        </tr>
-                        @if($payslip->allowances > 0)
-                        <tr>
-                            <td>Allowances</td>
-                            <td class="text-end text-success">+ RM {{ number_format($payslip->allowances, 2) }}</td>
-                        </tr>
-                        @endif
-                        @if($payslip->deductions > 0)
-                        <tr>
-                            <td>Deductions</td>
-                            <td class="text-end text-danger">- RM {{ number_format($payslip->deductions, 2) }}</td>
-                        </tr>
-                        @endif
-                        @if($payslip->epf_employee > 0)
-                        <tr>
-                            <td>EPF (Employee 11%)</td>
-                            <td class="text-end text-danger">- RM {{ number_format($payslip->epf_employee, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td>EPF (Employer 13%)</td>
-                            <td class="text-end text-muted"><small>RM {{ number_format($payslip->epf_employer, 2) }}</small></td>
-                        </tr>
-                        @endif
-                        @if($payslip->socso_employee > 0)
-                        <tr>
-                            <td>SOCSO (Employee)</td>
-                            <td class="text-end text-danger">- RM {{ number_format($payslip->socso_employee, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td>SOCSO (Employer)</td>
-                            <td class="text-end text-muted"><small>RM {{ number_format($payslip->socso_employer, 2) }}</small></td>
-                        </tr>
-                        @endif
-                        <tr class="table-success">
-                            <td><strong>Net Pay</strong></td>
-                            <td class="text-end"><strong class="text-success fs-5">RM {{ number_format($payslip->net_pay, 2) }}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Payment Information -->
-                @if($payslip->status == 'paid')
-                <hr>
-                <h6 class="text-muted mb-3">Payment Information</h6>
-                <div class="row">
-                    <div class="col-md-4">
-                        <p class="mb-1"><strong>Payment Date:</strong></p>
-                        <p>{{ $payslip->payment_date->format('d M Y') }}</p>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Teacher Information</h6>
+                            <p class="mb-1"><strong>Name:</strong> {{ $payslip->teacher->user->name }}</p>
+                            <p class="mb-1"><strong>Teacher ID:</strong> {{ $payslip->teacher->teacher_id }}</p>
+                            <p class="mb-1"><strong>Pay Type:</strong> {{ ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) }}</p>
+                            <p class="mb-0"><strong>IC Number:</strong> {{ $payslip->teacher->formatted_ic_number ?? 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Period Information</h6>
+                            <p class="mb-1"><strong>Period Start:</strong> {{ $payslip->period_start->format('d M Y') }}</p>
+                            <p class="mb-1"><strong>Period End:</strong> {{ $payslip->period_end->format('d M Y') }}</p>
+                            <p class="mb-1"><strong>Total Hours:</strong> {{ number_format($payslip->total_hours, 2) }} hours</p>
+                            <p class="mb-0"><strong>Total Classes:</strong> {{ $payslip->total_classes }} classes</p>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <p class="mb-1"><strong>Payment Method:</strong></p>
-                        <p>{{ ucfirst($payslip->payment_method) }}</p>
+                </div>
+            </div>
+
+            <!-- Earnings & Deductions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calculator me-2"></i> Salary Breakdown
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Earnings -->
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-3"><i class="fas fa-plus-circle me-1"></i> Earnings</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td>Basic Pay</td>
+                                    <td class="text-end">RM {{ number_format($payslip->basic_pay, 2) }}</td>
+                                </tr>
+                                @if($payslip->allowances > 0)
+                                <tr>
+                                    <td>Allowances</td>
+                                    <td class="text-end">RM {{ number_format($payslip->allowances, 2) }}</td>
+                                </tr>
+                                @endif
+                                <tr class="border-top fw-bold">
+                                    <td>Gross Pay</td>
+                                    <td class="text-end">RM {{ number_format($payslip->basic_pay + $payslip->allowances, 2) }}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Deductions -->
+                        <div class="col-md-6">
+                            <h6 class="text-danger mb-3"><i class="fas fa-minus-circle me-1"></i> Deductions</h6>
+                            <table class="table table-sm table-borderless">
+                                @if($payslip->deductions > 0)
+                                <tr>
+                                    <td>Other Deductions</td>
+                                    <td class="text-end">RM {{ number_format($payslip->deductions, 2) }}</td>
+                                </tr>
+                                @endif
+                                <tr>
+                                    <td>
+                                        EPF (Employee)
+                                        @if($payslip->epf_employee == 0)
+                                            <span class="badge bg-secondary ms-1">Disabled</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">RM {{ number_format($payslip->epf_employee, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        SOCSO (Employee)
+                                        @if($payslip->socso_employee == 0)
+                                            <span class="badge bg-secondary ms-1">Disabled</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">RM {{ number_format($payslip->socso_employee, 2) }}</td>
+                                </tr>
+                                <tr class="border-top fw-bold">
+                                    <td>Total Deductions</td>
+                                    <td class="text-end">RM {{ number_format($payslip->deductions + $payslip->epf_employee + $payslip->socso_employee, 2) }}</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
-                    @if($payslip->reference_number)
-                    <div class="col-md-4">
-                        <p class="mb-1"><strong>Reference Number:</strong></p>
-                        <p>{{ $payslip->reference_number }}</p>
+
+                    <!-- Net Pay -->
+                    <div class="alert alert-success mt-3 mb-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Net Pay</h5>
+                            <h3 class="mb-0">RM {{ number_format($payslip->net_pay, 2) }}</h3>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Employer Contributions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-building me-2"></i> Employer Contributions
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted">EPF (Employer)</h6>
+                                <h4 class="mb-0 {{ $payslip->epf_employer > 0 ? 'text-info' : 'text-muted' }}">
+                                    RM {{ number_format($payslip->epf_employer, 2) }}
+                                </h4>
+                                @if($payslip->epf_employer == 0)
+                                    <small class="text-muted">Disabled</small>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted">SOCSO (Employer)</h6>
+                                <h4 class="mb-0 {{ $payslip->socso_employer > 0 ? 'text-info' : 'text-muted' }}">
+                                    RM {{ number_format($payslip->socso_employer, 2) }}
+                                </h4>
+                                @if($payslip->socso_employer == 0)
+                                    <small class="text-muted">Disabled</small>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 bg-light">
+                                <h6 class="text-muted">Total Employer Cost</h6>
+                                <h4 class="mb-0 text-primary">
+                                    RM {{ number_format($payslip->net_pay + $payslip->epf_employer + $payslip->socso_employer, 2) }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            @if($payslip->notes)
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-sticky-note me-2"></i> Notes
+                </div>
+                <div class="card-body">
+                    {{ $payslip->notes }}
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <!-- Status & Actions Sidebar -->
+        <div class="col-lg-4">
+            <!-- Update Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-tasks me-2"></i> Update Status
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('admin.teacher-payslips.update-status', $payslip) }}" method="POST">
+                        @csrf
+                        @method('PATCH')
+
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select" id="statusSelect">
+                                <option value="draft" {{ $payslip->status == 'draft' ? 'selected' : '' }}>Draft</option>
+                                <option value="approved" {{ $payslip->status == 'approved' ? 'selected' : '' }}>Approved</option>
+                                <option value="paid" {{ $payslip->status == 'paid' ? 'selected' : '' }}>Paid</option>
+                            </select>
+                        </div>
+
+                        <div id="paymentFields" style="{{ $payslip->status == 'paid' ? '' : 'display:none;' }}">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Date</label>
+                                <input type="date" name="payment_date" class="form-control"
+                                       value="{{ $payslip->payment_date?->format('Y-m-d') ?? date('Y-m-d') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Payment Method</label>
+                                <select name="payment_method" class="form-select">
+                                    <option value="">Select Method</option>
+                                    <option value="bank_transfer" {{ $payslip->payment_method == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                    <option value="cheque" {{ $payslip->payment_method == 'cheque' ? 'selected' : '' }}>Cheque</option>
+                                    <option value="cash" {{ $payslip->payment_method == 'cash' ? 'selected' : '' }}>Cash</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Reference Number</label>
+                                <input type="text" name="reference_number" class="form-control"
+                                       value="{{ $payslip->reference_number }}" placeholder="Transaction/Cheque No.">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-1"></i> Update Status
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Payment Info -->
+            @if($payslip->status == 'paid')
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-check-circle me-2"></i> Payment Completed
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Payment Date:</strong><br>{{ $payslip->payment_date?->format('d M Y') ?? 'N/A' }}</p>
+                    <p class="mb-2"><strong>Payment Method:</strong><br>{{ ucfirst(str_replace('_', ' ', $payslip->payment_method ?? 'N/A')) }}</p>
+                    <p class="mb-0"><strong>Reference:</strong><br>{{ $payslip->reference_number ?? 'N/A' }}</p>
+                </div>
+            </div>
+            @endif
+
+            <!-- Bank Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-university me-2"></i> Bank Details
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Bank:</strong> {{ $payslip->teacher->bank_name ?? 'Not provided' }}</p>
+                    <p class="mb-2"><strong>Account:</strong> {{ $payslip->teacher->bank_account ?? 'Not provided' }}</p>
+                    <hr>
+                    <p class="mb-2"><strong>EPF No:</strong> {{ $payslip->teacher->epf_number ?? 'Not provided' }}</p>
+                    <p class="mb-0"><strong>SOCSO No:</strong> {{ $payslip->teacher->socso_number ?? 'Not provided' }}</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-bolt me-2"></i> Quick Actions
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ route('admin.teacher-payslips.print', $payslip) }}" class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-print me-1"></i> Print Payslip
+                    </a>
+                    <a href="{{ route('admin.teachers.show', $payslip->teacher) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-user me-1"></i> View Teacher Profile
+                    </a>
+                    @if($payslip->status == 'draft')
+                    <form action="{{ route('admin.teacher-payslips.destroy', $payslip) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this draft payslip?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-trash me-1"></i> Delete Draft
+                        </button>
+                    </form>
                     @endif
                 </div>
-                @endif
-
-                <!-- Notes -->
-                @if($payslip->notes)
-                <hr>
-                <h6 class="text-muted mb-2">Notes</h6>
-                <p>{{ $payslip->notes }}</p>
-                @endif
-
-                <!-- Metadata -->
-                <hr>
-                <div class="row text-muted small">
-                    <div class="col-md-6">
-                        <strong>Generated:</strong> {{ $payslip->created_at->format('d M Y, g:i A') }}
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <strong>Last Updated:</strong> {{ $payslip->updated_at->format('d M Y, g:i A') }}
-                    </div>
-                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Actions Sidebar -->
-    <div class="col-md-4">
-        <!-- Quick Actions -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">Actions</h5>
-            </div>
-            <div class="card-body">
-                <a href="{{ route('admin.teacher-payslips.print', $payslip) }}" class="btn btn-primary w-100 mb-2" target="_blank">
-                    <i class="fas fa-print"></i> Print Payslip
-                </a>
-
-                @can('manage-teacher-salary')
-                @if($payslip->status != 'paid')
-                <button type="button" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
-                    <i class="fas fa-edit"></i> Update Status
-                </button>
-                @endif
-
-                @if($payslip->status == 'draft')
-                <button type="button" class="btn btn-danger w-100" onclick="deletePayslip()">
-                    <i class="fas fa-trash"></i> Delete Draft
-                </button>
-                @endif
-                @endcan
-
-                <a href="{{ route('admin.teacher-payslips.index') }}" class="btn btn-secondary w-100 mt-2">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </a>
-            </div>
-        </div>
-
-        <!-- Bank Details -->
-        @if($payslip->teacher->bank_name)
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Bank Details</h5>
-            </div>
-            <div class="card-body">
-                <p class="mb-1"><strong>Bank:</strong> {{ $payslip->teacher->bank_name }}</p>
-                <p class="mb-1"><strong>Account:</strong> {{ $payslip->teacher->bank_account }}</p>
-                @if($payslip->teacher->epf_number)
-                <p class="mb-1"><strong>EPF:</strong> {{ $payslip->teacher->epf_number }}</p>
-                @endif
-                @if($payslip->teacher->socso_number)
-                <p class="mb-0"><strong>SOCSO:</strong> {{ $payslip->teacher->socso_number }}</p>
-                @endif
-            </div>
-        </div>
-        @endif
-    </div>
-</div>
-
-<!-- Update Status Modal -->
-@can('manage-teacher-salary')
-<div class="modal fade" id="updateStatusModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('admin.teacher-payslips.update-status', $payslip) }}">
-                @csrf
-                @method('PUT')
-                <div class="modal-header">
-                    <h5 class="modal-title">Update Payslip Status</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Status <span class="text-danger">*</span></label>
-                        <select name="status" class="form-select" required>
-                            <option value="draft" {{ $payslip->status == 'draft' ? 'selected' : '' }}>Draft</option>
-                            <option value="approved" {{ $payslip->status == 'approved' ? 'selected' : '' }}>Approved</option>
-                            <option value="paid" {{ $payslip->status == 'paid' ? 'selected' : '' }}>Paid</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Payment Date</label>
-                        <input type="date" name="payment_date" class="form-control" value="{{ $payslip->payment_date ? $payslip->payment_date->format('Y-m-d') : '' }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Payment Method</label>
-                        <select name="payment_method" class="form-select">
-                            <option value="">Select Method</option>
-                            <option value="bank_transfer" {{ $payslip->payment_method == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
-                            <option value="cash" {{ $payslip->payment_method == 'cash' ? 'selected' : '' }}>Cash</option>
-                            <option value="cheque" {{ $payslip->payment_method == 'cheque' ? 'selected' : '' }}>Cheque</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Reference Number</label>
-                        <input type="text" name="reference_number" class="form-control" value="{{ $payslip->reference_number }}" placeholder="Transaction reference...">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Update Status</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
-@endcan
-
-<!-- Delete Form -->
-<form id="deleteForm" method="POST" action="{{ route('admin.teacher-payslips.destroy', $payslip) }}" style="display: none;">
-    @csrf
-    @method('DELETE')
-</form>
 @endsection
 
 @push('scripts')
 <script>
-function deletePayslip() {
-    if (confirm('Are you sure you want to delete this draft payslip?')) {
-        document.getElementById('deleteForm').submit();
+document.getElementById('statusSelect').addEventListener('change', function() {
+    const paymentFields = document.getElementById('paymentFields');
+    if (this.value === 'paid') {
+        paymentFields.style.display = 'block';
+    } else {
+        paymentFields.style.display = 'none';
     }
-}
+});
 </script>
 @endpush

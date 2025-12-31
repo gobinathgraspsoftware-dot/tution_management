@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Export Arrears Report')
 
@@ -34,12 +34,12 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Date From</label>
-                                <input type="date" name="date_from" class="form-control" 
+                                <input type="date" name="date_from" class="form-control"
                                        value="{{ request('date_from') }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Date To</label>
-                                <input type="date" name="date_to" class="form-control" 
+                                <input type="date" name="date_to" class="form-control"
                                        value="{{ request('date_to', date('Y-m-d')) }}">
                             </div>
                         </div>
@@ -51,7 +51,7 @@
                                 <select name="class_id" class="form-select">
                                     <option value="">All Classes</option>
                                     @foreach($classes ?? [] as $class)
-                                        <option value="{{ $class->id }}" 
+                                        <option value="{{ $class->id }}"
                                             {{ request('class_id') == $class->id ? 'selected' : '' }}>
                                             {{ $class->name }}
                                         </option>
@@ -91,14 +91,14 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Minimum Days Overdue</label>
-                                <input type="number" name="days_overdue_min" class="form-control" 
+                                <input type="number" name="days_overdue_min" class="form-control"
                                        placeholder="e.g., 30" min="0"
                                        value="{{ request('days_overdue_min') }}">
                                 <small class="text-muted">Only include invoices overdue by at least this many days</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Minimum Amount (RM)</label>
-                                <input type="number" name="amount_min" class="form-control" 
+                                <input type="number" name="amount_min" class="form-control"
                                        placeholder="e.g., 100" min="0" step="0.01"
                                        value="{{ request('amount_min') }}">
                                 <small class="text-muted">Only include invoices with at least this amount due</small>
@@ -111,7 +111,7 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="form-check form-check-custom p-3 border rounded bg-light">
-                                        <input class="form-check-input" type="radio" name="format" 
+                                        <input class="form-check-input" type="radio" name="format"
                                                id="formatCsv" value="csv" checked>
                                         <label class="form-check-label ms-2" for="formatCsv">
                                             <i class="fas fa-file-csv text-success me-2"></i>
@@ -122,7 +122,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-check form-check-custom p-3 border rounded bg-light">
-                                        <input class="form-check-input" type="radio" name="format" 
+                                        <input class="form-check-input" type="radio" name="format"
                                                id="formatExcel" value="excel">
                                         <label class="form-check-label ms-2" for="formatExcel">
                                             <i class="fas fa-file-excel text-success me-2"></i>
@@ -133,7 +133,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-check form-check-custom p-3 border rounded bg-light">
-                                        <input class="form-check-input" type="radio" name="format" 
+                                        <input class="form-check-input" type="radio" name="format"
                                                id="formatPdf" value="pdf">
                                         <label class="form-check-label ms-2" for="formatPdf">
                                             <i class="fas fa-file-pdf text-danger me-2"></i>
@@ -151,21 +151,21 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="include_summary" 
+                                        <input class="form-check-input" type="checkbox" name="include_summary"
                                                id="includeSummary" value="1" checked>
                                         <label class="form-check-label" for="includeSummary">
                                             Summary Statistics
                                         </label>
                                     </div>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="include_aging" 
+                                        <input class="form-check-input" type="checkbox" name="include_aging"
                                                id="includeAging" value="1" checked>
                                         <label class="form-check-label" for="includeAging">
                                             Aging Analysis
                                         </label>
                                     </div>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="include_contact" 
+                                        <input class="form-check-input" type="checkbox" name="include_contact"
                                                id="includeContact" value="1" checked>
                                         <label class="form-check-label" for="includeContact">
                                             Contact Information
@@ -174,21 +174,21 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="include_reminders" 
+                                        <input class="form-check-input" type="checkbox" name="include_reminders"
                                                id="includeReminders" value="1">
                                         <label class="form-check-label" for="includeReminders">
                                             Reminder History
                                         </label>
                                     </div>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="include_payments" 
+                                        <input class="form-check-input" type="checkbox" name="include_payments"
                                                id="includePayments" value="1">
                                         <label class="form-check-label" for="includePayments">
                                             Payment History
                                         </label>
                                     </div>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="include_parent" 
+                                        <input class="form-check-input" type="checkbox" name="include_parent"
                                                id="includeParent" value="1">
                                         <label class="form-check-label" for="includeParent">
                                             Parent Details
@@ -204,7 +204,7 @@
                                 <i class="fas fa-undo me-1"></i> Reset
                             </button>
                             <div>
-                                <a href="{{ route('admin.arrears.print', request()->query()) }}" 
+                                <a href="{{ route('admin.arrears.print', request()->query()) }}"
                                    class="btn btn-outline-primary me-2" target="_blank">
                                     <i class="fas fa-print me-1"></i> Preview & Print
                                 </a>
@@ -254,22 +254,22 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        <a href="{{ route('admin.arrears.export', ['status' => 'overdue', 'format' => 'csv']) }}" 
+                        <a href="{{ route('admin.arrears.export', ['status' => 'overdue', 'format' => 'csv']) }}"
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-clock text-warning me-2"></i> All Overdue</span>
                             <span class="badge bg-warning">CSV</span>
                         </a>
-                        <a href="{{ route('admin.arrears.export', ['days_overdue_min' => 90, 'format' => 'csv']) }}" 
+                        <a href="{{ route('admin.arrears.export', ['days_overdue_min' => 90, 'format' => 'csv']) }}"
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-exclamation-triangle text-danger me-2"></i> Critical (90+ days)</span>
                             <span class="badge bg-danger">CSV</span>
                         </a>
-                        <a href="{{ route('admin.arrears.export', ['days_overdue_min' => 30, 'days_overdue_max' => 60, 'format' => 'csv']) }}" 
+                        <a href="{{ route('admin.arrears.export', ['days_overdue_min' => 30, 'days_overdue_max' => 60, 'format' => 'csv']) }}"
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-hourglass-half text-info me-2"></i> 30-60 Days Overdue</span>
                             <span class="badge bg-info">CSV</span>
                         </a>
-                        <a href="{{ route('admin.arrears.export', ['date_from' => now()->startOfMonth()->format('Y-m-d'), 'format' => 'csv']) }}" 
+                        <a href="{{ route('admin.arrears.export', ['date_from' => now()->startOfMonth()->format('Y-m-d'), 'format' => 'csv']) }}"
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-calendar text-primary me-2"></i> This Month</span>
                             <span class="badge bg-primary">CSV</span>
@@ -311,12 +311,12 @@
         cursor: pointer;
         transition: all 0.2s ease;
     }
-    
+
     .form-check-custom:hover {
         background-color: #e9ecef !important;
         border-color: #007bff !important;
     }
-    
+
     .form-check-custom input:checked + label {
         color: #007bff;
     }
@@ -338,12 +338,12 @@
         // Set date_to to today
         document.querySelector('input[name="date_to"]').value = '{{ date("Y-m-d") }}';
     }
-    
+
     // Form validation before submit
     document.getElementById('exportForm').addEventListener('submit', function(e) {
         var dateFrom = document.querySelector('input[name="date_from"]').value;
         var dateTo = document.querySelector('input[name="date_to"]').value;
-        
+
         if (dateFrom && dateTo && dateFrom > dateTo) {
             e.preventDefault();
             alert('Date From cannot be after Date To');

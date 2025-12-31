@@ -29,6 +29,10 @@ class Teacher extends Model
         'bank_account',
         'epf_number',
         'socso_number',
+        // NEW: Statutory contribution flags
+        'epf_enabled',
+        'socso_enabled',
+        'socso_type',
         'documents',
         'status',
     ];
@@ -40,10 +44,16 @@ class Teacher extends Model
         'per_class_rate' => 'decimal:2',
         'experience_years' => 'integer',
         'documents' => 'array',
-        'specialization' => 'array', // Cast to array for multiple subjects
+        'specialization' => 'array',
+        // NEW: Cast boolean flags
+        'epf_enabled' => 'boolean',
+        'socso_enabled' => 'boolean',
     ];
 
-    // Relationships
+    // ==========================================
+    // RELATIONSHIPS
+    // ==========================================
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -74,7 +84,10 @@ class Teacher extends Model
         return $this->hasMany(StudentReview::class);
     }
 
-    // Scopes
+    // ==========================================
+    // SCOPES
+    // ==========================================
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
@@ -95,7 +108,20 @@ class Teacher extends Model
         return $query->where('employment_type', 'contract');
     }
 
-    // Accessors
+    public function scopeEpfEnabled($query)
+    {
+        return $query->where('epf_enabled', true);
+    }
+
+    public function scopeSocsoEnabled($query)
+    {
+        return $query->where('socso_enabled', true);
+    }
+
+    // ==========================================
+    // ACCESSORS
+    // ==========================================
+
     public function getFullNameAttribute()
     {
         return $this->user->name;
@@ -110,7 +136,6 @@ class Teacher extends Model
             return null;
         }
 
-        // Ensure we have exactly 12 digits
         $cleaned = preg_replace('/[^0-9]/', '', $this->ic_number);
 
         if (strlen($cleaned) === 12) {
@@ -118,28 +143,6 @@ class Teacher extends Model
         }
 
         return $this->ic_number;
-    }
-
-    // Mutators
-    /**
-     * Set IC number - remove hyphens, store only digits
-     */
-    public function setIcNumberAttribute($value)
-    {
-        if (empty($value)) {
-            $this->attributes['ic_number'] = null;
-        } else {
-            // Remove all non-numeric characters
-            $this->attributes['ic_number'] = preg_replace('/[^0-9]/', '', $value);
-        }
-    }
-
-    // Helpers
-    public function calculateSalary($month, $year)
-    {
-        // This would contain salary calculation logic
-        // Based on pay_type: hourly, monthly, or per_class
-        return 0;
     }
 
     /**
@@ -151,7 +154,6 @@ class Teacher extends Model
             return [];
         }
 
-        // If specialization is array of IDs, fetch subject names
         if (is_array($this->specialization)) {
             return \App\Models\Subject::whereIn('id', $this->specialization)
                 ->pluck('name')
@@ -159,5 +161,81 @@ class Teacher extends Model
         }
 
         return [];
+    }
+
+    /**
+     * Check if teacher requires SOCSO Insurance Only scheme
+     * (for employees 60+ years old or foreign workers)
+     */
+    public function getUsesSocsoInsuranceOnlyAttribute(): bool
+    {
+        return $this->socso_type === 'insurance_only';
+    }
+
+    /**
+     * Get statutory contribution status summary
+     */
+    public function getStatutoryStatusAttribute(): array
+    {
+        return [
+            'epf' => $this->epf_enabled,
+            'socso' => $this->socso_enabled,
+            'socso_type' => $this->socso_type ?? 'regular',
+        ];
+    }
+
+    // ==========================================
+    // MUTATORS
+    // ==========================================
+
+    /**
+     * Set IC number - remove hyphens, store only digits
+     */
+    public function setIcNumberAttribute($value)
+    {
+        if (empty($value)) {
+            $this->attributes['ic_number'] = null;
+        } else {
+            $this->attributes['ic_number'] = preg_replace('/[^0-9]/', '', $value);
+        }
+    }
+
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
+
+    /**
+     * Check if EPF deduction should be applied
+     */
+    public function shouldDeductEpf(): bool
+    {
+        return $this->epf_enabled && !empty($this->epf_number);
+    }
+
+    /**
+     * Check if SOCSO deduction should be applied
+     */
+    public function shouldDeductSocso(): bool
+    {
+        return $this->socso_enabled && !empty($this->socso_number);
+    }
+
+    /**
+     * Get the SOCSO calculation model to use based on socso_type
+     */
+    public function getSocsoModel(): string
+    {
+        return $this->socso_type === 'insurance_only' 
+            ? SocsoInsurance::class 
+            : Socso::class;
+    }
+
+    /**
+     * Calculate salary for given month/year
+     * @deprecated Use TeacherSalaryService instead
+     */
+    public function calculateSalary($month, $year)
+    {
+        return 0;
     }
 }

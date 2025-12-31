@@ -43,9 +43,9 @@ class PayslipController extends Controller
         // Get statistics
         $stats = [
             'total_payslips' => TeacherPayslip::where('teacher_id', $teacher->id)->count(),
-            'approved' => TeacherPayslip::where('teacher_id', $teacher->id)->approved()->count(),
-            'paid' => TeacherPayslip::where('teacher_id', $teacher->id)->paid()->count(),
-            'total_earned' => TeacherPayslip::where('teacher_id', $teacher->id)->paid()->sum('net_pay'),
+            'approved' => TeacherPayslip::where('teacher_id', $teacher->id)->where('status', 'approved')->count(),
+            'paid' => TeacherPayslip::where('teacher_id', $teacher->id)->where('status', 'paid')->count(),
+            'total_earned' => TeacherPayslip::where('teacher_id', $teacher->id)->where('status', 'paid')->sum('net_pay'),
         ];
 
         // Get available years for filter
@@ -67,7 +67,7 @@ class PayslipController extends Controller
         $teacher = auth()->user()->teacher;
 
         // Ensure teacher can only view their own payslips
-        if ($payslip->teacher_id !== $teacher->id) {
+        if (!$teacher || $payslip->teacher_id !== $teacher->id) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -82,10 +82,27 @@ class PayslipController extends Controller
         $teacher = auth()->user()->teacher;
 
         // Ensure teacher can only print their own payslips
-        if ($payslip->teacher_id !== $teacher->id) {
+        if (!$teacher || $payslip->teacher_id !== $teacher->id) {
             abort(403, 'Unauthorized access.');
         }
 
         return view('teacher.payslips.print', compact('payslip'));
+    }
+
+    /**
+     * Download payslip as PDF.
+     */
+    public function download(TeacherPayslip $payslip)
+    {
+        $teacher = auth()->user()->teacher;
+
+        // Ensure teacher can only download their own payslips
+        if (!$teacher || $payslip->teacher_id !== $teacher->id) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // For now, redirect to print view
+        // Can be extended to generate PDF using DomPDF
+        return redirect()->route('teacher.payslips.print', $payslip);
     }
 }

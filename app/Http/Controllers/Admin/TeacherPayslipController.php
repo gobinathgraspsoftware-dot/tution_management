@@ -84,6 +84,7 @@ class TeacherPayslipController extends Controller
         $calculation = null;
         $periodStart = null;
         $periodEnd = null;
+        $statutorySettings = null;
 
         // If teacher selected, calculate salary
         if ($request->filled('teacher_id') && $request->filled('period_start') && $request->filled('period_end')) {
@@ -91,12 +92,30 @@ class TeacherPayslipController extends Controller
             $periodStart = $request->period_start;
             $periodEnd = $request->period_end;
 
-            $breakdown = $this->salaryService->getSalaryBreakdown($teacher, $periodStart, $periodEnd);
+            // Check for custom statutory flags from request (for recalculation)
+            $overrideFlags = null;
+            if ($request->has('epf_enabled') || $request->has('socso_enabled')) {
+                $overrideFlags = [
+                    'epf_enabled' => $request->boolean('epf_enabled', $teacher->epf_enabled ?? true),
+                    'socso_enabled' => $request->boolean('socso_enabled', $teacher->socso_enabled ?? true),
+                    'socso_type' => $request->get('socso_type', $teacher->socso_type ?? 'regular'),
+                ];
+            }
+
+            $breakdown = $this->salaryService->getSalaryBreakdown($teacher, $periodStart, $periodEnd, $overrideFlags);
             $calculation = $breakdown['calculation'];
             $calculation['net_pay'] = $breakdown['net_pay'];
+            $statutorySettings = $breakdown['statutory_settings'];
         }
 
-        return view('admin.teacher-payslips.create', compact('teachers', 'teacher', 'calculation', 'periodStart', 'periodEnd'));
+        return view('admin.teacher-payslips.create', compact(
+            'teachers', 
+            'teacher', 
+            'calculation', 
+            'periodStart', 
+            'periodEnd',
+            'statutorySettings'
+        ));
     }
 
     /**
@@ -119,11 +138,19 @@ class TeacherPayslipController extends Controller
                     ->withInput();
             }
 
-            // Calculate salary
+            // Build override flags from request if provided
+            $overrideFlags = [
+                'epf_enabled' => $request->boolean('epf_enabled', $teacher->epf_enabled ?? true),
+                'socso_enabled' => $request->boolean('socso_enabled', $teacher->socso_enabled ?? true),
+                'socso_type' => $request->get('socso_type', $teacher->socso_type ?? 'regular'),
+            ];
+
+            // Calculate salary with statutory flags
             $breakdown = $this->salaryService->getSalaryBreakdown(
                 $teacher,
                 $request->period_start,
-                $request->period_end
+                $request->period_end,
+                $overrideFlags
             );
 
             $calculation = $breakdown['calculation'];
@@ -291,6 +318,7 @@ class TeacherPayslipController extends Controller
 
     /**
      * Calculate salary preview (AJAX).
+     * Now supports custom statutory flags for real-time preview.
      */
     public function calculatePreview(Request $request)
     {
@@ -298,19 +326,67 @@ class TeacherPayslipController extends Controller
             'teacher_id' => 'required|exists:teachers,id',
             'period_start' => 'required|date',
             'period_end' => 'required|date|after_or_equal:period_start',
+            'epf_enabled' => 'nullable|boolean',
+            'socso_enabled' => 'nullable|boolean',
+            'socso_type' => 'nullable|in:regular,insurance_only',
         ]);
 
         try {
             $teacher = Teacher::with('user')->findOrFail($request->teacher_id);
+
+            // Build override flags if custom settings provided
+            $overrideFlags = null;
+            if ($request->has('epf_enabled') || $request->has('socso_enabled') || $request->has('socso_type')) {
+                $overrideFlags = [
+                    'epf_enabled' => $request->boolean('epf_enabled', $teacher->epf_enabled ?? true),
+                    'socso_enabled' => $request->boolean('socso_enabled', $teacher->socso_enabled ?? true),
+                    'socso_type' => $request->get('socso_type', $teacher->socso_type ?? 'regular'),
+                ];
+            }
+
             $breakdown = $this->salaryService->getSalaryBreakdown(
                 $teacher,
                 $request->period_start,
-                $request->period_end
+                $request->period_end,
+                $overrideFlags
             );
 
             return response()->json([
                 'success' => true,
                 'data' => $breakdown,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get teacher statutory settings (AJAX).
+     * Returns the EPF/SOCSO settings for a specific teacher.
+     */
+    public function getTeacherStatutorySettings(Request $request)
+    {
+        $request->validate([
+            'teacher_id' => 'required|exists:teachers,id',
+        ]);
+
+        try {
+            $teacher = Teacher::findOrFail($request->teacher_id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'epf_enabled' => $teacher->epf_enabled ?? true,
+                    'epf_number' => $teacher->epf_number,
+                    'socso_enabled' => $teacher->socso_enabled ?? true,
+                    'socso_type' => $teacher->socso_type ?? 'regular',
+                    'socso_number' => $teacher->socso_number,
+                    'pay_type' => $teacher->pay_type,
+                ],
             ]);
 
         } catch (\Exception $e) {

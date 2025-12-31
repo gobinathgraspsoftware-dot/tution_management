@@ -295,7 +295,7 @@
         </div>
 
         <!-- Bank & Statutory Information -->
-        <div class="col-md-12">
+        {{-- <div class="col-md-12">
             <div class="card mb-4">
                 <div class="card-header">
                     <i class="fas fa-university me-2"></i> Bank & Statutory Information
@@ -347,8 +347,8 @@
                     </div>
                 </div>
             </div>
-        </div>
-
+        </div> --}}
+        @include('admin.teachers.partials.statutory-settings')
         <!-- WhatsApp Notification Section -->
         <div class="col-md-12">
             <div class="card mb-4 border-success">

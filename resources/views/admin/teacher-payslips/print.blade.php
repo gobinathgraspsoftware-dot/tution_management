@@ -4,256 +4,410 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payslip - {{ $payslip->payslip_number }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        @media print {
-            .no-print {
-                display: none;
-            }
-            body {
-                margin: 0;
-                padding: 20px;
-            }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         body {
-            font-family: Arial, sans-serif;
-            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #333;
+            background: #fff;
+            padding: 20px;
         }
-        .payslip-header {
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+        .payslip {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #333;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            color: #666;
+            font-size: 11px;
         }
         .payslip-title {
-            color: #667eea;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .table-salary td {
-            padding: 8px 12px;
-        }
-        .net-pay-row {
-            background-color: #e8f5e9;
+            text-align: center;
+            background: #f5f5f5;
+            padding: 10px;
             font-weight: bold;
             font-size: 16px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
         }
-        .footer-note {
-            border-top: 1px solid #dee2e6;
-            padding-top: 20px;
-            margin-top: 30px;
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .info-box {
+            width: 48%;
+        }
+        .info-box h3 {
             font-size: 12px;
-            color: #6c757d;
+            background: #333;
+            color: #fff;
+            padding: 5px 10px;
+            margin-bottom: 10px;
+        }
+        .info-box table {
+            width: 100%;
+        }
+        .info-box td {
+            padding: 3px 0;
+            font-size: 11px;
+        }
+        .info-box td:first-child {
+            color: #666;
+            width: 40%;
+        }
+        .salary-section {
+            margin-bottom: 15px;
+        }
+        .salary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .salary-table th {
+            background: #333;
+            color: #fff;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11px;
+        }
+        .salary-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 11px;
+        }
+        .salary-table .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        .salary-table .subtotal {
+            background: #f9f9f9;
+            font-weight: bold;
+        }
+        .salary-table .total-row {
+            background: #e8f5e9;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .salary-table .deduction {
+            color: #c62828;
+        }
+        .salary-table .disabled {
+            color: #999;
+            font-style: italic;
+        }
+        .employer-section {
+            background: #f5f5f5;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        .employer-section h3 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        .employer-section .contrib-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed #ddd;
+        }
+        .employer-section .contrib-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            background: #fff;
+            margin: 5px -10px -10px;
+            padding: 10px;
+        }
+        .net-pay-box {
+            background: #2e7d32;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .net-pay-box h3 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .net-pay-box .amount {
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            padding-top: 5px;
+            font-size: 10px;
+            color: #666;
+        }
+        .print-date {
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+            margin-top: 20px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-draft { background: #fff3cd; color: #856404; }
+        .status-approved { background: #cce5ff; color: #004085; }
+        .status-paid { background: #d4edda; color: #155724; }
+        @media print {
+            body { padding: 0; }
+            .payslip { border: none; }
+            .no-print { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="no-print mb-3">
-            <button onclick="window.print()" class="btn btn-primary">
-                <i class="fas fa-print"></i> Print
-            </button>
-            <button onclick="window.close()" class="btn btn-secondary">
-                Close
-            </button>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 30px; cursor: pointer; font-size: 14px;">
+            🖨️ Print Payslip
+        </button>
+        <button onclick="window.close()" style="padding: 10px 30px; cursor: pointer; font-size: 14px; margin-left: 10px;">
+            ✕ Close
+        </button>
+    </div>
+
+    <div class="payslip">
+        <!-- Header -->
+        <div class="header">
+            <h1>{{ config('app.name', 'Arena Matriks Edu Group') }}</h1>
+            <p>Tuition Centre Management System</p>
         </div>
 
-        <!-- Payslip Content -->
-        <div class="payslip-header">
-            <div class="row">
-                <div class="col-8">
-                    <h1 class="payslip-title">ARENA MATRIKS EDU GROUP</h1>
-                    <p class="mb-0">Tuition Center Management System</p>
-                </div>
-                <div class="col-4 text-end">
-                    <h3>PAYSLIP</h3>
-                    <p class="mb-0"><strong>{{ $payslip->payslip_number }}</strong></p>
-                </div>
-            </div>
+        <!-- Title -->
+        <div class="payslip-title">
+            PAYSLIP - {{ $payslip->payslip_number }}
+            <span class="status-badge status-{{ $payslip->status }}">{{ strtoupper($payslip->status) }}</span>
         </div>
 
-        <!-- Teacher and Period Info -->
-        <div class="row mb-4">
-            <div class="col-6">
-                <h5>Teacher Information</h5>
-                <table class="table table-sm table-borderless">
+        <!-- Employee & Period Info -->
+        <div class="info-section">
+            <div class="info-box">
+                <h3>Employee Information</h3>
+                <table>
                     <tr>
-                        <td width="120"><strong>Name:</strong></td>
-                        <td>{{ $payslip->teacher->user->name }}</td>
+                        <td>Name</td>
+                        <td><strong>{{ $payslip->teacher->user->name }}</strong></td>
                     </tr>
                     <tr>
-                        <td><strong>Email:</strong></td>
-                        <td>{{ $payslip->teacher->user->email }}</td>
+                        <td>Employee ID</td>
+                        <td>{{ $payslip->teacher->teacher_id }}</td>
                     </tr>
                     <tr>
-                        <td><strong>Phone:</strong></td>
-                        <td>{{ $payslip->teacher->user->phone }}</td>
+                        <td>IC Number</td>
+                        <td>{{ $payslip->teacher->formatted_ic_number ?? 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <td><strong>IC Number:</strong></td>
-                        <td>{{ $payslip->teacher->ic_number ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Employment:</strong></td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $payslip->teacher->employment_type)) }}</td>
+                        <td>Pay Type</td>
+                        <td>{{ ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) }}</td>
                     </tr>
                 </table>
             </div>
-            <div class="col-6">
-                <h5>Payslip Information</h5>
-                <table class="table table-sm table-borderless">
+            <div class="info-box">
+                <h3>Pay Period</h3>
+                <table>
                     <tr>
-                        <td width="120"><strong>Period:</strong></td>
-                        <td>{{ $payslip->period_start->format('d M Y') }} to {{ $payslip->period_end->format('d M Y') }}</td>
+                        <td>Period Start</td>
+                        <td><strong>{{ $payslip->period_start->format('d M Y') }}</strong></td>
                     </tr>
                     <tr>
-                        <td><strong>Pay Type:</strong></td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) }}</td>
+                        <td>Period End</td>
+                        <td><strong>{{ $payslip->period_end->format('d M Y') }}</strong></td>
                     </tr>
                     <tr>
-                        <td><strong>Total Hours:</strong></td>
+                        <td>Total Hours</td>
                         <td>{{ number_format($payslip->total_hours, 2) }} hours</td>
                     </tr>
                     <tr>
-                        <td><strong>Total Classes:</strong></td>
+                        <td>Total Classes</td>
                         <td>{{ $payslip->total_classes }} classes</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Generated:</strong></td>
-                        <td>{{ $payslip->created_at->format('d M Y') }}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
         <!-- Salary Breakdown -->
-        <h5 class="mb-3">Salary Breakdown</h5>
-        <table class="table table-bordered table-salary">
-            <tbody>
-                <tr>
-                    <td width="60%"><strong>Basic Pay</strong></td>
-                    <td width="40%" class="text-end">RM {{ number_format($payslip->basic_pay, 2) }}</td>
-                </tr>
-                @if($payslip->allowances > 0)
-                <tr>
-                    <td>Add: Allowances</td>
-                    <td class="text-end text-success">+ RM {{ number_format($payslip->allowances, 2) }}</td>
-                </tr>
-                @endif
-                @if($payslip->deductions > 0)
-                <tr>
-                    <td>Less: Deductions</td>
-                    <td class="text-end text-danger">- RM {{ number_format($payslip->deductions, 2) }}</td>
-                </tr>
-                @endif
-                @if($payslip->epf_employee > 0)
-                <tr>
-                    <td>Less: EPF Employee Contribution (11%)</td>
-                    <td class="text-end text-danger">- RM {{ number_format($payslip->epf_employee, 2) }}</td>
-                </tr>
-                @endif
-                @if($payslip->socso_employee > 0)
-                <tr>
-                    <td>Less: SOCSO Employee Contribution</td>
-                    <td class="text-end text-danger">- RM {{ number_format($payslip->socso_employee, 2) }}</td>
-                </tr>
-                @endif
-                <tr class="net-pay-row">
-                    <td><strong>NET PAY</strong></td>
-                    <td class="text-end"><strong>RM {{ number_format($payslip->net_pay, 2) }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="salary-section">
+            <table class="salary-table">
+                <thead>
+                    <tr>
+                        <th colspan="2">Earnings & Deductions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Earnings -->
+                    <tr>
+                        <td>Basic Pay</td>
+                        <td class="amount">RM {{ number_format($payslip->basic_pay, 2) }}</td>
+                    </tr>
+                    @if($payslip->allowances > 0)
+                    <tr>
+                        <td>Allowances</td>
+                        <td class="amount">RM {{ number_format($payslip->allowances, 2) }}</td>
+                    </tr>
+                    @endif
+                    <tr class="subtotal">
+                        <td>Gross Pay</td>
+                        <td class="amount">RM {{ number_format($payslip->basic_pay + $payslip->allowances, 2) }}</td>
+                    </tr>
 
-        @if($payslip->epf_employer > 0 || $payslip->socso_employer > 0)
-        <h6 class="mt-4 mb-2">Employer Contributions</h6>
-        <table class="table table-bordered table-sm">
-            <tbody>
-                @if($payslip->epf_employer > 0)
-                <tr>
-                    <td width="60%">EPF Employer Contribution (13%)</td>
-                    <td width="40%" class="text-end">RM {{ number_format($payslip->epf_employer, 2) }}</td>
-                </tr>
-                @endif
-                @if($payslip->socso_employer > 0)
-                <tr>
-                    <td>SOCSO Employer Contribution</td>
-                    <td class="text-end">RM {{ number_format($payslip->socso_employer, 2) }}</td>
-                </tr>
-                @endif
-            </tbody>
-        </table>
-        @endif
-
-        <!-- Payment Information -->
-        @if($payslip->status == 'paid' && $payslip->payment_date)
-        <div class="mt-4">
-            <h5>Payment Information</h5>
-            <table class="table table-sm table-borderless">
-                <tr>
-                    <td width="150"><strong>Payment Date:</strong></td>
-                    <td>{{ $payslip->payment_date->format('d M Y') }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Payment Method:</strong></td>
-                    <td>{{ ucfirst($payslip->payment_method) }}</td>
-                </tr>
-                @if($payslip->reference_number)
-                <tr>
-                    <td><strong>Reference Number:</strong></td>
-                    <td>{{ $payslip->reference_number }}</td>
-                </tr>
-                @endif
+                    <!-- Deductions -->
+                    @if($payslip->deductions > 0)
+                    <tr>
+                        <td class="deduction">(-) Other Deductions</td>
+                        <td class="amount deduction">RM {{ number_format($payslip->deductions, 2) }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td class="{{ $payslip->epf_employee > 0 ? 'deduction' : 'disabled' }}">
+                            (-) EPF (Employee 11%)
+                            @if($payslip->epf_employee == 0)
+                                <em>[Disabled]</em>
+                            @endif
+                        </td>
+                        <td class="amount {{ $payslip->epf_employee > 0 ? 'deduction' : 'disabled' }}">
+                            RM {{ number_format($payslip->epf_employee, 2) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="{{ $payslip->socso_employee > 0 ? 'deduction' : 'disabled' }}">
+                            (-) SOCSO (Employee)
+                            @if($payslip->socso_employee == 0)
+                                <em>[Disabled]</em>
+                            @endif
+                        </td>
+                        <td class="amount {{ $payslip->socso_employee > 0 ? 'deduction' : 'disabled' }}">
+                            RM {{ number_format($payslip->socso_employee, 2) }}
+                        </td>
+                    </tr>
+                    <tr class="subtotal">
+                        <td>Total Deductions</td>
+                        <td class="amount deduction">
+                            RM {{ number_format($payslip->deductions + $payslip->epf_employee + $payslip->socso_employee, 2) }}
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
-        @endif
+
+        <!-- Net Pay -->
+        <div class="net-pay-box">
+            <h3>NET PAY</h3>
+            <div class="amount">RM {{ number_format($payslip->net_pay, 2) }}</div>
+        </div>
+
+        <!-- Employer Contributions -->
+        <div class="employer-section">
+            <h3>Employer Contributions (For Reference Only)</h3>
+            <div class="contrib-row">
+                <span>EPF (Employer 13%)</span>
+                <span>RM {{ number_format($payslip->epf_employer, 2) }}</span>
+            </div>
+            <div class="contrib-row">
+                <span>SOCSO (Employer)</span>
+                <span>RM {{ number_format($payslip->socso_employer, 2) }}</span>
+            </div>
+            <div class="contrib-row">
+                <span>Total Employer Cost</span>
+                <span>RM {{ number_format($payslip->net_pay + $payslip->epf_employer + $payslip->socso_employer, 2) }}</span>
+            </div>
+        </div>
 
         <!-- Bank Details -->
-        @if($payslip->teacher->bank_name)
-        <div class="mt-4">
-            <h5>Bank Details</h5>
-            <table class="table table-sm table-borderless">
-                <tr>
-                    <td width="150"><strong>Bank Name:</strong></td>
-                    <td>{{ $payslip->teacher->bank_name }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Account Number:</strong></td>
-                    <td>{{ $payslip->teacher->bank_account }}</td>
-                </tr>
-                @if($payslip->teacher->epf_number)
-                <tr>
-                    <td><strong>EPF Number:</strong></td>
-                    <td>{{ $payslip->teacher->epf_number }}</td>
-                </tr>
-                @endif
-                @if($payslip->teacher->socso_number)
-                <tr>
-                    <td><strong>SOCSO Number:</strong></td>
-                    <td>{{ $payslip->teacher->socso_number }}</td>
-                </tr>
-                @endif
-            </table>
+        <div class="info-section" style="margin-bottom: 0;">
+            <div class="info-box">
+                <h3>Bank Details</h3>
+                <table>
+                    <tr>
+                        <td>Bank Name</td>
+                        <td>{{ $payslip->teacher->bank_name ?? 'Not provided' }}</td>
+                    </tr>
+                    <tr>
+                        <td>Account No</td>
+                        <td>{{ $payslip->teacher->bank_account ?? 'Not provided' }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="info-box">
+                <h3>Statutory Numbers</h3>
+                <table>
+                    <tr>
+                        <td>EPF Number</td>
+                        <td>{{ $payslip->teacher->epf_number ?? 'Not registered' }}</td>
+                    </tr>
+                    <tr>
+                        <td>SOCSO Number</td>
+                        <td>{{ $payslip->teacher->socso_number ?? 'Not registered' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        @if($payslip->status == 'paid')
+        <div style="background: #d4edda; padding: 10px; margin-top: 15px; border: 1px solid #c3e6cb;">
+            <strong>Payment Info:</strong> 
+            Paid on {{ $payslip->payment_date?->format('d M Y') ?? 'N/A' }} 
+            via {{ ucfirst(str_replace('_', ' ', $payslip->payment_method ?? 'N/A')) }}
+            @if($payslip->reference_number)
+                (Ref: {{ $payslip->reference_number }})
+            @endif
         </div>
         @endif
 
-        <!-- Notes -->
-        @if($payslip->notes)
-        <div class="mt-4">
-            <h5>Notes</h5>
-            <p>{{ $payslip->notes }}</p>
+        <!-- Signatures -->
+        <div class="footer">
+            <div class="signature-box">
+                <div class="signature-line">
+                    Employee Signature
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">
+                    Authorized Signature
+                </div>
+            </div>
         </div>
-        @endif
 
-        <!-- Footer -->
-        <div class="footer-note">
-            <p class="mb-1">This is a computer-generated payslip and does not require a signature.</p>
-            <p class="mb-0"><strong>Arena Matriks Edu Group</strong> | Generated on {{ now()->format('d M Y, g:i A') }}</p>
+        <div class="print-date">
+            Generated on {{ now()->format('d M Y, h:i A') }} | This is a computer-generated document.
         </div>
     </div>
-
-    <script>
-        // Auto print on load (optional)
-        // window.onload = function() { window.print(); }
-    </script>
 </body>
 </html>

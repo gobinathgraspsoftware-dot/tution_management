@@ -120,6 +120,9 @@ class TeacherController extends Controller
             'bank_account' => 'nullable|string|max:50',
             'epf_number' => 'nullable|string|max:50',
             'socso_number' => 'nullable|string|max:50',
+            'epf_enabled' => 'nullable|boolean',
+            'socso_enabled' => 'nullable|boolean',
+            'socso_type' => 'nullable|in:regular,insurance_only',
             'status' => 'required|in:active,inactive,on_leave',
             'send_whatsapp' => 'nullable|boolean',
         ]);
@@ -176,6 +179,9 @@ class TeacherController extends Controller
                 'bank_account' => $validated['bank_account'],
                 'epf_number' => $validated['epf_number'],
                 'socso_number' => $validated['socso_number'],
+                'epf_enabled' => $request->boolean('epf_enabled', true),
+                'socso_enabled' => $request->boolean('socso_enabled', true),
+                'socso_type' => $validated['socso_type'] ?? 'regular',
                 'status' => $validated['status'],
             ]);
 
@@ -387,6 +393,9 @@ class TeacherController extends Controller
             'bank_account' => 'nullable|string|max:50',
             'epf_number' => 'nullable|string|max:50',
             'socso_number' => 'nullable|string|max:50',
+            'epf_enabled' => 'nullable|boolean',
+            'socso_enabled' => 'nullable|boolean',
+            'socso_type' => 'nullable|in:regular,insurance_only',
             'status' => 'required|in:active,inactive,on_leave',
             'send_whatsapp' => 'nullable|boolean',
         ]);
@@ -443,6 +452,9 @@ class TeacherController extends Controller
                 'bank_name' => $validated['bank_name'],
                 'bank_account' => $validated['bank_account'],
                 'epf_number' => $validated['epf_number'],
+                'epf_enabled' => $request->boolean('epf_enabled', true),
+                'socso_enabled' => $request->boolean('socso_enabled', true),
+                'socso_type' => $validated['socso_type'] ?? 'regular',
                 'socso_number' => $validated['socso_number'],
                 'status' => $validated['status'],
             ]);
