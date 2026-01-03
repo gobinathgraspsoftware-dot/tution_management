@@ -12,7 +12,7 @@ class EnrollmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth()->user()->hasAnyRole(['super-admin', 'admin', 'staff']);
     }
 
     /**
@@ -20,35 +20,54 @@ class EnrollmentRequest extends FormRequest
      */
     public function rules(): array
     {
-        $enrollmentId = $this->route('enrollment') ? $this->route('enrollment')->id : null;
-        
         $rules = [
-            'student_id' => ['required', 'exists:students,id'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['nullable', 'date', 'after:start_date'],
-            'payment_cycle_day' => ['required', 'integer', 'min:1', 'max:28'],
-            'status' => ['nullable', 'in:active,suspended,expired,cancelled,trial'],
-            'fee_change_reason' => ['nullable', 'string', 'max:500'],
+            'student_id' => 'required|exists:students,id',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'payment_cycle_day' => 'required|integer|min:1|max:15',
+            'status' => 'required|in:active,trial,suspended,expired,cancelled',
         ];
 
-        // For new enrollment
-        if (!$enrollmentId) {
-            // Validate based on enrollment type
-            if ($this->input('enrollment_type') === 'package') {
-                $rules['package_id'] = ['required', 'exists:packages,id'];
-                $rules['subject_classes'] = ['required', 'array', 'min:1'];
-                $rules['subject_classes.*'] = ['required', 'exists:classes,id'];
-            } else {
-                $rules['class_id'] = ['required', 'exists:classes,id'];
-                $rules['monthly_fee'] = ['required', 'numeric', 'min:0'];
+        // Determine enrollment type
+        $enrollmentType = $this->input('enrollment_type');
+        
+        // For updates, check the existing enrollment if type not provided
+        if (($this->isMethod('PUT') || $this->isMethod('PATCH')) && !$enrollmentType) {
+            $enrollment = $this->route('enrollment');
+            if ($enrollment) {
+                $enrollmentType = $enrollment->package_id ? 'package' : 'single';
             }
+        }
+        
+        // Default to 'package' for new enrollments if not specified
+        $enrollmentType = $enrollmentType ?? 'package';
+
+        if ($enrollmentType === 'package') {
+            $rules['package_id'] = 'required|exists:packages,id';
+            $rules['class_id'] = 'nullable|exists:classes,id';
+            $rules['monthly_fee'] = 'nullable|numeric|min:0';
+            $rules['subject_classes'] = 'nullable|array';
+            $rules['subject_classes.*'] = 'nullable|exists:classes,id';
         } else {
-            // For update
-            $rules['monthly_fee'] = ['required', 'numeric', 'min:0'];
+            // Single class enrollment
+            $rules['package_id'] = 'nullable';
+            $rules['class_id'] = 'required|exists:classes,id';
+            $rules['monthly_fee'] = 'required|numeric|min:0';
+        }
+
+        // Fee change reason required when updating PACKAGE enrollment and fee has changed
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $enrollment = $this->route('enrollment');
             
-            // Require fee change reason if fee is changed
-            if ($this->input('monthly_fee') != $this->route('enrollment')->monthly_fee) {
-                $rules['fee_change_reason'] = ['required', 'string', 'max:500'];
+            // Only allow fee changes for package enrollments
+            if ($enrollment && $enrollment->package_id) {
+                $newFee = $this->input('monthly_fee');
+                
+                if ($newFee !== null && floatval($newFee) != floatval($enrollment->monthly_fee)) {
+                    $rules['fee_change_reason'] = 'required|string|max:500';
+                } else {
+                    $rules['fee_change_reason'] = 'nullable|string|max:500';
+                }
             }
         }
 
@@ -62,27 +81,27 @@ class EnrollmentRequest extends FormRequest
     {
         return [
             'student_id.required' => 'Please select a student.',
-            'student_id.exists' => 'The selected student is invalid.',
-            'package_id.required' => 'Please select a package for package enrollment.',
-            'package_id.exists' => 'The selected package is invalid.',
-            'class_id.required' => 'Please select a class for single class enrollment.',
-            'class_id.exists' => 'The selected class is invalid.',
-            'subject_classes.required' => 'Please select classes for each subject in the package.',
-            'subject_classes.min' => 'Please select at least one class.',
-            'subject_classes.*.required' => 'Please select a class for each subject.',
-            'subject_classes.*.exists' => 'One or more selected classes are invalid.',
-            'start_date.required' => 'Please select a start date.',
-            'start_date.date' => 'Please provide a valid start date.',
-            'end_date.after' => 'End date must be after the start date.',
-            'payment_cycle_day.required' => 'Please select a payment cycle day.',
+            'student_id.exists' => 'Selected student does not exist.',
+            'package_id.required' => 'Please select a package.',
+            'package_id.exists' => 'Selected package does not exist.',
+            'class_id.required' => 'Please select a class.',
+            'class_id.exists' => 'Selected class does not exist.',
+            'start_date.required' => 'Start date is required.',
+            'start_date.date' => 'Please enter a valid start date.',
+            'end_date.date' => 'Please enter a valid end date.',
+            'end_date.after_or_equal' => 'End date must be on or after the start date.',
+            'payment_cycle_day.required' => 'Payment cycle day is required.',
             'payment_cycle_day.integer' => 'Payment cycle day must be a number.',
-            'payment_cycle_day.min' => 'Payment cycle day must be between 1 and 28.',
-            'payment_cycle_day.max' => 'Payment cycle day must be between 1 and 28.',
-            'monthly_fee.required' => 'Please enter the monthly fee.',
-            'monthly_fee.numeric' => 'Monthly fee must be a number.',
+            'payment_cycle_day.min' => 'Payment cycle day must be at least 1.',
+            'payment_cycle_day.max' => 'Payment cycle day cannot exceed 15.',
+            'monthly_fee.required' => 'Monthly fee is required.',
+            'monthly_fee.numeric' => 'Monthly fee must be a valid number.',
             'monthly_fee.min' => 'Monthly fee cannot be negative.',
-            'fee_change_reason.required' => 'Please provide a reason for the fee change.',
+            'status.required' => 'Status is required.',
+            'status.in' => 'Invalid status selected.',
+            'fee_change_reason.required' => 'Please provide a reason for changing the monthly fee.',
             'fee_change_reason.max' => 'Fee change reason cannot exceed 500 characters.',
+            'subject_classes.*.exists' => 'One or more selected classes do not exist.',
         ];
     }
 
@@ -95,7 +114,6 @@ class EnrollmentRequest extends FormRequest
             'student_id' => 'student',
             'package_id' => 'package',
             'class_id' => 'class',
-            'subject_classes' => 'class selections',
             'start_date' => 'start date',
             'end_date' => 'end date',
             'payment_cycle_day' => 'payment cycle day',
@@ -110,14 +128,15 @@ class EnrollmentRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // Set default status if not provided
-        if (!$this->has('status') || empty($this->status)) {
+        if (!$this->has('status')) {
             $this->merge(['status' => 'active']);
         }
 
-        // Clean subject_classes array - remove empty values
-        if ($this->has('subject_classes') && is_array($this->subject_classes)) {
-            $cleaned = array_filter($this->subject_classes, fn($value) => !empty($value));
-            $this->merge(['subject_classes' => $cleaned]);
+        // Clean up the monthly fee
+        if ($this->has('monthly_fee') && $this->monthly_fee !== null) {
+            $this->merge([
+                'monthly_fee' => floatval($this->monthly_fee)
+            ]);
         }
     }
 }

@@ -123,33 +123,30 @@
                         <h5 class="card-title mb-0">Class Selection</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Select Class <span class="text-danger">*</span></label>
-                            <select name="class_id" id="class_id" class="form-select @error('class_id') is-invalid @enderror">
-                                <option value="">-- Select Class --</option>
-                                @foreach($classes as $class)
-                                    <option value="{{ $class->id }}"
-                                            data-fee="{{ $class->monthly_fee }}"
-                                            data-subject="{{ $class->subject->name ?? 'N/A' }}"
-                                            {{ old('class_id') == $class->id ? 'selected' : '' }}>
-                                        {{ $class->name }} - {{ $class->subject->name ?? 'N/A' }}
-                                        ({{ $class->teacher->user->name ?? 'No Teacher' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('class_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Monthly Fee (RM) <span class="text-danger">*</span></label>
-                            <input type="number" name="monthly_fee" id="monthly_fee" step="0.01" min="0"
-                                   class="form-control @error('monthly_fee') is-invalid @enderror"
-                                   value="{{ old('monthly_fee') }}">
-                            @error('monthly_fee')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Select Class <span class="text-danger">*</span></label>
+                                <select name="class_id" id="class_id" class="form-select @error('class_id') is-invalid @enderror">
+                                    <option value="">-- Select Class --</option>
+                                    @foreach($classes as $class)
+                                        <option value="{{ $class->id }}"
+                                                data-fee="{{ $class->price }}"
+                                                {{ old('class_id') == $class->id ? 'selected' : '' }}>
+                                            {{ $class->name }} - {{ $class->subject->name ?? 'N/A' }}
+                                            ({{ $class->teacher->user->name ?? 'No Teacher' }}) - RM {{ number_format($class->price, 2) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('class_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monthly Fee (RM)</label>
+                                <input type="text" id="monthly_fee_display" class="form-control bg-light" readonly
+                                       placeholder="Select a class">
+                                <input type="hidden" name="monthly_fee" id="monthly_fee" value="{{ old('monthly_fee') }}">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -175,7 +172,7 @@
                                 <label class="form-label">Payment Cycle Day <span class="text-danger">*</span></label>
                                 <select name="payment_cycle_day" id="payment_cycle_day"
                                         class="form-select @error('payment_cycle_day') is-invalid @enderror" required>
-                                    @for($i = 1; $i <= 28; $i++)
+                                    @for($i = 1; $i <= 15; $i++)
                                         <option value="{{ $i }}" {{ old('payment_cycle_day', 1) == $i ? 'selected' : '' }}>
                                             {{ $i }}{{ $i == 1 ? 'st' : ($i == 2 ? 'nd' : ($i == 3 ? 'rd' : 'th')) }} of each month
                                         </option>
@@ -365,7 +362,7 @@ $(document).ready(function() {
         });
     }
 
-    // Render subjects and classes
+    // Render subjects and classes (WITHOUT sessions/month badge)
     function renderSubjectsAndClasses(data) {
         if (!data.subjects || data.subjects.length === 0) {
             $('#subjectsContainer').html(`
@@ -393,7 +390,6 @@ $(document).ready(function() {
                     <div class="card-header bg-light py-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-book me-2"></i><strong>${subject.name}</strong></span>
-                            <span class="badge bg-secondary">${subject.sessions_per_month || 4} sessions/month</span>
                         </div>
                     </div>
                     <div class="card-body">
@@ -425,10 +421,17 @@ $(document).ready(function() {
         $('.subject-class-select').change(updateSummary);
     }
 
-    // When single class changes
+    // When single class changes - show price in disabled field
     $('#class_id').change(function() {
         const fee = $(this).find(':selected').data('fee');
-        if (fee) $('#monthly_fee').val(parseFloat(fee).toFixed(2));
+        if (fee) {
+            const formattedFee = parseFloat(fee).toFixed(2);
+            $('#monthly_fee_display').val(formattedFee);
+            $('#monthly_fee').val(formattedFee);
+        } else {
+            $('#monthly_fee_display').val('');
+            $('#monthly_fee').val('');
+        }
         updateSummary();
     });
 

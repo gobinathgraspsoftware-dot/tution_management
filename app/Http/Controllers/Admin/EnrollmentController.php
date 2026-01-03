@@ -267,7 +267,7 @@ class EnrollmentController extends Controller
      */
     public function edit(Enrollment $enrollment)
     {
-        $enrollment->load(['student.user', 'package', 'class', 'feeHistory']);
+        $enrollment->load(['student.user', 'package', 'class.subject', 'class.teacher.user', 'feeHistory']);
 
         $packages = Package::active()->with('subjects')->get();
         $classes = ClassModel::active()->with(['subject', 'teacher.user'])->get();
@@ -389,7 +389,7 @@ class EnrollmentController extends Controller
     public function renew(Request $request, Enrollment $enrollment)
     {
         $request->validate([
-            'months' => 'nullable|integer|min:1|max:24',
+            'months' => 'nullable|integer|min:1|max:15',
         ]);
 
         try {
@@ -444,12 +444,16 @@ class EnrollmentController extends Controller
 
     /**
      * Get class fee via AJAX
+     * Returns both the class default price and any additional info
      */
     public function getClassFee($classId)
     {
         $class = ClassModel::findOrFail($classId);
         return response()->json([
-            'monthly_fee' => $class->monthly_fee,
+            'price' => $class->price,
+            'monthly_fee' => $class->price, // For backward compatibility
+            'class_name' => $class->name,
+            'subject_name' => $class->subject->name ?? null,
         ]);
     }
 
@@ -472,6 +476,7 @@ class EnrollmentController extends Controller
                     'id' => $class->id,
                     'name' => $class->name,
                     'subject' => $class->subject->name,
+                    'price' => $class->price,
                 ];
             }),
         ]);
@@ -479,6 +484,7 @@ class EnrollmentController extends Controller
 
     /**
      * Get package subjects with their available classes via AJAX
+     * NOTE: Does NOT include sessions_per_month in response (removed as per requirement)
      */
     public function getPackageSubjectsWithClasses(Request $request, $packageId)
     {
@@ -517,6 +523,7 @@ class EnrollmentController extends Controller
                         'available_seats' => $class->capacity - $class->current_enrollment,
                         'location' => $class->location,
                         'meeting_link' => $class->meeting_link,
+                        'price' => $class->price,
                         'is_enrolled' => $isEnrolled,
                     ];
                 });
@@ -525,7 +532,7 @@ class EnrollmentController extends Controller
                 'id' => $subject->id,
                 'name' => $subject->name,
                 'code' => $subject->code,
-                'sessions_per_month' => $subject->pivot->sessions_per_month ?? 4,
+                // Removed 'sessions_per_month' - no longer shown in UI
                 'classes' => $classes,
             ];
         });
@@ -575,6 +582,7 @@ class EnrollmentController extends Controller
                     'capacity' => $class->capacity,
                     'current_enrollment' => $class->current_enrollment,
                     'available_seats' => max(0, $class->capacity - $class->current_enrollment),
+                    'price' => $class->price,
                     'is_enrolled' => $isEnrolled,
                 ];
             });
@@ -605,6 +613,7 @@ class EnrollmentController extends Controller
                     'class_name' => $enrollment->class ? $enrollment->class->name : null,
                     'subject_name' => $enrollment->class && $enrollment->class->subject ? $enrollment->class->subject->name : null,
                     'package_name' => $enrollment->package ? $enrollment->package->name : null,
+                    'monthly_fee' => $enrollment->monthly_fee,
                     'status' => $enrollment->status,
                 ];
             });

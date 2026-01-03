@@ -65,6 +65,7 @@
                                     <strong>{{ $enrollment->class->name }}</strong>
                                 </p>
                                 <p class="mb-1"><strong>Subject:</strong> {{ $enrollment->class->subject->name }}</p>
+                                <p class="mb-1"><strong>Class Price:</strong> RM {{ number_format($enrollment->class->price ?? 0, 2) }}</p>
                                 @if($enrollment->class->teacher)
                                     <p class="mb-1"><strong>Teacher:</strong> {{ $enrollment->class->teacher->user->name }}</p>
                                 @endif
@@ -103,6 +104,15 @@
                             <p class="mb-1"><strong>Monthly Fee:</strong><br>
                                 <span class="h5 text-success">RM {{ number_format($enrollment->monthly_fee, 2) }}</span>
                             </p>
+                            @if(!$enrollment->package && $enrollment->class && $enrollment->monthly_fee != $enrollment->class->price)
+                                <p class="mb-1">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Class default: RM {{ number_format($enrollment->class->price ?? 0, 2) }}
+                                        <span class="badge bg-warning ms-1">Customized</span>
+                                    </small>
+                                </p>
+                            @endif
                             <p class="mb-1"><strong>Payment Cycle:</strong><br>
                                 Day {{ $enrollment->payment_cycle_day }} of each month
                             </p>
@@ -149,38 +159,20 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Current enrollment's class -->
                                 @if($enrollment->class)
-                                <tr class="table-primary">
-                                    <td>
-                                        <i class="fas fa-book text-primary me-1"></i>
-                                        {{ $enrollment->class->subject->name }}
-                                    </td>
+                                <tr>
+                                    <td>{{ $enrollment->class->subject->name ?? 'N/A' }}</td>
                                     <td>
                                         <strong>{{ $enrollment->class->name }}</strong>
                                         <span class="badge bg-primary ms-1">Current</span>
                                     </td>
-                                    <td>
-                                        @if($enrollment->class->teacher)
-                                            {{ $enrollment->class->teacher->user->name }}
-                                        @else
-                                            <span class="text-muted">Not assigned</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ $enrollment->class->type == 'online' ? 'info' : 'secondary' }}">
-                                            {{ ucfirst($enrollment->class->type) }}
-                                        </span>
-                                    </td>
+                                    <td>{{ $enrollment->class->teacher->user->name ?? 'N/A' }}</td>
+                                    <td>{{ ucfirst($enrollment->class->type) }}</td>
                                     <td>
                                         @if($enrollment->status == 'active')
                                             <span class="badge bg-success">Active</span>
                                         @elseif($enrollment->status == 'suspended')
                                             <span class="badge bg-warning">Suspended</span>
-                                        @elseif($enrollment->status == 'expired')
-                                            <span class="badge bg-danger">Expired</span>
-                                        @elseif($enrollment->status == 'cancelled')
-                                            <span class="badge bg-dark">Cancelled</span>
                                         @else
                                             <span class="badge bg-secondary">{{ ucfirst($enrollment->status) }}</span>
                                         @endif
@@ -188,37 +180,17 @@
                                 </tr>
                                 @endif
 
-                                <!-- Related enrollments (other classes in same package) -->
                                 @foreach($relatedEnrollments as $related)
                                 <tr>
-                                    <td>
-                                        <i class="fas fa-book text-muted me-1"></i>
-                                        {{ $related->class->subject->name ?? '-' }}
-                                    </td>
-                                    <td>{{ $related->class->name ?? '-' }}</td>
-                                    <td>
-                                        @if($related->class && $related->class->teacher)
-                                            {{ $related->class->teacher->user->name }}
-                                        @else
-                                            <span class="text-muted">Not assigned</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($related->class)
-                                            <span class="badge bg-{{ $related->class->type == 'online' ? 'info' : 'secondary' }}">
-                                                {{ ucfirst($related->class->type) }}
-                                            </span>
-                                        @endif
-                                    </td>
+                                    <td>{{ $related->class->subject->name ?? 'N/A' }}</td>
+                                    <td>{{ $related->class->name ?? 'N/A' }}</td>
+                                    <td>{{ $related->class->teacher->user->name ?? 'N/A' }}</td>
+                                    <td>{{ ucfirst($related->class->type ?? 'N/A') }}</td>
                                     <td>
                                         @if($related->status == 'active')
                                             <span class="badge bg-success">Active</span>
                                         @elseif($related->status == 'suspended')
                                             <span class="badge bg-warning">Suspended</span>
-                                        @elseif($related->status == 'expired')
-                                            <span class="badge bg-danger">Expired</span>
-                                        @elseif($related->status == 'cancelled')
-                                            <span class="badge bg-dark">Cancelled</span>
                                         @else
                                             <span class="badge bg-secondary">{{ ucfirst($related->status) }}</span>
                                         @endif
@@ -228,128 +200,95 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-2 text-muted small">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Total {{ 1 + count($relatedEnrollments) }} classes enrolled in this package
-                    </div>
                 </div>
             </div>
             @endif
-
-            <!-- Class Schedule (for single class enrollment) -->
-            @if(!$enrollment->package && $enrollment->class_id)
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Class Schedule</h6>
-                </div>
-                <div class="card-body">
-                    @if($enrollment->class->schedules && $enrollment->class->schedules->isNotEmpty())
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Day</th>
-                                        <th>Time</th>
-                                        <th>Venue</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($enrollment->class->schedules as $schedule)
-                                    <tr>
-                                        <td>{{ ucfirst($schedule->day_of_week) }}</td>
-                                        <td>{{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}</td>
-                                        <td>{{ $schedule->venue ?? '-' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <p class="text-muted mb-0">No schedule available</p>
-                    @endif
-                </div>
-            </div>
-            @endif
-
-            <!-- Invoices -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Invoice History</h6>
-                </div>
-                <div class="card-body">
-                    @if($enrollment->invoices->isNotEmpty())
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Invoice #</th>
-                                        <th>Period</th>
-                                        <th>Amount</th>
-                                        <th>Paid</th>
-                                        <th>Status</th>
-                                        <th>Due Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($enrollment->invoices->sortByDesc('created_at') as $invoice)
-                                    <tr>
-                                        <td>
-                                            <a href="{{ route('admin.invoices.show', $invoice) }}">
-                                                {{ $invoice->invoice_number }}
-                                            </a>
-                                        </td>
-                                        <td>{{ $invoice->billing_period ?? '-' }}</td>
-                                        <td>RM {{ number_format($invoice->total_amount, 2) }}</td>
-                                        <td>RM {{ number_format($invoice->paid_amount, 2) }}</td>
-                                        <td>
-                                            @if($invoice->status == 'paid')
-                                                <span class="badge bg-success">Paid</span>
-                                            @elseif($invoice->status == 'partial')
-                                                <span class="badge bg-warning">Partial</span>
-                                            @elseif($invoice->status == 'pending')
-                                                <span class="badge bg-secondary">Pending</span>
-                                            @elseif($invoice->status == 'overdue')
-                                                <span class="badge bg-danger">Overdue</span>
-                                            @else
-                                                <span class="badge bg-dark">{{ ucfirst($invoice->status) }}</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ $invoice->due_date ? $invoice->due_date->format('d M Y') : '-' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <p class="text-muted mb-0">No invoices yet</p>
-                    @endif
-                </div>
-            </div>
 
             <!-- Fee History -->
-            @if($enrollment->feeHistory && $enrollment->feeHistory->isNotEmpty())
+            @if($enrollment->feeHistory && $enrollment->feeHistory->count() > 0)
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Fee Change History</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-history me-2"></i>Fee Change History
+                    </h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-sm table-bordered mb-0">
+                        <table class="table table-bordered table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
                                     <th>Date</th>
-                                    <th>Old Fee</th>
+                                    <th>Previous Fee</th>
                                     <th>New Fee</th>
                                     <th>Reason</th>
+                                    <th>Changed By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($enrollment->feeHistory->sortByDesc('change_date') as $history)
                                 <tr>
                                     <td>{{ $history->change_date->format('d M Y') }}</td>
-                                    <td>RM {{ number_format($history->old_fee, 2) }}</td>
-                                    <td class="text-success">RM {{ number_format($history->new_fee, 2) }}</td>
+                                    <td><span class="text-muted text-decoration-line-through">RM {{ number_format($history->old_fee, 2) }}</span></td>
+                                    <td><strong class="text-success">RM {{ number_format($history->new_fee, 2) }}</strong></td>
                                     <td>{{ $history->reason }}</td>
+                                    <td>{{ $history->changedBy->name ?? 'System' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- Invoice History -->
+            @if($enrollment->invoices && $enrollment->invoices->count() > 0)
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-file-invoice me-2"></i>Recent Invoices
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Period</th>
+                                    <th>Amount</th>
+                                    <th>Paid</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($enrollment->invoices->sortByDesc('created_at')->take(5) as $invoice)
+                                <tr>
+                                    <td>
+                                        @if(Route::has('admin.invoices.show'))
+                                            <a href="{{ route('admin.invoices.show', $invoice) }}">
+                                                {{ $invoice->invoice_number }}
+                                            </a>
+                                        @else
+                                            {{ $invoice->invoice_number }}
+                                        @endif
+                                    </td>
+                                    <td>{{ $invoice->billing_period_start ? $invoice->billing_period_start->format('M Y') : 'N/A' }}</td>
+                                    <td>RM {{ number_format($invoice->total_amount, 2) }}</td>
+                                    <td>RM {{ number_format($invoice->paid_amount, 2) }}</td>
+                                    <td>
+                                        @if($invoice->status == 'paid')
+                                            <span class="badge bg-success">Paid</span>
+                                        @elseif($invoice->status == 'partial')
+                                            <span class="badge bg-warning">Partial</span>
+                                        @elseif($invoice->status == 'overdue')
+                                            <span class="badge bg-danger">Overdue</span>
+                                        @else
+                                            <span class="badge bg-secondary">{{ ucfirst($invoice->status) }}</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $invoice->due_date ? $invoice->due_date->format('d M Y') : 'N/A' }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -363,35 +302,32 @@
         <!-- Sidebar -->
         <div class="col-lg-4">
             <!-- Quick Actions -->
-            @can('cancel-enrollments')
+            @can('edit-enrollments')
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
                 </div>
                 <div class="card-body">
                     @if($enrollment->status == 'active')
-                        <button type="button" class="btn btn-warning w-100 mb-2" onclick="suspendEnrollment()">
+                        <button type="button" class="btn btn-warning btn-block w-100 mb-2" onclick="suspendEnrollment()">
                             <i class="fas fa-pause me-2"></i>Suspend Enrollment
                         </button>
-                        <button type="button" class="btn btn-danger w-100 mb-2" onclick="cancelEnrollment()">
+                        <button type="button" class="btn btn-danger btn-block w-100 mb-2" onclick="cancelEnrollment()">
                             <i class="fas fa-times me-2"></i>Cancel Enrollment
-                        </button>
-                        <button type="button" class="btn btn-success w-100" onclick="renewEnrollment()">
-                            <i class="fas fa-redo me-2"></i>Renew Enrollment
                         </button>
                     @elseif($enrollment->status == 'suspended')
                         <form action="{{ route('admin.enrollments.resume', $enrollment) }}" method="POST">
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="btn btn-success w-100 mb-2">
+                            <button type="submit" class="btn btn-success btn-block w-100 mb-2">
                                 <i class="fas fa-play me-2"></i>Resume Enrollment
                             </button>
                         </form>
-                        <button type="button" class="btn btn-danger w-100" onclick="cancelEnrollment()">
+                        <button type="button" class="btn btn-danger btn-block w-100 mb-2" onclick="cancelEnrollment()">
                             <i class="fas fa-times me-2"></i>Cancel Enrollment
                         </button>
-                    @elseif($enrollment->status == 'expired')
-                        <button type="button" class="btn btn-success w-100" onclick="renewEnrollment()">
+                    @elseif($enrollment->status == 'expired' || $enrollment->status == 'cancelled')
+                        <button type="button" class="btn btn-success btn-block w-100 mb-2" onclick="renewEnrollment()">
                             <i class="fas fa-redo me-2"></i>Renew Enrollment
                         </button>
                     @endif
@@ -513,10 +449,9 @@
                         <label for="months" class="form-label">Extension Duration (Months)</label>
                         <select class="form-select" name="months">
                             <option value="">Default (Package Duration)</option>
-                            <option value="1">1 Month</option>
-                            <option value="3">3 Months</option>
-                            <option value="6">6 Months</option>
-                            <option value="12">12 Months</option>
+                            @for($i = 1; $i <= 15; $i++)
+                                <option value="{{ $i }}">{{ $i }} {{ $i == 1 ? 'Month' : 'Months' }}</option>
+                            @endfor
                         </select>
                         <small class="text-muted">Leave default to use package duration</small>
                     </div>
