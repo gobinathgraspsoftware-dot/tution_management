@@ -106,18 +106,35 @@
                                 <label for="capacity" class="form-label">Class Capacity <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control @error('capacity') is-invalid @enderror"
                                        id="capacity" name="capacity" value="{{ old('capacity', $class->capacity) }}"
-                                       min="1" max="100" required>
-                                <small class="text-muted">Current Enrollment: {{ $class->current_enrollment }}</small>
+                                       min="{{ $class->current_enrollment }}" max="100" required>
+                                <small class="text-muted">Current Enrollment: {{ $class->current_enrollment }} (Minimum capacity)</small>
                                 @error('capacity')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Individual Price - REQUIRED -->
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label">Class Price (RM) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">RM</span>
+                                    <input type="number" class="form-control @error('price') is-invalid @enderror"
+                                           id="price" name="price" 
+                                           value="{{ old('price', number_format($class->price ?? 0, 2, '.', '')) }}"
+                                           min="0" max="99999.99" step="0.01"
+                                           placeholder="0.00" required>
+                                    @error('price')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <small class="text-muted">Enter 0.00 for free classes</small>
+                            </div>
+
                             <!-- Status -->
                             <div class="col-md-6 mb-3">
-                                <label for="status" class="form-label">Status</label>
+                                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                                 <select class="form-select @error('status') is-invalid @enderror"
-                                        id="status" name="status">
+                                        id="status" name="status" required>
                                     <option value="active" {{ old('status', $class->status) == 'active' ? 'selected' : '' }}>Active</option>
                                     <option value="inactive" {{ old('status', $class->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
                                     <option value="full" {{ old('status', $class->status) == 'full' ? 'selected' : '' }}>Full</option>
@@ -129,7 +146,7 @@
 
                             <!-- Location (for offline) -->
                             <div class="col-md-6 mb-3" id="locationField">
-                                <label for="location" class="form-label">Location <span class="text-danger" id="locationRequired">*</span></label>
+                                <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control @error('location') is-invalid @enderror"
                                        id="location" name="location" value="{{ old('location', $class->location) }}"
                                        placeholder="Room/Building">
@@ -140,7 +157,7 @@
 
                             <!-- Meeting Link (for online) -->
                             <div class="col-md-6 mb-3" id="meetingLinkField">
-                                <label for="meeting_link" class="form-label">Meeting Link <span class="text-danger" id="linkRequired">*</span></label>
+                                <label for="meeting_link" class="form-label">Meeting Link <span class="text-danger">*</span></label>
                                 <input type="url" class="form-control @error('meeting_link') is-invalid @enderror"
                                        id="meeting_link" name="meeting_link" value="{{ old('meeting_link', $class->meeting_link) }}"
                                        placeholder="https://meet.google.com/xxx-xxxx-xxx">
@@ -179,6 +196,8 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    var currentEnrollment = {{ $class->current_enrollment }};
+
     // Show/hide location and meeting link fields based on class type
     function toggleTypeFields() {
         var type = $('#type').val();
@@ -210,7 +229,7 @@ $(document).ready(function() {
     // Form validation
     $('#classForm').submit(function(e) {
         var capacity = parseInt($('#capacity').val());
-        var currentEnrollment = {{ $class->current_enrollment }};
+        var price = $('#price').val();
 
         if (capacity < currentEnrollment) {
             e.preventDefault();
@@ -228,6 +247,37 @@ $(document).ready(function() {
             e.preventDefault();
             alert('Capacity cannot exceed 100 students.');
             return false;
+        }
+
+        // Validate price - REQUIRED
+        if (price === '' || price === null) {
+            e.preventDefault();
+            alert('Class price is required.');
+            $('#price').focus();
+            return false;
+        }
+
+        var priceValue = parseFloat(price);
+        if (isNaN(priceValue) || priceValue < 0) {
+            e.preventDefault();
+            alert('Please enter a valid price (0 or greater).');
+            $('#price').focus();
+            return false;
+        }
+
+        if (priceValue > 99999.99) {
+            e.preventDefault();
+            alert('Price cannot exceed RM 99,999.99.');
+            $('#price').focus();
+            return false;
+        }
+    });
+
+    // Format price input on blur
+    $('#price').on('blur', function() {
+        var value = $(this).val();
+        if (value !== '' && !isNaN(value)) {
+            $(this).val(parseFloat(value).toFixed(2));
         }
     });
 });

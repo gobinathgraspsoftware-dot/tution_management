@@ -26,9 +26,11 @@
                 </a>
             @endcan
             @can('manage-class-schedule')
-                <a href="{{ route('admin.classes.schedule.index', $class) }}" class="btn btn-primary">
-                    <i class="fas fa-calendar me-2"></i>Manage Schedule
-                </a>
+                @if(Route::has('admin.classes.schedule.index'))
+                    <a href="{{ route('admin.classes.schedule.index', $class) }}" class="btn btn-primary">
+                        <i class="fas fa-calendar me-2"></i>Manage Schedule
+                    </a>
+                @endif
             @endcan
         </div>
     </div>
@@ -63,6 +65,15 @@
 
                                 <dt class="col-sm-5">Grade Level:</dt>
                                 <dd class="col-sm-7">{{ $class->grade_level ?? 'N/A' }}</dd>
+
+                                <dt class="col-sm-5">Class Price:</dt>
+                                <dd class="col-sm-7">
+                                    @if($class->price > 0)
+                                        <span class="text-success fw-bold fs-5">RM {{ number_format($class->price, 2) }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">Free</span>
+                                    @endif
+                                </dd>
                             </dl>
                         </div>
                         <div class="col-md-6">
@@ -117,9 +128,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Class Schedule</h5>
                     @can('manage-class-schedule')
-                        <a href="{{ route('admin.classes.schedule.index', $class) }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i>Manage
-                        </a>
+                        @if(Route::has('admin.classes.schedule.index'))
+                            <a href="{{ route('admin.classes.schedule.index', $class) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus me-1"></i>Manage
+                            </a>
+                        @endif
                     @endcan
                 </div>
                 <div class="card-body">
@@ -204,6 +217,22 @@
 
         <!-- Statistics Sidebar -->
         <div class="col-md-4">
+            <!-- Pricing Card -->
+            <div class="card mb-4 border-{{ $class->price > 0 ? 'success' : 'secondary' }}">
+                <div class="card-header bg-{{ $class->price > 0 ? 'success' : 'secondary' }} text-white">
+                    <h5 class="mb-0"><i class="fas fa-tag me-2"></i>Class Price</h5>
+                </div>
+                <div class="card-body text-center">
+                    @if($class->price > 0)
+                        <h2 class="text-success mb-0">RM {{ number_format($class->price, 2) }}</h2>
+                        <small class="text-muted">Per Month</small>
+                    @else
+                        <h2 class="text-secondary mb-0">FREE</h2>
+                        <small class="text-muted">No Charge</small>
+                    @endif
+                </div>
+            </div>
+
             <!-- Stats Cards -->
             <div class="card mb-4">
                 <div class="card-header">

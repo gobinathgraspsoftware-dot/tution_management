@@ -108,7 +108,7 @@ class ClassController extends Controller
                 'action' => 'create',
                 'model_type' => 'ClassModel',
                 'model_id' => $class->id,
-                'description' => "Created class: {$class->name}",
+                'description' => "Created class: {$class->name} with price RM " . number_format($class->price, 2),
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
@@ -161,14 +161,23 @@ class ClassController extends Controller
     public function update(ClassRequest $request, ClassModel $class)
     {
         try {
+            $oldPrice = $class->price;
             $class = $this->classService->updateClass($class, $request->validated());
+
+            // Build description with price change info
+            $description = "Updated class: {$class->name}";
+            if ($oldPrice != $class->price) {
+                $oldPriceStr = 'RM ' . number_format($oldPrice, 2);
+                $newPriceStr = 'RM ' . number_format($class->price, 2);
+                $description .= " (Price changed from {$oldPriceStr} to {$newPriceStr})";
+            }
 
             ActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'update',
                 'model_type' => 'ClassModel',
                 'model_id' => $class->id,
-                'description' => "Updated class: {$class->name}",
+                'description' => $description,
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
@@ -238,6 +247,49 @@ class ClassController extends Controller
     }
 
     /**
+     * Display timetable view.
+     */
+    public function timetable(Request $request)
+    {
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        
+        $query = \App\Models\ClassSchedule::with(['class.subject', 'class.teacher.user'])
+            ->whereHas('class', function($q) {
+                $q->where('status', 'active');
+            })
+            ->where('is_active', true);
+
+        // Filter by teacher
+        if ($request->filled('teacher_id')) {
+            $query->whereHas('class', function($q) use ($request) {
+                $q->where('teacher_id', $request->teacher_id);
+            });
+        }
+
+        // Filter by subject
+        if ($request->filled('subject_id')) {
+            $query->whereHas('class', function($q) use ($request) {
+                $q->where('subject_id', $request->subject_id);
+            });
+        }
+
+        $schedules = $query->get();
+
+        // Group by day
+        $timetable = [];
+        foreach ($days as $day) {
+            $timetable[$day] = $schedules->filter(function($schedule) use ($day) {
+                return $schedule->day_of_week === $day;
+            });
+        }
+
+        $subjects = Subject::active()->orderBy('name')->get();
+        $teachers = Teacher::active()->with('user')->get();
+
+        return view('admin.classes.timetable', compact('timetable', 'days', 'subjects', 'teachers'));
+    }
+
+    /**
      * Export classes to CSV.
      */
     public function export(Request $request)
@@ -255,7 +307,21 @@ class ClassController extends Controller
 
         $callback = function() use ($classes) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Code', 'Name', 'Subject', 'Teacher', 'Type', 'Grade Level', 'Capacity', 'Enrolled', 'Status', 'Location', 'Meeting Link']);
+            // Header includes Price column
+            fputcsv($file, [
+                'Code', 
+                'Name', 
+                'Subject', 
+                'Teacher', 
+                'Type', 
+                'Grade Level', 
+                'Capacity', 
+                'Enrolled', 
+                'Price (RM)',
+                'Status', 
+                'Location', 
+                'Meeting Link'
+            ]);
 
             foreach ($classes as $class) {
                 fputcsv($file, [
@@ -267,6 +333,7 @@ class ClassController extends Controller
                     $class->grade_level ?? 'N/A',
                     $class->capacity,
                     $class->current_enrollment,
+                    number_format($class->price, 2),
                     ucfirst($class->status),
                     $class->location ?? 'N/A',
                     $class->meeting_link ?? 'N/A',

@@ -99,7 +99,7 @@
                                     <td class="align-top">
                                         @foreach($daySchedules as $schedule)
                                             <div class="class-card mb-2"
-                                                 style="background: linear-gradient(135deg, var(--primary-color) 0%, #4c4c4c 100%);
+                                                 style="background: linear-gradient(135deg, var(--primary-color, #007bff) 0%, #4c4c4c 100%);
                                                         color: white;
                                                         padding: 10px;
                                                         border-radius: 8px;
@@ -133,6 +133,15 @@
                                                             <i class="fas fa-users me-1"></i>
                                                             {{ $schedule->class->current_enrollment }}/{{ $schedule->class->capacity }}
                                                         </small>
+                                                        <!-- Price Display -->
+                                                        <small class="d-block mt-1">
+                                                            <i class="fas fa-tag me-1"></i>
+                                                            @if($schedule->class->price > 0)
+                                                                <span class="badge bg-light text-success">RM {{ number_format($schedule->class->price, 2) }}</span>
+                                                            @else
+                                                                <span class="badge bg-light text-secondary">Free</span>
+                                                            @endif
+                                                        </small>
                                                     </div>
                                                     <div class="ms-2">
                                                         <a href="{{ route('admin.classes.show', $schedule->class) }}"
@@ -163,17 +172,20 @@
             <div class="mt-4">
                 <h6>Legend:</h6>
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <span class="badge bg-primary me-2"><i class="fas fa-video"></i></span> Online Class
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <span class="badge bg-secondary me-2"><i class="fas fa-map-marker-alt"></i></span> Offline Class
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <span class="badge bg-success me-2"><i class="fas fa-users"></i></span> Enrollment Status
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <span class="badge bg-info me-2"><i class="fas fa-clock"></i></span> Class Duration
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-warning text-dark me-2"><i class="fas fa-tag"></i></span> Class Price
                     </div>
                 </div>
             </div>

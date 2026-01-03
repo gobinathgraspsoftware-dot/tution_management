@@ -117,9 +117,11 @@
                                 <i class="fas fa-plus me-2"></i>Add New Class
                             </a>
                         @endcan
-                        <a href="{{ route('admin.classes.timetable') }}" class="btn btn-info">
-                            <i class="fas fa-calendar-alt me-2"></i>View Timetable
-                        </a>
+                        @if(Route::has('admin.classes.timetable'))
+                            <a href="{{ route('admin.classes.timetable') }}" class="btn btn-info">
+                                <i class="fas fa-calendar-alt me-2"></i>View Timetable
+                            </a>
+                        @endif
                         <a href="{{ route('admin.classes.export', request()->query()) }}" class="btn btn-outline-primary">
                             <i class="fas fa-download me-2"></i>Export CSV
                         </a>
@@ -143,6 +145,7 @@
                             <th>Type</th>
                             <th>Grade</th>
                             <th>Capacity</th>
+                            <th>Price (RM)</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -174,6 +177,13 @@
                                     </span>
                                 </td>
                                 <td>
+                                    @if($class->price > 0)
+                                        <span class="text-success fw-bold">{{ number_format($class->price, 2) }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">Free</span>
+                                    @endif
+                                </td>
+                                <td>
                                     @if($class->status === 'active')
                                         <span class="badge bg-success">Active</span>
                                     @elseif($class->status === 'full')
@@ -195,9 +205,11 @@
                                             </a>
                                         @endcan
                                         @can('manage-class-schedule')
-                                            <a href="{{ route('admin.classes.schedule.index', $class) }}" class="btn btn-primary" title="Manage Schedule">
-                                                <i class="fas fa-calendar"></i>
-                                            </a>
+                                            @if(Route::has('admin.classes.schedule.index'))
+                                                <a href="{{ route('admin.classes.schedule.index', $class) }}" class="btn btn-primary" title="Manage Schedule">
+                                                    <i class="fas fa-calendar"></i>
+                                                </a>
+                                            @endif
                                         @endcan
                                         @can('edit-classes')
                                             <form action="{{ route('admin.classes.toggle-status', $class) }}" method="POST" class="d-inline">
@@ -222,7 +234,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
+                                <td colspan="10" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                                     No classes found
                                 </td>

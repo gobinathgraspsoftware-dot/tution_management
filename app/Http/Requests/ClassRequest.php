@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ClassRequest extends FormRequest
 {
@@ -11,7 +12,7 @@ class ClassRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()->can('create-classes') || auth()->user()->can('edit-classes');
+        return auth()->user()->hasAnyRole(['super-admin', 'admin', 'staff']);
     }
 
     /**
@@ -19,21 +20,52 @@ class ClassRequest extends FormRequest
      */
     public function rules(): array
     {
-        $classId = $this->route('class') ? $this->route('class')->id : null;
+        $classId = $this->route('class')?->id;
 
-        return [
+        $rules = [
             'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:50|unique:classes,code,' . $classId,
+            'code' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('classes', 'code')->ignore($classId),
+            ],
             'subject_id' => 'required|exists:subjects,id',
             'teacher_id' => 'nullable|exists:teachers,id',
             'type' => 'required|in:online,offline',
             'grade_level' => 'nullable|string|max:50',
             'capacity' => 'required|integer|min:1|max:100',
-            'description' => 'nullable|string|max:1000',
-            'location' => 'nullable|string|max:255|required_if:type,offline',
-            'meeting_link' => 'nullable|url|max:500|required_if:type,online',
-            'status' => 'sometimes|in:active,inactive,full',
+            'price' => 'required|numeric|min:0|max:99999.99', // REQUIRED
+            'description' => 'nullable|string|max:2000',
+            'location' => 'nullable|string|max:255',
+            'meeting_link' => 'nullable|url|max:500',
+            'status' => 'required|in:active,inactive,full',
         ];
+
+        // Location is required for offline classes
+        if ($this->input('type') === 'offline') {
+            $rules['location'] = 'required|string|max:255';
+        }
+
+        // Meeting link is required for online classes
+        if ($this->input('type') === 'online') {
+            $rules['meeting_link'] = 'required|url|max:500';
+        }
+
+        // On update, ensure capacity is not less than current enrollment
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $class = $this->route('class');
+            if ($class && $this->input('capacity') < $class->current_enrollment) {
+                $rules['capacity'] = [
+                    'required',
+                    'integer',
+                    'min:' . $class->current_enrollment,
+                    'max:100',
+                ];
+            }
+        }
+
+        return $rules;
     }
 
     /**
@@ -45,34 +77,30 @@ class ClassRequest extends FormRequest
             'name.required' => 'Class name is required.',
             'name.max' => 'Class name cannot exceed 255 characters.',
             'code.unique' => 'This class code is already in use.',
+            'code.max' => 'Class code cannot exceed 20 characters.',
             'subject_id.required' => 'Please select a subject.',
-            'subject_id.exists' => 'The selected subject is invalid.',
-            'teacher_id.exists' => 'The selected teacher is invalid.',
-            'type.required' => 'Please select class type (Online/Offline).',
-            'type.in' => 'Class type must be either Online or Offline.',
+            'subject_id.exists' => 'Selected subject does not exist.',
+            'teacher_id.exists' => 'Selected teacher does not exist.',
+            'type.required' => 'Class type is required.',
+            'type.in' => 'Class type must be either online or offline.',
+            'grade_level.max' => 'Grade level cannot exceed 50 characters.',
             'capacity.required' => 'Class capacity is required.',
-            'capacity.integer' => 'Capacity must be a number.',
-            'capacity.min' => 'Capacity must be at least 1 student.',
+            'capacity.integer' => 'Capacity must be a whole number.',
+            'capacity.min' => 'Capacity must be at least :min.',
             'capacity.max' => 'Capacity cannot exceed 100 students.',
-            'location.required_if' => 'Location is required for offline classes.',
-            'meeting_link.required_if' => 'Meeting link is required for online classes.',
-            'meeting_link.url' => 'Please provide a valid meeting link URL.',
+            'price.required' => 'Class price is required.',
+            'price.numeric' => 'Price must be a valid number.',
+            'price.min' => 'Price cannot be negative.',
+            'price.max' => 'Price cannot exceed RM 99,999.99.',
+            'description.max' => 'Description cannot exceed 2000 characters.',
+            'location.required' => 'Location is required for offline classes.',
+            'location.max' => 'Location cannot exceed 255 characters.',
+            'meeting_link.required' => 'Meeting link is required for online classes.',
+            'meeting_link.url' => 'Please enter a valid URL for the meeting link.',
+            'meeting_link.max' => 'Meeting link cannot exceed 500 characters.',
+            'status.required' => 'Status is required.',
+            'status.in' => 'Invalid status selected.',
         ];
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
-    {
-        // Convert empty strings to null for nullable fields
-        $this->merge([
-            'teacher_id' => $this->teacher_id ?: null,
-            'grade_level' => $this->grade_level ?: null,
-            'description' => $this->description ?: null,
-            'location' => $this->location ?: null,
-            'meeting_link' => $this->meeting_link ?: null,
-        ]);
     }
 
     /**
@@ -88,10 +116,27 @@ class ClassRequest extends FormRequest
             'type' => 'class type',
             'grade_level' => 'grade level',
             'capacity' => 'class capacity',
+            'price' => 'class price',
             'description' => 'description',
             'location' => 'location',
             'meeting_link' => 'meeting link',
             'status' => 'status',
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Ensure capacity is an integer
+        if ($this->has('capacity')) {
+            $this->merge(['capacity' => (int) $this->input('capacity')]);
+        }
+
+        // Ensure price is properly formatted
+        if ($this->has('price') && $this->input('price') !== '') {
+            $this->merge(['price' => (float) $this->input('price')]);
+        }
     }
 }

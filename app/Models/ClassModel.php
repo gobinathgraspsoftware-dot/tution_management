@@ -21,6 +21,7 @@ class ClassModel extends Model
         'grade_level',
         'capacity',
         'current_enrollment',
+        'price', // Required individual class price field
         'description',
         'location',
         'meeting_link',
@@ -30,6 +31,7 @@ class ClassModel extends Model
     protected $casts = [
         'capacity' => 'integer',
         'current_enrollment' => 'integer',
+        'price' => 'decimal:2', // Cast price to decimal with 2 decimal places
     ];
 
     // Relationships
@@ -114,21 +116,10 @@ class ClassModel extends Model
         return $query->where('status', 'full');
     }
 
-    public function scopeAvailable($query)
-    {
-        return $query->where('status', 'active')
-                     ->whereColumn('current_enrollment', '<', 'capacity');
-    }
-
-    // Helpers
+    // Helper Methods
     public function isFull()
     {
         return $this->current_enrollment >= $this->capacity;
-    }
-
-    public function hasSpace()
-    {
-        return $this->current_enrollment < $this->capacity;
     }
 
     public function getAvailableSeatsAttribute()
@@ -136,21 +127,23 @@ class ClassModel extends Model
         return max(0, $this->capacity - $this->current_enrollment);
     }
 
-    public function incrementEnrollment()
+    /**
+     * Get formatted price with currency symbol
+     * 
+     * @return string
+     */
+    public function getFormattedPriceAttribute()
     {
-        $this->increment('current_enrollment');
-        
-        if ($this->isFull()) {
-            $this->update(['status' => 'full']);
-        }
+        return 'RM ' . number_format($this->price, 2);
     }
 
-    public function decrementEnrollment()
+    /**
+     * Check if class has pricing set (non-zero)
+     * 
+     * @return bool
+     */
+    public function hasPaidPrice()
     {
-        $this->decrement('current_enrollment');
-        
-        if ($this->status === 'full' && $this->hasSpace()) {
-            $this->update(['status' => 'active']);
-        }
+        return $this->price > 0;
     }
 }
