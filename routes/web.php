@@ -591,6 +591,9 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/{invoice}/send', [AdminInvoiceController::class, 'send'])->name('send');
             Route::post('/{invoice}/cancel', [AdminInvoiceController::class, 'cancel'])->name('cancel');
             Route::post('/{invoice}/reminder', [AdminInvoiceController::class, 'sendReminder'])->name('reminder');
+
+            // THIS IS THE MISSING ROUTE - ADD THIS LINE
+            Route::post('/{invoice}/apply-discount', [AdminInvoiceController::class, 'applyDiscount'])->name('apply-discount');
         });
 
         // Billing Management
