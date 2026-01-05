@@ -57,7 +57,7 @@ class InvoiceService
             DB::beginTransaction();
 
             // Calculate amounts
-            $subtotal = $enrollment->monthly_fee ?? $enrollment->package->price;
+            $subtotal = $enrollment->monthly_fee ?? ($enrollment->package->price ?? 0);
             $onlineFee = $this->calculateOnlineFee($enrollment);
             $discount = $this->calculateDiscount($enrollment, $subtotal + $onlineFee);
             $tax = 0; // No tax for educational services in Malaysia
@@ -208,7 +208,6 @@ class InvoiceService
      */
     public function shouldGenerateInvoice(Enrollment $enrollment, Carbon $forMonth): bool
     {
-        // Get payment cycle day (default: 1st of month)
         $cycleDay = $enrollment->payment_cycle_day ?? 1;
         $today = Carbon::today();
 
@@ -245,10 +244,14 @@ class InvoiceService
         $now = Carbon::now();
 
         // Due date is the cycle day of next month
+        $nextMonth = $now->month == 12 ? 1 : $now->month + 1;
+        $nextYear = $now->month == 12 ? $now->year + 1 : $now->year;
+        $daysInNextMonth = Carbon::create($nextYear, $nextMonth, 1)->daysInMonth;
+
         $dueDate = Carbon::create(
-            $now->month == 12 ? $now->year + 1 : $now->year,
-            $now->month == 12 ? 1 : $now->month + 1,
-            min($cycleDay, Carbon::create($now->year, $now->month + 1, 1)->daysInMonth)
+            $nextYear,
+            $nextMonth,
+            min($cycleDay, $daysInNextMonth)
         );
 
         return $dueDate;
@@ -260,9 +263,13 @@ class InvoiceService
     protected function calculateOnlineFee(Enrollment $enrollment): float
     {
         $package = $enrollment->package;
+        
+        if (!$package) {
+            return 0;
+        }
 
         // Only charge online fee for online or hybrid packages
-        if (in_array($package->type, ['online', 'hybrid'])) {
+        if (in_array($package->type ?? '', ['online', 'hybrid'])) {
             return $package->online_fee ?? self::DEFAULT_ONLINE_FEE;
         }
 
@@ -380,8 +387,8 @@ class InvoiceService
     public function applyDiscount(Invoice $invoice, float $amount, string $reason): Invoice
     {
         $invoice->discount += $amount;
-        $invoice->discount_reason = $invoice->discount_reason
-            ? $invoice->discount_reason . '; ' . $reason
+        $invoice->discount_reason = $invoice->discount_reason 
+            ? $invoice->discount_reason . '; ' . $reason 
             : $reason;
         $invoice->total_amount = $invoice->subtotal + $invoice->online_fee - $invoice->discount + $invoice->tax;
         $invoice->save();
@@ -400,7 +407,7 @@ class InvoiceService
 
         $invoice->update([
             'status' => 'cancelled',
-            'notes' => $invoice->notes
+            'notes' => $invoice->notes 
                 ? $invoice->notes . "\nCancelled: " . ($reason ?? 'No reason provided')
                 : "Cancelled: " . ($reason ?? 'No reason provided')
         ]);
@@ -414,16 +421,16 @@ class InvoiceService
     public function generateRegistrationInvoice(Enrollment $enrollment): Invoice
     {
         $startDate = $enrollment->start_date ?? Carbon::now();
-
+        
         // Pro-rate if starting mid-month
         $daysInMonth = $startDate->daysInMonth;
         $remainingDays = $daysInMonth - $startDate->day + 1;
         $proRateFactor = $remainingDays / $daysInMonth;
 
         $package = $enrollment->package;
-        $subtotal = round(($enrollment->monthly_fee ?? $package->price) * $proRateFactor, 2);
+        $subtotal = round(($enrollment->monthly_fee ?? ($package->price ?? 0)) * $proRateFactor, 2);
         $onlineFee = $this->calculateOnlineFee($enrollment);
-
+        
         return $this->generateInvoice($enrollment, [
             'billing_start' => $startDate,
             'billing_end' => $startDate->copy()->endOfMonth(),

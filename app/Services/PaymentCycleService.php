@@ -4,59 +4,72 @@ namespace App\Services;
 
 use App\Models\Enrollment;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Student;
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Carbon\Carbon;
 
 class PaymentCycleService
 {
     /**
-     * Get payment cycle summary for a specific month
+     * Get payment cycle status for all active enrollments
      */
-    public function getPaymentCycleSummary(Carbon $month): array
+    public function getPaymentCycleOverview(?Carbon $month = null): array
     {
+        $month = $month ?? Carbon::now();
         $startOfMonth = $month->copy()->startOfMonth();
         $endOfMonth = $month->copy()->endOfMonth();
 
         $enrollments = Enrollment::active()
-            ->with(['student.user', 'package', 'invoices' => function ($q) use ($startOfMonth, $endOfMonth) {
-                $q->whereBetween('billing_period_start', [$startOfMonth, $endOfMonth]);
+            ->with(['student.user', 'package', 'invoices' => function($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereBetween('billing_period_start', [$startOfMonth, $endOfMonth])
+                    ->orWhereBetween('billing_period_end', [$startOfMonth, $endOfMonth]);
             }])
             ->get();
 
         $summary = [
             'total_enrollments' => $enrollments->count(),
-            'total_expected' => 0,
-            'total_collected' => 0,
+            'fully_paid' => 0,
+            'partially_paid' => 0,
             'pending' => 0,
             'overdue' => 0,
+            'no_invoice' => 0,
+            'total_expected' => 0,
+            'total_collected' => 0,
+            'collection_rate' => 0,
         ];
 
         $details = [];
 
         foreach ($enrollments as $enrollment) {
             $invoice = $enrollment->invoices->first();
-            $amountDue = $enrollment->monthly_fee;
-            $amountPaid = $invoice ? $invoice->paid_amount : 0;
-            $status = 'pending';
+            $status = 'no_invoice';
+            $amountDue = $enrollment->monthly_fee ?? ($enrollment->package->price ?? 0);
+            $amountPaid = 0;
 
             if ($invoice) {
-                $summary['total_expected'] += $invoice->total_amount;
-                $summary['total_collected'] += $invoice->paid_amount;
+                $amountDue = $invoice->total_amount;
+                $amountPaid = $invoice->paid_amount;
+                $status = $invoice->status;
 
-                if ($invoice->status === 'paid') {
+                if ($invoice->isPaid()) {
+                    $summary['fully_paid']++;
                     $status = 'paid';
+                } elseif ($invoice->status === 'partial') {
+                    $summary['partially_paid']++;
                 } elseif ($invoice->isOverdue()) {
-                    $status = 'overdue';
                     $summary['overdue']++;
+                    $status = 'overdue';
                 } else {
                     $summary['pending']++;
                 }
             } else {
-                $summary['total_expected'] += $amountDue;
-                $summary['pending']++;
+                $summary['no_invoice']++;
             }
+
+            $summary['total_expected'] += $amountDue;
+            $summary['total_collected'] += $amountPaid;
 
             $details[] = [
                 'enrollment_id' => $enrollment->id,
@@ -103,7 +116,7 @@ class PaymentCycleService
             foreach ($invoices as $invoice) {
                 $cycles->push([
                     'enrollment_id' => $enrollment->id,
-                    'package' => $enrollment->package->name ?? 'Single Class',
+                    'package' => $enrollment->package->name ?? 'Unknown',
                     'invoice_id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number,
                     'billing_period' => $invoice->billing_period_start->format('M Y'),
@@ -125,12 +138,11 @@ class PaymentCycleService
 
     /**
      * Update payment cycle day for an enrollment
-     * Payment cycle day must be between 1 and 15
      */
     public function updatePaymentCycleDay(Enrollment $enrollment, int $newCycleDay): Enrollment
     {
-        if ($newCycleDay < 1 || $newCycleDay > 15) {
-            throw new \InvalidArgumentException("Payment cycle day must be between 1 and 15");
+        if ($newCycleDay < 1 || $newCycleDay > 28) {
+            throw new \InvalidArgumentException("Payment cycle day must be between 1 and 28");
         }
 
         $enrollment->update(['payment_cycle_day' => $newCycleDay]);
@@ -188,94 +200,143 @@ class PaymentCycleService
                     'parent_phone' => $invoice->student->parent->whatsapp_number ?? 'N/A',
                     'package' => $invoice->enrollment->package->name ?? 'Unknown',
                     'due_date' => $invoice->due_date,
-                    'days_overdue' => Carbon::today()->diffInDays($invoice->due_date),
+                    'days_overdue' => $invoice->due_date->diffInDays(Carbon::today()),
                     'total_amount' => $invoice->total_amount,
+                    'paid_amount' => $invoice->paid_amount,
                     'balance' => $invoice->balance,
-                    'status' => $invoice->status,
+                    'reminder_count' => $invoice->reminder_count,
+                    'last_reminder' => $invoice->last_reminder_at,
                 ];
             });
     }
 
     /**
-     * Get students with multiple overdue invoices
+     * Get payment history summary by month
      */
-    public function getStudentsWithMultipleOverdue(int $minOverdue = 2): Collection
+    public function getMonthlyPaymentSummary(int $monthsBack = 6): Collection
     {
-        return Student::whereHas('invoices', function ($q) {
+        $summary = collect();
+
+        for ($i = 0; $i < $monthsBack; $i++) {
+            $month = Carbon::now()->subMonths($i);
+            $startOfMonth = $month->copy()->startOfMonth();
+            $endOfMonth = $month->copy()->endOfMonth();
+
+            $invoices = Invoice::whereBetween('billing_period_start', [$startOfMonth, $endOfMonth])->get();
+            $payments = Payment::completed()
+                ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
+                ->get();
+
+            $summary->push([
+                'month' => $month->format('M Y'),
+                'month_key' => $month->format('Y-m'),
+                'total_invoiced' => $invoices->sum('total_amount'),
+                'total_collected' => $payments->sum('amount'),
+                'invoices_count' => $invoices->count(),
+                'payments_count' => $payments->count(),
+                'paid_invoices' => $invoices->where('status', 'paid')->count(),
+                'pending_invoices' => $invoices->where('status', 'pending')->count(),
+                'overdue_invoices' => $invoices->where('status', 'overdue')->count(),
+                'collection_rate' => $invoices->sum('total_amount') > 0 
+                    ? round(($payments->sum('amount') / $invoices->sum('total_amount')) * 100, 2)
+                    : 0,
+            ]);
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Get students with payment issues (multiple overdue invoices)
+     */
+    public function getStudentsWithPaymentIssues(): Collection
+    {
+        return Student::whereHas('invoices', function($q) {
                 $q->overdue();
-            }, '>=', 2)
-            ->with(['user', 'parent.user', 'invoices' => function ($q) {
+            })
+            ->withCount(['invoices as overdue_count' => function($q) {
+                $q->overdue();
+            }])
+            ->with(['user', 'parent.user', 'invoices' => function($q) {
                 $q->overdue()->orderBy('due_date');
             }])
+            ->having('overdue_count', '>', 0)
+            ->orderByDesc('overdue_count')
             ->get()
-            ->map(function ($student) {
+            ->map(function($student) {
+                $totalOverdue = $student->invoices->sum(function($invoice) {
+                    return $invoice->total_amount - $invoice->paid_amount;
+                });
+
                 return [
                     'student_id' => $student->id,
                     'student_name' => $student->user->name ?? 'Unknown',
                     'student_code' => $student->student_id ?? 'N/A',
                     'parent_name' => $student->parent->user->name ?? 'No Parent',
                     'parent_phone' => $student->parent->whatsapp_number ?? 'N/A',
-                    'overdue_count' => $student->invoices->count(),
-                    'total_overdue' => $student->invoices->sum('balance'),
+                    'overdue_count' => $student->overdue_count,
+                    'total_overdue' => $totalOverdue,
                     'oldest_overdue' => $student->invoices->first()?->due_date,
-                    'oldest_days' => $student->invoices->first()?->due_date?->diffInDays(Carbon::today()),
+                    'invoices' => $student->invoices->map(function($invoice) {
+                        return [
+                            'invoice_id' => $invoice->id,
+                            'invoice_number' => $invoice->invoice_number,
+                            'due_date' => $invoice->due_date,
+                            'balance' => $invoice->balance,
+                        ];
+                    }),
                 ];
             });
     }
 
     /**
-     * Calculate enrollment course duration tracking
+     * Get enrollment subscription status
      */
-    public function getCourseDurationStatus(Enrollment $enrollment): array
+    public function getEnrollmentSubscriptionStatus(Enrollment $enrollment): array
     {
-        $startDate = $enrollment->start_date;
+        $startDate = $enrollment->start_date ?? Carbon::now();
         $endDate = $enrollment->end_date;
-        $today = Carbon::today();
 
-        if (!$startDate) {
-            return [
-                'status' => 'not_started',
-                'message' => 'Enrollment has not started yet',
-                'start_date' => null,
-                'end_date' => $endDate,
-                'days_remaining' => null,
-                'progress_percentage' => 0,
-            ];
-        }
-
-        // If no end date, it's an ongoing enrollment
         if (!$endDate) {
-            $monthsEnrolled = $startDate->diffInMonths($today);
             return [
-                'status' => 'ongoing',
-                'message' => "Active enrollment for {$monthsEnrolled} month(s)",
+                'status' => 'indefinite',
+                'message' => 'No end date set',
                 'start_date' => $startDate,
                 'end_date' => null,
                 'days_remaining' => null,
-                'months_enrolled' => $monthsEnrolled,
                 'progress_percentage' => null,
             ];
         }
 
+        $today = Carbon::today();
+        $daysRemaining = $today->diffInDays($endDate, false);
         $totalDays = $startDate->diffInDays($endDate);
         $daysElapsed = $startDate->diffInDays($today);
-        $daysRemaining = max(0, $today->diffInDays($endDate, false));
-        $progressPercentage = $totalDays > 0 ? min(100, round(($daysElapsed / $totalDays) * 100, 1)) : 0;
-
-        $status = 'active';
-        $message = "Active - {$daysRemaining} days remaining";
+        $progressPercentage = $totalDays > 0 
+            ? min(100, round(($daysElapsed / $totalDays) * 100, 2)) 
+            : 100;
 
         if ($today->gt($endDate)) {
-            $status = 'expired';
-            $message = 'Enrollment has expired';
-            $daysRemaining = 0;
-            $progressPercentage = 100;
-        } elseif ($daysRemaining <= 7) {
+            return [
+                'status' => 'expired',
+                'message' => 'Enrollment has expired',
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'days_remaining' => 0,
+                'days_overdue' => $endDate->diffInDays($today),
+                'progress_percentage' => 100,
+            ];
+        }
+
+        if ($daysRemaining <= 7) {
             $status = 'expiring_soon';
-            $message = "Expiring soon - {$daysRemaining} days remaining";
+            $message = "Expires in {$daysRemaining} day(s)";
         } elseif ($daysRemaining <= 30) {
-            $status = 'expiring_this_month';
-            $message = "Expiring this month - {$daysRemaining} days remaining";
+            $status = 'expiring_soon';
+            $message = "Expires in {$daysRemaining} day(s)";
+        } else {
+            $status = 'active';
+            $message = "{$daysRemaining} day(s) remaining";
         }
 
         return [
@@ -284,50 +345,8 @@ class PaymentCycleService
             'start_date' => $startDate,
             'end_date' => $endDate,
             'days_remaining' => $daysRemaining,
-            'days_elapsed' => $daysElapsed,
-            'total_days' => $totalDays,
+            'total_duration_days' => $totalDays,
             'progress_percentage' => $progressPercentage,
         ];
-    }
-
-    /**
-     * Get enrollments expiring within specified days
-     */
-    public function getExpiringEnrollments(int $daysAhead = 30): Collection
-    {
-        return Enrollment::active()
-            ->whereNotNull('end_date')
-            ->whereBetween('end_date', [Carbon::today(), Carbon::today()->addDays($daysAhead)])
-            ->with(['student.user', 'package'])
-            ->orderBy('end_date')
-            ->get()
-            ->map(function ($enrollment) {
-                return [
-                    'enrollment_id' => $enrollment->id,
-                    'student_id' => $enrollment->student_id,
-                    'student_name' => $enrollment->student->user->name ?? 'Unknown',
-                    'student_code' => $enrollment->student->student_id ?? 'N/A',
-                    'package' => $enrollment->package->name ?? 'Single Class',
-                    'end_date' => $enrollment->end_date,
-                    'days_remaining' => Carbon::today()->diffInDays($enrollment->end_date, false),
-                ];
-            });
-    }
-
-    /**
-     * Get payment cycle day options (1-15)
-     */
-    public function getPaymentCycleDayOptions(): array
-    {
-        $options = [];
-        for ($i = 1; $i <= 15; $i++) {
-            $suffix = 'th';
-            if ($i == 1) $suffix = 'st';
-            elseif ($i == 2) $suffix = 'nd';
-            elseif ($i == 3) $suffix = 'rd';
-            
-            $options[$i] = "{$i}{$suffix} of each month";
-        }
-        return $options;
     }
 }

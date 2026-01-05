@@ -6,6 +6,7 @@ use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Invoice;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
@@ -14,7 +15,6 @@ use Carbon\Carbon;
 class SubscriptionService
 {
     protected $invoiceService;
-    protected $notificationService;
 
     public function __construct(InvoiceService $invoiceService)
     {
@@ -50,7 +50,7 @@ class SubscriptionService
                     'start_date' => $enrollment->start_date,
                     'end_date' => $enrollment->end_date,
                     'days_until_expiry' => $daysUntilExpiry,
-                    'monthly_fee' => $enrollment->monthly_fee ?? $enrollment->package->price,
+                    'monthly_fee' => $enrollment->monthly_fee ?? ($enrollment->package->price ?? 0),
                     'urgency' => $this->getExpiryUrgency($daysUntilExpiry),
                 ];
             });
@@ -73,7 +73,7 @@ class SubscriptionService
             ->orderBy('end_date')
             ->get()
             ->map(function($enrollment) {
-                $daysExpired = $enrollment->end_date
+                $daysExpired = $enrollment->end_date 
                     ? Carbon::today()->diffInDays($enrollment->end_date)
                     : 0;
                 return [
@@ -184,7 +184,7 @@ class SubscriptionService
         }
 
         // Create in-app notification for admin
-        $adminUsers = \App\Models\User::role(['super-admin', 'admin'])->get();
+        $adminUsers = User::role(['super-admin', 'admin'])->get();
         foreach ($adminUsers as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
@@ -318,7 +318,7 @@ class SubscriptionService
                 $expiringEnrollments = $student->enrollments->map(function($enrollment) use ($today) {
                     return [
                         'enrollment_id' => $enrollment->id,
-                        'package' => $enrollment->package->name,
+                        'package' => $enrollment->package->name ?? 'Unknown',
                         'end_date' => $enrollment->end_date,
                         'days_remaining' => $today->diffInDays($enrollment->end_date, false),
                     ];
