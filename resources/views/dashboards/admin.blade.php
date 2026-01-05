@@ -124,15 +124,24 @@
                 @forelse($recent_enrollments as $enrollment)
                     <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
                         <div class="user-avatar me-3">
-                            {{ substr($enrollment->student->user->name, 0, 1) }}
+                            {{ substr($enrollment->student->user->name ?? 'N', 0, 1) }}
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-0">{{ $enrollment->student->user->name }}</h6>
+                            <h6 class="mb-0">{{ $enrollment->student->user->name ?? 'Unknown Student' }}</h6>
                             <small class="text-muted">
-                                {{ $enrollment->package->name }} - {{ $enrollment->enrollment_date->format('d M Y') }}
+                                @if($enrollment->package)
+                                    {{ $enrollment->package->name }}
+                                @elseif($enrollment->class)
+                                    {{ $enrollment->class->name }} ({{ $enrollment->class->subject->name ?? 'Single Class' }})
+                                @else
+                                    Single Class Enrollment
+                                @endif
+                                - {{ $enrollment->enrollment_date ? $enrollment->enrollment_date->format('d M Y') : 'N/A' }}
                             </small>
                         </div>
-                        <span class="badge bg-success">{{ $enrollment->status }}</span>
+                        <span class="badge bg-{{ $enrollment->status == 'active' ? 'success' : ($enrollment->status == 'trial' ? 'info' : 'secondary') }}">
+                            {{ ucfirst($enrollment->status) }}
+                        </span>
                     </div>
                 @empty
                     <p class="text-muted text-center">No recent enrollments</p>
@@ -151,18 +160,18 @@
                 @forelse($recent_payments as $payment)
                     <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
                         <div class="user-avatar me-3">
-                            {{ substr($payment->student->user->name, 0, 1) }}
+                            {{ substr($payment->student->user->name ?? 'N', 0, 1) }}
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-0">{{ $payment->student->user->name }}</h6>
+                            <h6 class="mb-0">{{ $payment->student->user->name ?? 'Unknown' }}</h6>
                             <small class="text-muted">
-                                {{ $payment->payment_date->format('d M Y, h:i A') }}
+                                {{ $payment->payment_date ? $payment->payment_date->format('d M Y, h:i A') : 'N/A' }}
                             </small>
                         </div>
                         <div class="text-end">
                             <strong class="text-success">RM {{ number_format($payment->amount, 2) }}</strong>
                             <br>
-                            <small class="text-muted">{{ $payment->payment_method }}</small>
+                            <small class="text-muted">{{ $payment->payment_method ?? 'N/A' }}</small>
                         </div>
                     </div>
                 @empty

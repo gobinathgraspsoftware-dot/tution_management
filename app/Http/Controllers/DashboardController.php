@@ -24,8 +24,15 @@ class DashboardController extends Controller
             'active_classes' => ClassModel::active()->count(),
             'total_revenue_month' => Payment::completed()->thisMonth()->sum('amount'),
             'pending_payments' => Invoice::pending()->count(),
-            'recent_enrollments' => Enrollment::with(['student.user', 'package'])->latest()->take(5)->get(),
-            'recent_payments' => Payment::with(['student.user', 'invoice'])->completed()->latest()->take(5)->get(),
+            // Load both package and class for enrollments (to handle single class enrollments)
+            'recent_enrollments' => Enrollment::with(['student.user', 'package', 'class.subject'])
+                ->latest()
+                ->take(5)
+                ->get(),
+            'recent_payments' => Payment::with(['student.user', 'invoice'])
+                ->completed()
+                ->take(5)
+                ->get(),
         ];
 
         return view('dashboards.admin', $data);
