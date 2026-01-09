@@ -17,14 +17,12 @@ class ExpenseCategoryRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $categoryId = $this->route('expense_category');
+        $categoryId = $this->route('expense_category')?->id ?? $this->route('expenseCategory')?->id;
 
-        $rules = [
+        return [
             'name' => [
                 'required',
                 'string',
@@ -33,22 +31,6 @@ class ExpenseCategoryRequest extends FormRequest
             ],
             'description' => 'nullable|string|max:500',
             'status' => 'required|in:active,inactive',
-        ];
-
-        return $rules;
-    }
-
-    /**
-     * Get custom messages for validator errors.
-     */
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'Please enter the category name.',
-            'name.unique' => 'This category name already exists.',
-            'name.max' => 'Category name must not exceed 100 characters.',
-            'status.required' => 'Please select a status.',
-            'status.in' => 'Invalid status selected.',
         ];
     }
 
@@ -61,6 +43,21 @@ class ExpenseCategoryRequest extends FormRequest
             'name' => 'category name',
             'description' => 'description',
             'status' => 'status',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Please enter a category name.',
+            'name.max' => 'Category name cannot exceed 100 characters.',
+            'name.unique' => 'This category name already exists.',
+            'description.max' => 'Description cannot exceed 500 characters.',
+            'status.required' => 'Please select a status.',
+            'status.in' => 'Invalid status selected.',
         ];
     }
 }

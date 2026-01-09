@@ -220,6 +220,26 @@
 </div>
 @endcanany
 {{-- End: Financial Management --}}
+{{-- Expense Management --}}
+<div class="menu-dropdown">
+    <a href="#sectionExpenses" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Expenses Management
+    </a>
+    <div class="collapse" id="sectionExpenses">
+        @if(Route::has('admin.expenses.index'))
+        <a href="{{ route('admin.expenses.index') }}" class="menu-item {{ request()->routeIs('admin.expenses.*') && !request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
+            <i class="fas fa-receipt me-2"></i> Expense Vouchers
+        </a>
+        @endif
+
+        @if(Route::has('admin.expense-categories.index'))
+        <a href="{{ route('admin.expense-categories.index') }}" class="menu-item {{ request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
+            <i class="fas fa-tags me-2"></i> Expense Categories
+        </a>
+        @endif
+    </div>
+</div>
+{{-- Expense Management --}}
 <!-- Seminar Management -->
 <div class="menu-dropdown">
     <a href="#section6" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">

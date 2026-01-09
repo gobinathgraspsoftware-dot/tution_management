@@ -1,96 +1,113 @@
 @extends('layouts.app')
 
+@section('title', 'Expense Management')
+
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-receipt"></i> Expense Management</h2>
-        <div>
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Expense Management</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Expenses</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-md-6 text-end">
             @can('create-expenses')
             <a href="{{ route('admin.expenses.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Expense
+                <i class="fas fa-plus me-1"></i> Create Expense Voucher
             </a>
             @endcan
+            <a href="{{ route('admin.expenses.export', request()->query()) }}" class="btn btn-success">
+                <i class="fas fa-file-excel me-1"></i> Export
+            </a>
         </div>
     </div>
 
-    @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show">
-        {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
-    {{-- Summary Cards --}}
+    <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card bg-danger text-white">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <h6 class="card-title">Total Expenses</h6>
-                    <h3>RM {{ number_format($summary['total_expenses'], 2) }}</h3>
-                    <small>{{ $summary['expense_count'] }} transactions</small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Total Expenses</h6>
+                            <h3 class="mb-0">RM {{ number_format($summary['total_expenses'] ?? 0, 2) }}</h3>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-warning text-white">
+            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h6 class="card-title">Pending Approval</h6>
-                    <h3>{{ $summary['pending_count'] }}</h3>
-                    <small>RM {{ number_format($summary['pending_amount'], 2) }}</small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Approved</h6>
+                            <h3 class="mb-0">{{ $summary['expense_count'] ?? 0 }}</h3>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Pending</h6>
+                            <h3 class="mb-0">{{ $summary['pending_count'] ?? 0 }}</h3>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card bg-info text-white">
                 <div class="card-body">
-                    <h6 class="card-title">Average Expense</h6>
-                    <h3>RM {{ number_format($summary['average_expense'], 2) }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-secondary text-white">
-                <div class="card-body">
-                    <h6 class="card-title">Top Category</h6>
-                    @if($summary['by_category']->isNotEmpty())
-                    <h6>{{ $summary['by_category']->first()->name }}</h6>
-                    <small>RM {{ number_format($summary['by_category']->first()->total, 2) }}</small>
-                    @else
-                    <h6>N/A</h6>
-                    @endif
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Average</h6>
+                            <h3 class="mb-0">RM {{ number_format($summary['average_expense'] ?? 0, 2) }}</h3>
+                        </div>
+                        <i class="fas fa-calculator fa-2x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Filters --}}
+    <!-- Filter Card -->
     <div class="card mb-4">
         <div class="card-header">
-            <i class="fas fa-filter"></i> Filters
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Expenses</h5>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('admin.expenses.index') }}">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label>Category</label>
+            <form action="{{ route('admin.expenses.index') }}" method="GET">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Voucher, vendor..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Category</label>
                         <select name="category_id" class="form-select">
                             <option value="">All Categories</option>
                             @foreach($categories as $category)
-                            <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
-                                {{ $category->name }}
-                            </option>
+                                <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label>Status</label>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
                         <select name="status" class="form-select">
                             <option value="">All Status</option>
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
@@ -99,71 +116,55 @@
                             <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Paid</option>
                         </select>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label>Payment Method</label>
+                    <div class="col-md-2">
+                        <label class="form-label">Payment Method</label>
                         <select name="payment_method" class="form-select">
                             <option value="">All Methods</option>
                             <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
                             <option value="bank_transfer" {{ request('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
                             <option value="cheque" {{ request('payment_method') == 'cheque' ? 'selected' : '' }}>Cheque</option>
-                            <option value="online" {{ request('payment_method') == 'online' ? 'selected' : '' }}>Online</option>
                         </select>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label>From Date</label>
+                    <div class="col-md-2">
+                        <label class="form-label">From Date</label>
                         <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label>To Date</label>
+                    <div class="col-md-2">
+                        <label class="form-label">To Date</label>
                         <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>Search</label>
-                        <input type="text" name="search" class="form-control" placeholder="Description, Reference, Vendor..." value="{{ request('search') }}">
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <label class="d-block">&nbsp;</label>
-                        <div class="form-check">
-                            <input type="checkbox" name="over_budget" value="1" class="form-check-input" id="overBudget" {{ request('over_budget') ? 'checked' : '' }}>
-                            <label class="form-check-label" for="overBudget">
-                                Over Budget Only
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i> Filter
+                            <i class="fas fa-search me-1"></i> Search
                         </button>
                         <a href="{{ route('admin.expenses.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-redo"></i> Reset
+                            <i class="fas fa-redo me-1"></i> Reset
                         </a>
-                        @can('export-expenses')
-                        <a href="{{ route('admin.expenses.export', request()->all()) }}" class="btn btn-success">
-                            <i class="fas fa-file-export"></i> Export CSV
-                        </a>
-                        @endcan
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    {{-- Expenses Table --}}
+    <!-- Expenses Table -->
     <div class="card">
         <div class="card-header">
-            <i class="fas fa-list"></i> Expenses List ({{ $expenses->total() }} records)
+            <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Expense Vouchers</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-light">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
                         <tr>
+                            <th>Voucher No.</th>
                             <th>Date</th>
                             <th>Category</th>
+                            <th>Payee/Vendor</th>
                             <th>Description</th>
                             <th>Amount</th>
                             <th>Payment Method</th>
-                            <th>Vendor</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -171,25 +172,33 @@
                     <tbody>
                         @forelse($expenses as $expense)
                         <tr>
-                            <td>{{ $expense->expense_date->format('d M Y') }}</td>
-                            <td>{{ $expense->category->name }}</td>
                             <td>
-                                {{ Str::limit($expense->description, 50) }}
-                                @if($expense->is_recurring)
-                                <span class="badge bg-info"><i class="fas fa-sync"></i> Recurring</span>
-                                @endif
-                                @if($expense->isOverBudget())
-                                <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Over Budget</span>
-                                @endif
+                                <a href="{{ route('admin.expenses.show', $expense) }}" class="fw-bold text-primary">
+                                    {{ $expense->voucher_number ?? 'EXP-' . str_pad($expense->id, 4, '0', STR_PAD_LEFT) }}
+                                </a>
                             </td>
+                            <td>{{ $expense->expense_date->format('d/m/Y') }}</td>
                             <td>
-                                <strong>RM {{ number_format($expense->amount, 2) }}</strong>
-                                @if($expense->budget_amount)
-                                <br><small class="text-muted">Budget: RM {{ number_format($expense->budget_amount, 2) }}</small>
-                                @endif
+                                <span class="badge bg-secondary">{{ $expense->category->name ?? 'N/A' }}</span>
                             </td>
-                            <td>{{ ucfirst(str_replace('_', ' ', $expense->payment_method)) }}</td>
                             <td>{{ $expense->vendor_name ?? '-' }}</td>
+                            <td>{{ Str::limit($expense->description, 30) }}</td>
+                            <td class="fw-bold">RM {{ number_format($expense->amount, 2) }}</td>
+                            <td>
+                                @switch($expense->payment_method)
+                                    @case('cash')
+                                        <span class="badge bg-success">Cash</span>
+                                        @break
+                                    @case('bank_transfer')
+                                        <span class="badge bg-info">Bank Transfer</span>
+                                        @break
+                                    @case('cheque')
+                                        <span class="badge bg-warning text-dark">Cheque</span>
+                                        @break
+                                    @default
+                                        <span class="badge bg-secondary">{{ ucfirst($expense->payment_method) }}</span>
+                                @endswitch
+                            </td>
                             <td>
                                 <span class="badge bg-{{ $expense->getStatusBadgeClass() }}">
                                     {{ ucfirst($expense->status) }}
@@ -200,19 +209,28 @@
                                     <a href="{{ route('admin.expenses.show', $expense) }}" class="btn btn-info" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    @if($expense->isPending())
+                                    @if($expense->canBeEdited())
                                         @can('edit-expenses')
-                                        <a href="{{ route('admin.expenses.edit', $expense) }}" class="btn btn-primary" title="Edit">
+                                        <a href="{{ route('admin.expenses.edit', $expense) }}" class="btn btn-warning" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         @endcan
+                                    @endif
+                                    @if($expense->isPending())
                                         @can('approve-expenses')
-                                        <form action="{{ route('admin.expenses.approve', $expense) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-success" title="Approve" onclick="return confirm('Approve this expense?')">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-success" title="Approve" onclick="approveExpense({{ $expense->id }})">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger" title="Reject" onclick="showRejectModal({{ $expense->id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        @endcan
+                                    @endif
+                                    @if($expense->canBeDeleted())
+                                        @can('delete-expenses')
+                                        <button type="button" class="btn btn-danger" title="Delete" onclick="deleteExpense({{ $expense->id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                         @endcan
                                     @endif
                                 </div>
@@ -220,17 +238,90 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center">No expenses found.</td>
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No expenses found.</p>
+                                @can('create-expenses')
+                                <a href="{{ route('admin.expenses.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i> Create First Expense
+                                </a>
+                                @endcan
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <div class="mt-3">
-                {{ $expenses->links() }}
+            <!-- Pagination -->
+            @if($expenses->hasPages())
+            <div class="d-flex justify-content-center mt-4">
+                {{ $expenses->withQueryString()->links() }}
             </div>
+            @endif
         </div>
     </div>
 </div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="rejectForm" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Expense</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea name="rejection_reason" class="form-control" rows="3" required placeholder="Please provide a reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Form -->
+<form id="deleteForm" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
+
+<!-- Approve Form -->
+<form id="approveForm" method="POST" style="display: none;">
+    @csrf
+</form>
 @endsection
+
+@push('scripts')
+<script>
+function approveExpense(id) {
+    if (confirm('Are you sure you want to approve this expense?')) {
+        const form = document.getElementById('approveForm');
+        form.action = '{{ url("admin/expenses") }}/' + id + '/approve';
+        form.submit();
+    }
+}
+
+function showRejectModal(id) {
+    const form = document.getElementById('rejectForm');
+    form.action = '{{ url("admin/expenses") }}/' + id + '/reject';
+    new bootstrap.Modal(document.getElementById('rejectModal')).show();
+}
+
+function deleteExpense(id) {
+    if (confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+        const form = document.getElementById('deleteForm');
+        form.action = '{{ url("admin/expenses") }}/' + id;
+        form.submit();
+    }
+}
+</script>
+@endpush

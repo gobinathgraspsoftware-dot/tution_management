@@ -1,188 +1,235 @@
 @extends('layouts.app')
 
+@section('title', 'Create Expense Voucher')
+
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-plus-circle"></i> Add New Expense</h2>
-        <a href="{{ route('admin.expenses.index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to List
-        </a>
-    </div>
-
-    @if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show">
-        {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
-    <div class="card">
-        <div class="card-body">
-            <form action="{{ route('admin.expenses.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required">Expense Category</label>
-                        <select name="category_id" class="form-select @error('category_id') is-invalid @enderror" required>
-                            <option value="">Select Category</option>
-                            @foreach($categories as $category)
-                            <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
-                                {{ $category->name }}
-                            </option>
-                            @endforeach
-                        </select>
-                        @error('category_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required">Expense Date</label>
-                        <input type="date" name="expense_date" class="form-control @error('expense_date') is-invalid @enderror"
-                               value="{{ old('expense_date', now()->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}" required>
-                        @error('expense_date')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label required">Description</label>
-                        <textarea name="description" class="form-control @error('description') is-invalid @enderror"
-                                  rows="3" required>{{ old('description') }}</textarea>
-                        @error('description')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required">Amount (RM)</label>
-                        <input type="number" name="amount" step="0.01" min="0"
-                               class="form-control @error('amount') is-invalid @enderror"
-                               value="{{ old('amount') }}" required>
-                        @error('amount')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Budget Amount (RM)</label>
-                        <input type="number" name="budget_amount" step="0.01" min="0"
-                               class="form-control @error('budget_amount') is-invalid @enderror"
-                               value="{{ old('budget_amount') }}">
-                        <small class="text-muted">Optional: Set budget for comparison</small>
-                        @error('budget_amount')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required">Payment Method</label>
-                        <select name="payment_method" class="form-select @error('payment_method') is-invalid @enderror" required>
-                            <option value="">Select Payment Method</option>
-                            @foreach($paymentMethods as $key => $method)
-                            <option value="{{ $key }}" {{ old('payment_method') == $key ? 'selected' : '' }}>
-                                {{ $method }}
-                            </option>
-                            @endforeach
-                        </select>
-                        @error('payment_method')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Reference Number</label>
-                        <input type="text" name="reference_number" class="form-control @error('reference_number') is-invalid @enderror"
-                               value="{{ old('reference_number') }}">
-                        @error('reference_number')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Vendor Name</label>
-                        <input type="text" name="vendor_name" class="form-control @error('vendor_name') is-invalid @enderror"
-                               value="{{ old('vendor_name') }}">
-                        @error('vendor_name')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Invoice Number</label>
-                        <input type="text" name="invoice_number" class="form-control @error('invoice_number') is-invalid @enderror"
-                               value="{{ old('invoice_number') }}">
-                        @error('invoice_number')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Receipt/Invoice</label>
-                        <input type="file" name="receipt" class="form-control @error('receipt') is-invalid @enderror"
-                               accept="image/*,.pdf">
-                        <small class="text-muted">Supported: JPG, PNG, PDF (Max: 5MB)</small>
-                        @error('receipt')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-12 mb-3">
-                        <div class="form-check">
-                            <input type="checkbox" name="is_recurring" value="1" class="form-check-input"
-                                   id="isRecurring" {{ old('is_recurring') ? 'checked' : '' }}
-                                   onchange="toggleRecurringFields()">
-                            <label class="form-check-label" for="isRecurring">
-                                This is a recurring expense
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 mb-3" id="recurringFrequency" style="display: none;">
-                        <label class="form-label">Recurring Frequency</label>
-                        <select name="recurring_frequency" class="form-select">
-                            <option value="">Select Frequency</option>
-                            @foreach($recurringFrequencies as $key => $freq)
-                            <option value="{{ $key }}" {{ old('recurring_frequency') == $key ? 'selected' : '' }}>
-                                {{ $freq }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror"
-                                  rows="2">{{ old('notes') }}</textarea>
-                        @error('notes')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('admin.expenses.index') }}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Expense
-                    </button>
-                </div>
-            </form>
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Create Expense Voucher</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.expenses.index') }}">Expenses</a></li>
+                    <li class="breadcrumb-item active">Create</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ route('admin.expenses.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
         </div>
     </div>
+
+    <form action="{{ route('admin.expenses.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+
+        <div class="row">
+            <!-- Main Form -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Voucher Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Category -->
+                            <div class="col-md-6">
+                                <label class="form-label">Category <span class="text-danger">*</span></label>
+                                <select name="category_id" class="form-select @error('category_id') is-invalid @enderror" required>
+                                    <option value="">-- Select Category --</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                            {{ $category->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('category_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Date -->
+                            <div class="col-md-6">
+                                <label class="form-label">Expense Date <span class="text-danger">*</span></label>
+                                <input type="date" name="expense_date" class="form-control @error('expense_date') is-invalid @enderror"
+                                       value="{{ old('expense_date', date('Y-m-d')) }}" max="{{ date('Y-m-d') }}" required>
+                                @error('expense_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Payee/Vendor -->
+                            <div class="col-md-6">
+                                <label class="form-label">Payee/Vendor Name</label>
+                                <input type="text" name="vendor_name" class="form-control @error('vendor_name') is-invalid @enderror"
+                                       value="{{ old('vendor_name') }}" placeholder="Enter payee or vendor name">
+                                @error('vendor_name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Amount -->
+                            <div class="col-md-6">
+                                <label class="form-label">Amount (RM) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">RM</span>
+                                    <input type="number" name="amount" class="form-control @error('amount') is-invalid @enderror"
+                                           value="{{ old('amount') }}" step="0.01" min="0.01" placeholder="0.00" required>
+                                    @error('amount')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-12">
+                                <label class="form-label">Description <span class="text-danger">*</span></label>
+                                <textarea name="description" class="form-control @error('description') is-invalid @enderror"
+                                          rows="3" placeholder="Enter expense description..." required>{{ old('description') }}</textarea>
+                                @error('description')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Payment Method -->
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                <select name="payment_method" class="form-select @error('payment_method') is-invalid @enderror" required>
+                                    <option value="">-- Select Payment Method --</option>
+                                    @foreach($paymentMethods as $key => $label)
+                                        <option value="{{ $key }}" {{ old('payment_method') == $key ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('payment_method')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Reference Number -->
+                            <div class="col-md-6">
+                                <label class="form-label">Reference Number</label>
+                                <input type="text" name="reference_number" class="form-control @error('reference_number') is-invalid @enderror"
+                                       value="{{ old('reference_number') }}" placeholder="Bank ref, cheque no, etc.">
+                                @error('reference_number')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Invoice Number -->
+                            <div class="col-md-6">
+                                <label class="form-label">Invoice Number</label>
+                                <input type="text" name="invoice_number" class="form-control @error('invoice_number') is-invalid @enderror"
+                                       value="{{ old('invoice_number') }}" placeholder="Supplier invoice number">
+                                @error('invoice_number')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Budget Amount -->
+                            <div class="col-md-6">
+                                <label class="form-label">Budget Amount (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">RM</span>
+                                    <input type="number" name="budget_amount" class="form-control @error('budget_amount') is-invalid @enderror"
+                                           value="{{ old('budget_amount') }}" step="0.01" min="0" placeholder="0.00">
+                                    @error('budget_amount')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <small class="text-muted">Compare expense against budget</small>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="col-12">
+                                <label class="form-label">Notes</label>
+                                <textarea name="notes" class="form-control @error('notes') is-invalid @enderror"
+                                          rows="2" placeholder="Additional notes...">{{ old('notes') }}</textarea>
+                                @error('notes')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-4">
+                <!-- Receipt Upload -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Attachment</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Receipt/Invoice</label>
+                            <input type="file" name="receipt" class="form-control @error('receipt') is-invalid @enderror"
+                                   accept=".pdf,.jpg,.jpeg,.png">
+                            @error('receipt')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Max 5MB. Allowed: PDF, JPG, PNG</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recurring Options -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-sync me-2"></i>Recurring Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input type="checkbox" name="is_recurring" id="is_recurring" class="form-check-input"
+                                   value="1" {{ old('is_recurring') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="is_recurring">This is a recurring expense</label>
+                        </div>
+
+                        <div id="recurring_options" style="{{ old('is_recurring') ? '' : 'display: none;' }}">
+                            <label class="form-label">Recurring Frequency</label>
+                            <select name="recurring_frequency" class="form-select @error('recurring_frequency') is-invalid @enderror">
+                                <option value="">-- Select Frequency --</option>
+                                @foreach($recurringFrequencies as $key => $label)
+                                    <option value="{{ $key }}" {{ old('recurring_frequency') == $key ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('recurring_frequency')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-1"></i> Save Expense Voucher
+                            </button>
+                            <a href="{{ route('admin.expenses.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
+@endsection
 
+@push('scripts')
 <script>
-function toggleRecurringFields() {
-    const isRecurring = document.getElementById('isRecurring').checked;
-    document.getElementById('recurringFrequency').style.display = isRecurring ? 'block' : 'none';
-}
-
-// Check on page load
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('isRecurring').checked) {
-        toggleRecurringFields();
-    }
+document.getElementById('is_recurring').addEventListener('change', function() {
+    document.getElementById('recurring_options').style.display = this.checked ? 'block' : 'none';
 });
 </script>
-@endsection
+@endpush
