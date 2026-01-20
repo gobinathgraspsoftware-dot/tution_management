@@ -1151,6 +1151,10 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::put('/', [TeacherProfileController::class, 'update'])->name('update');
             Route::get('/change-password', [TeacherProfileController::class, 'showChangePassword'])->name('change-password');
             Route::post('/change-password', [TeacherProfileController::class, 'changePassword'])->name('update-password');
+            // Document Management Routes (for profile page)
+            Route::post('/document/upload', [TeacherProfileController::class, 'uploadDocument'])->name('document.upload');
+            Route::get('/document/{document}/download', [TeacherProfileController::class, 'downloadDocument'])->name('document.download');
+            Route::delete('/document/{document}', [TeacherProfileController::class, 'deleteDocument'])->name('document.delete');
         });
 
         // Teacher Schedule Management

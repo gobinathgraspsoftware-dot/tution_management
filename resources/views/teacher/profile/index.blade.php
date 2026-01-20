@@ -39,7 +39,13 @@
                 @endif
 
                 <h4 class="mb-1">{{ $teacher->user->name }}</h4>
-                <p class="text-muted mb-2">{{ $teacher->specialization ?? 'Teacher' }}</p>
+                <p class="text-muted mb-2">
+                    @if($teacher->specialization && is_array($teacher->specialization) && count($teacher->specialization) > 0)
+                        {{ implode(', ', $teacher->specialization) }}
+                    @else
+                        Teacher
+                    @endif
+                </p>
                 <span class="badge bg-info fs-6">{{ $teacher->teacher_id }}</span>
 
                 <hr>
@@ -54,7 +60,7 @@
 
                 <div class="mt-3">
                     <span class="badge bg-secondary">
-                        {{ ucfirst(str_replace('_', ' ', $teacher->employment_type)) }}
+                        {{ ucfirst(str_replace('_', ' ', $teacher->employment_type ?? 'N/A')) }}
                     </span>
                 </div>
             </div>
@@ -98,29 +104,29 @@
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col-6 mb-3">
-                        <h3 class="text-primary mb-0">{{ $stats['total_classes'] }}</h3>
+                        <h3 class="text-primary mb-0">{{ $stats['total_classes'] ?? 0 }}</h3>
                         <small class="text-muted">Total Classes</small>
                     </div>
                     <div class="col-6 mb-3">
-                        <h3 class="text-success mb-0">{{ $stats['active_classes'] }}</h3>
+                        <h3 class="text-success mb-0">{{ $stats['active_classes'] ?? 0 }}</h3>
                         <small class="text-muted">Active Classes</small>
                     </div>
                     <div class="col-6 mb-3">
-                        <h3 class="text-info mb-0">{{ $stats['total_students'] }}</h3>
+                        <h3 class="text-info mb-0">{{ $stats['total_students'] ?? 0 }}</h3>
                         <small class="text-muted">Total Students</small>
                     </div>
                     <div class="col-6 mb-3">
-                        <h3 class="text-warning mb-0">{{ $stats['materials_uploaded'] }}</h3>
+                        <h3 class="text-warning mb-0">{{ $stats['materials_uploaded'] ?? 0 }}</h3>
                         <small class="text-muted">Materials</small>
                     </div>
                     <div class="col-6">
-                        <h3 class="text-secondary mb-0">{{ $stats['sessions_conducted'] }}</h3>
+                        <h3 class="text-secondary mb-0">{{ $stats['sessions_conducted'] ?? 0 }}</h3>
                         <small class="text-muted">Sessions</small>
                     </div>
                     <div class="col-6">
                         <h3 class="text-danger mb-0">
-                            {{ $stats['average_rating'] > 0 ? $stats['average_rating'] : 'N/A' }}
-                            @if($stats['average_rating'] > 0)
+                            {{ isset($stats['average_rating']) && $stats['average_rating'] > 0 ? $stats['average_rating'] : 'N/A' }}
+                            @if(isset($stats['average_rating']) && $stats['average_rating'] > 0)
                                 <i class="fas fa-star text-warning" style="font-size: 0.7em;"></i>
                             @endif
                         </h3>
@@ -158,28 +164,44 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Employment Type</label>
-                        <p class="mb-0 fw-medium">{{ ucfirst(str_replace('_', ' ', $teacher->employment_type)) }}</p>
+                        <p class="mb-0 fw-medium">{{ ucfirst(str_replace('_', ' ', $teacher->employment_type ?? 'N/A')) }}</p>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted small mb-1">Pay Type</label>
-                        <p class="mb-0 fw-medium">{{ ucfirst(str_replace('_', ' ', $teacher->pay_type)) }}</p>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label text-muted small mb-1">Bio</label>
-                        <p class="mb-0">{{ $teacher->bio ?? 'No bio provided' }}</p>
+                        <label class="form-label text-muted small mb-1">Specialization</label>
+                        <p class="mb-0 fw-medium">
+                            @if($teacher->specialization && is_array($teacher->specialization) && count($teacher->specialization) > 0)
+                                @foreach($teacher->specialization as $spec)
+                                    <span class="badge bg-primary me-1">{{ $spec }}</span>
+                                @endforeach
+                            @else
+                                <span class="text-muted">Not specified</span>
+                            @endif
+                        </p>
                     </div>
                 </div>
+
+                @if($teacher->bio)
+                    <hr>
+                    <div>
+                        <label class="form-label text-muted small mb-1">Bio</label>
+                        <p class="mb-0">{{ $teacher->bio }}</p>
+                    </div>
+                @endif
             </div>
         </div>
 
         <!-- My Classes -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-school me-2"></i> My Classes</span>
-                <a href="{{ route('teacher.classes.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                <span><i class="fas fa-chalkboard me-2"></i> My Classes</span>
+                @if(Route::has('teacher.classes.index'))
+                    <a href="{{ route('teacher.classes.index') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                @endif
             </div>
             <div class="card-body">
-                @if($teacher->classes->count() > 0)
+                @if($teacher->classes && $teacher->classes->count() > 0)
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead>
@@ -194,16 +216,13 @@
                                 @foreach($teacher->classes->take(5) as $class)
                                     <tr>
                                         <td>
-                                            <a href="{{ route('teacher.classes.show', $class) }}">
-                                                {{ $class->name }}
-                                            </a>
-                                            <br>
-                                            <small class="text-muted">{{ $class->code }}</small>
+                                            <strong>{{ $class->name }}</strong>
+                                            <br><small class="text-muted">{{ $class->code ?? '' }}</small>
                                         </td>
                                         <td>{{ $class->subject->name ?? 'N/A' }}</td>
                                         <td>
                                             <span class="badge bg-info">
-                                                {{ $class->enrollments->where('status', 'active')->count() }} / {{ $class->capacity }}
+                                                {{ $class->current_enrollment ?? 0 }}/{{ $class->capacity ?? 0 }}
                                             </span>
                                         </td>
                                         <td>
@@ -220,20 +239,22 @@
                     </div>
                 @else
                     <div class="text-center py-4">
-                        <i class="fas fa-school fa-3x text-muted mb-3"></i>
+                        <i class="fas fa-chalkboard fa-3x text-muted mb-3"></i>
                         <p class="text-muted mb-0">No classes assigned yet.</p>
                     </div>
                 @endif
             </div>
         </div>
 
-        <!-- Documents Section -->
+        <!-- My Documents -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-file-alt me-2"></i> My Documents</span>
-                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
-                    <i class="fas fa-upload me-1"></i> Upload
-                </button>
+                @if(Route::has('teacher.documents.index'))
+                    <a href="{{ route('teacher.documents.index') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-folder-open me-1"></i> Manage Documents
+                    </a>
+                @endif
             </div>
             <div class="card-body">
                 @if($teacher->documents && $teacher->documents->count() > 0)
@@ -255,10 +276,18 @@
                                             <i class="fas fa-file-pdf text-danger me-2"></i>
                                             {{ $document->title }}
                                             <br>
-                                            <small class="text-muted">{{ $document->file_size_formatted }}</small>
+                                            <small class="text-muted">{{ $document->file_size_formatted ?? '' }}</small>
                                         </td>
-                                        <td>{{ $document->document_type_name }}</td>
-                                        <td>{!! $document->status_badge !!}</td>
+                                        <td>{{ $document->document_type_name ?? $document->document_type ?? 'N/A' }}</td>
+                                        <td>
+                                            @if(isset($document->status))
+                                                <span class="badge bg-{{ $document->status == 'active' ? 'success' : ($document->status == 'pending' ? 'warning' : 'secondary') }}">
+                                                    {{ ucfirst($document->status) }}
+                                                </span>
+                                            @else
+                                                <span class="badge bg-secondary">N/A</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             @if($document->expiry_date)
                                                 {{ $document->expiry_date->format('d M Y') }}
@@ -267,19 +296,26 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <a href="{{ route('teacher.profile.document.download', $document) }}"
-                                               class="btn btn-sm btn-outline-primary" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                            <form action="{{ route('teacher.profile.document.delete', $document) }}"
-                                                  method="POST" class="d-inline"
-                                                  onsubmit="return confirm('Are you sure you want to delete this document?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            {{-- Download Button - Uses existing teacher.documents.download route --}}
+                                            @if(Route::has('teacher.documents.download'))
+                                                <a href="{{ route('teacher.documents.download', $document) }}"
+                                                   class="btn btn-sm btn-outline-primary" title="Download">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            @endif
+
+                                            {{-- Delete Button - Uses existing teacher.documents.destroy route --}}
+                                            @if(Route::has('teacher.documents.destroy'))
+                                                <form action="{{ route('teacher.documents.destroy', $document) }}"
+                                                      method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to delete this document?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -290,6 +326,11 @@
                     <div class="text-center py-4">
                         <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
                         <p class="text-muted mb-0">No documents uploaded yet.</p>
+                        @if(Route::has('teacher.documents.index'))
+                            <a href="{{ route('teacher.documents.index') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                <i class="fas fa-folder-open me-1"></i> Go to Documents
+                            </a>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -301,7 +342,7 @@
                 <i class="fas fa-history me-2"></i> Recent Activity
             </div>
             <div class="card-body">
-                @if($recentActivity->count() > 0)
+                @if(isset($recentActivity) && $recentActivity->count() > 0)
                     <ul class="list-group list-group-flush">
                         @foreach($recentActivity as $activity)
                             <li class="list-group-item d-flex justify-content-between align-items-start px-0">
@@ -322,55 +363,6 @@
                     </div>
                 @endif
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Upload Document Modal -->
-<div class="modal fade" id="uploadDocumentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{{ route('teacher.profile.document.upload') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-upload me-2"></i> Upload Document</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Document Type <span class="text-danger">*</span></label>
-                        <select name="document_type" class="form-select" required>
-                            <option value="">Select Type</option>
-                            @foreach(\App\Models\TeacherDocument::DOCUMENT_TYPES as $key => $value)
-                                <option value="{{ $key }}">{{ $value }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" class="form-control" required maxlength="255">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Document File <span class="text-danger">*</span></label>
-                        <input type="file" name="document" class="form-control" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                        <small class="text-muted">Max 5MB. Allowed: PDF, JPG, PNG, DOC, DOCX</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Expiry Date</label>
-                        <input type="date" name="expiry_date" class="form-control" min="{{ date('Y-m-d', strtotime('+1 day')) }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="2" maxlength="500"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-upload me-1"></i> Upload
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
