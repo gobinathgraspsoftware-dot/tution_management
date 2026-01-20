@@ -29,11 +29,9 @@ class Teacher extends Model
         'bank_account',
         'epf_number',
         'socso_number',
-        // NEW: Statutory contribution flags
         'epf_enabled',
         'socso_enabled',
         'socso_type',
-        'documents',
         'status',
     ];
 
@@ -43,9 +41,7 @@ class Teacher extends Model
         'monthly_salary' => 'decimal:2',
         'per_class_rate' => 'decimal:2',
         'experience_years' => 'integer',
-        'documents' => 'array',
         'specialization' => 'array',
-        // NEW: Cast boolean flags
         'epf_enabled' => 'boolean',
         'socso_enabled' => 'boolean',
     ];
@@ -82,6 +78,23 @@ class Teacher extends Model
     public function reviews()
     {
         return $this->hasMany(StudentReview::class);
+    }
+
+    /**
+     * Get teacher's uploaded documents.
+     * THIS IS THE MISSING RELATIONSHIP - ADD THIS TO FIX THE ERROR
+     */
+    public function documents()
+    {
+        return $this->hasMany(TeacherDocument::class);
+    }
+
+    /**
+     * Get teacher's class schedules through classes.
+     */
+    public function schedules()
+    {
+        return $this->hasManyThrough(ClassSchedule::class, ClassModel::class, 'teacher_id', 'class_id');
     }
 
     // ==========================================
@@ -124,7 +137,7 @@ class Teacher extends Model
 
     public function getFullNameAttribute()
     {
-        return $this->user->name;
+        return $this->user->name ?? 'N/A';
     }
 
     /**
@@ -155,7 +168,7 @@ class Teacher extends Model
         }
 
         if (is_array($this->specialization)) {
-            return \App\Models\Subject::whereIn('id', $this->specialization)
+            return Subject::whereIn('id', $this->specialization)
                 ->pluck('name')
                 ->toArray();
         }
@@ -165,7 +178,6 @@ class Teacher extends Model
 
     /**
      * Check if teacher requires SOCSO Insurance Only scheme
-     * (for employees 60+ years old or foreign workers)
      */
     public function getUsesSocsoInsuranceOnlyAttribute(): bool
     {
@@ -225,8 +237,8 @@ class Teacher extends Model
      */
     public function getSocsoModel(): string
     {
-        return $this->socso_type === 'insurance_only' 
-            ? SocsoInsurance::class 
+        return $this->socso_type === 'insurance_only'
+            ? SocsoInsurance::class
             : Socso::class;
     }
 
