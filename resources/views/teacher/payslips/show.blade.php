@@ -1,4 +1,4 @@
-@extends('layouts.teacher')
+@extends('layouts.app')
 
 @section('title', 'Payslip Details - ' . $payslip->payslip_number)
 

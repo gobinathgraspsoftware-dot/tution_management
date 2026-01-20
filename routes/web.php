@@ -73,6 +73,10 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Staff\EnrollmentController as StaffEnrollmentController;
 use App\Http\Controllers\Parent\EnrollmentController as ParentEnrollmentController;
 use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
+use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceController;
+use App\Http\Controllers\Teacher\ExamController as TeacherExamController;
+use App\Http\Controllers\Teacher\ResultController as TeacherResultController;
+use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1200,6 +1204,49 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/', [PerformanceController::class, 'index'])->name('index');
             Route::get('/analytics', [PerformanceController::class, 'analytics'])->name('analytics');
             Route::get('/data', [PerformanceController::class, 'getData'])->name('get-data');
+        });
+
+        // Teacher Attendance Routes
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [TeacherAttendanceController::class, 'index'])->name('index');
+            Route::get('/mark/{session}', [TeacherAttendanceController::class, 'markAttendance'])->name('mark');
+            Route::post('/mark/{session}', [TeacherAttendanceController::class, 'storeAttendance'])->name('store');
+            Route::get('/class/{class}/history', [TeacherAttendanceController::class, 'classHistory'])->name('class-history');
+            Route::get('/session/{session}', [TeacherAttendanceController::class, 'sessionDetails'])->name('session-details');
+            Route::get('/get-sessions', [TeacherAttendanceController::class, 'getSessions'])->name('get-sessions');
+        });
+
+        // Teacher Exams Routes
+        Route::prefix('exams')->name('exams.')->group(function () {
+            Route::get('/', [TeacherExamController::class, 'index'])->name('index');
+            Route::get('/create', [TeacherExamController::class, 'create'])->name('create');
+            Route::post('/', [TeacherExamController::class, 'store'])->name('store');
+            Route::get('/{exam}', [TeacherExamController::class, 'show'])->name('show');
+            Route::get('/{exam}/edit', [TeacherExamController::class, 'edit'])->name('edit');
+            Route::put('/{exam}', [TeacherExamController::class, 'update'])->name('update');
+            Route::get('/{exam}/enter-results', [TeacherExamController::class, 'enterResults'])->name('enter-results');
+            Route::post('/{exam}/results', [TeacherExamController::class, 'storeResults'])->name('store-results');
+        });
+
+        // Teacher Results Routes
+        Route::prefix('results')->name('results.')->group(function () {
+            Route::get('/', [TeacherResultController::class, 'index'])->name('index');
+            Route::get('/exam/{exam}', [TeacherResultController::class, 'examResults'])->name('exam');
+            Route::get('/student/{student}', [TeacherResultController::class, 'studentResults'])->name('student');
+            Route::get('/class/{class}/report', [TeacherResultController::class, 'classReport'])->name('class-report');
+            Route::get('/{result}', [TeacherResultController::class, 'show'])->name('show');
+            Route::get('/{result}/edit', [TeacherResultController::class, 'edit'])->name('edit');
+            Route::put('/{result}', [TeacherResultController::class, 'update'])->name('update');
+        });
+
+        // Teacher Announcements Routes
+        Route::prefix('announcements')->name('announcements.')->group(function () {
+            Route::get('/', [TeacherAnnouncementController::class, 'index'])->name('index');
+            Route::get('/create', [TeacherAnnouncementController::class, 'create'])->name('create');
+            Route::post('/', [TeacherAnnouncementController::class, 'store'])->name('store');
+            Route::get('/{announcement}', [TeacherAnnouncementController::class, 'show'])->name('show');
+            Route::post('/{announcement}/mark-read', [TeacherAnnouncementController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/mark-all-read', [TeacherAnnouncementController::class, 'markAllAsRead'])->name('mark-all-read');
         });
 
     });

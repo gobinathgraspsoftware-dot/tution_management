@@ -809,9 +809,9 @@
     <a href="{{ route('teacher.dashboard') }}" class="menu-item {{ request()->routeIs('teacher.dashboard') ? 'active' : '' }}">
     <i class="fas fa-home"></i> Dashboard
     </a>
-
     </div>
 </div>
+
 <!-- Teaching -->
 <div class="menu-dropdown">
     <a href="#section32" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -822,14 +822,15 @@
     <a href="{{ route('teacher.attendance.index') }}" class="menu-item {{ request()->routeIs('teacher.attendance.*') ? 'active' : '' }}">
     <i class="fas fa-check-square"></i> Attendance
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> Attendance
+    @endif
+    @if(Route::has('timetable.index'))
+    <a href="{{ route('timetable.index') }}" class="menu-item {{ request()->routeIs('timetable.*') ? 'active' : '' }}">
+    <i class="fas fa-calendar-week"></i> Timetable
     </a>
     @endif
-
     </div>
 </div>
+
 <!-- Salary -->
 <div class="menu-dropdown">
     <a href="#section33" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -843,6 +844,7 @@
     @endif
     </div>
 </div>
+
 <!-- Performance -->
 <div class="menu-dropdown">
     <a href="#section34" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -859,28 +861,28 @@
     <i class="fas fa-chart-bar"></i> Analytics
     </a>
     @endif
+    </div>
+</div>
+
+<!-- Materials -->
+<div class="menu-dropdown">
+    <a href="#section34a" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Materials
+    </a>
+    <div class="collapse" id="section34a">
     @if(Route::has('teacher.materials.index'))
     <a href="{{ route('teacher.materials.index') }}" class="menu-item {{ request()->routeIs('teacher.materials.index') || request()->routeIs('teacher.materials.show') || request()->routeIs('teacher.materials.edit') ? 'active' : '' }}">
-    <i class="fas fa-file-alt"></i> My Materials
-    </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> My Materials
+    <i class="fas fa-book-open"></i> My Materials
     </a>
     @endif
-
     @if(Route::has('teacher.materials.create'))
     <a href="{{ route('teacher.materials.create') }}" class="menu-item {{ request()->routeIs('teacher.materials.create') ? 'active' : '' }}">
     <i class="fas fa-file-upload"></i> Upload Materials
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-file-upload"></i> Upload Materials
-    </a>
     @endif
-
     </div>
 </div>
+
 <!-- My Classes -->
 <div class="menu-dropdown">
     <a href="#section35" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -891,34 +893,20 @@
     <a href="{{ route('teacher.classes.index') }}" class="menu-item {{ request()->routeIs('teacher.classes.*') ? 'active' : '' }}">
     <i class="fas fa-school"></i> My Classes
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-school"></i> My Classes
-    </a>
     @endif
-
     @if(Route::has('teacher.schedule.index'))
     <a href="{{ route('teacher.schedule.index') }}" class="menu-item {{ request()->routeIs('teacher.schedule.*') ? 'active' : '' }}">
     <i class="fas fa-calendar-alt"></i> My Schedule
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> My Schedule
-    </a>
     @endif
-
     @if(Route::has('teacher.students.index'))
     <a href="{{ route('teacher.students.index') }}" class="menu-item {{ request()->routeIs('teacher.students.*') ? 'active' : '' }}">
     <i class="fas fa-users"></i> My Students
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-users"></i> My Students
-    </a>
     @endif
-
     </div>
 </div>
+
 <!-- Assessment -->
 <div class="menu-dropdown">
     <a href="#section36" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -929,25 +917,15 @@
     <a href="{{ route('teacher.exams.index') }}" class="menu-item {{ request()->routeIs('teacher.exams.*') ? 'active' : '' }}">
     <i class="fas fa-file-signature"></i> Exams
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-file-signature"></i> Exams
-    </a>
     @endif
-
-
     @if(Route::has('teacher.results.index'))
     <a href="{{ route('teacher.results.index') }}" class="menu-item {{ request()->routeIs('teacher.results.*') ? 'active' : '' }}">
     <i class="fas fa-chart-bar"></i> Results
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-chart-bar"></i> Results
-    </a>
     @endif
-
     </div>
 </div>
+
 <!-- Documents -->
 <div class="menu-dropdown">
     <a href="#section37" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -958,32 +936,29 @@
     <a href="{{ route('teacher.documents.index') }}" class="menu-item {{ request()->routeIs('teacher.documents.*') ? 'active' : '' }}">
     <i class="fas fa-folder-open"></i> My Documents
     </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-folder-open"></i> My Documents
-    </a>
     @endif
-
     </div>
 </div>
-<!-- Other -->
+
+<!-- Announcements -->
 <div class="menu-dropdown">
     <a href="#section38" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Other
+        <i class="fas fa-chevron-down"></i> Announcements
     </a>
     <div class="collapse" id="section38">
     @if(Route::has('teacher.announcements.index'))
     <a href="{{ route('teacher.announcements.index') }}" class="menu-item {{ request()->routeIs('teacher.announcements.*') ? 'active' : '' }}">
-    <i class="fas fa-bullhorn"></i> Announcements
-    </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
+    <i class="fas fa-bullhorn"></i> View Announcements
     </a>
     @endif
-
+    @if(Route::has('teacher.announcements.create'))
+    <a href="{{ route('teacher.announcements.create') }}" class="menu-item {{ request()->routeIs('teacher.announcements.create') ? 'active' : '' }}">
+    <i class="fas fa-plus"></i> Create Announcement
+    </a>
+    @endif
     </div>
 </div>
+
 <!-- Account -->
 <div class="menu-dropdown">
     <a href="#section39" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -999,33 +974,6 @@
     <i class="fas fa-user"></i> My Profile
     </a>
     @endif
-
-    </div>
-</div>
-<!-- Content -->
-<div class="menu-dropdown">
-    <a href="#section40" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Content
-    </a>
-    <div class="collapse" id="section40">
-    <a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> Materials
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-clipboard-list"></i> Exams
-    </a>
-
-    </div>
-</div>
-<!-- Account -->
-<div class="menu-dropdown">
-    <a href="#section41" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Account
-    </a>
-    <div class="collapse" id="section41">
-    <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-    <i class="fas fa-user"></i> My Profile
-    </a>
     </div>
 </div>
 @endrole

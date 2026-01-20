@@ -1,4 +1,4 @@
-@extends('layouts.teacher')
+@extends('layouts.app')
 
 @section('title', 'My Payslips')
 
