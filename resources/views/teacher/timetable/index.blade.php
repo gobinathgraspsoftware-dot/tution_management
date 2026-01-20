@@ -19,8 +19,8 @@
                     <i class="fas fa-download"></i> Export
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('admin.timetable.export', ['format' => 'pdf', 'view' => $view, 'date' => $date]) }}">Export as PDF</a></li>
-                    <li><a class="dropdown-item" href="{{ route('admin.timetable.export', ['format' => 'csv', 'view' => $view, 'date' => $date]) }}">Export as CSV</a></li>
+                    <li><a class="dropdown-item" href="{{ route('timetable.export', ['format' => 'pdf', 'view' => $view, 'date' => $date]) }}">Export as PDF</a></li>
+                    <li><a class="dropdown-item" href="{{ route('timetable.export', ['format' => 'csv', 'view' => $view, 'date' => $date]) }}">Export as CSV</a></li>
                 </ul>
             </div>
         </div>
@@ -29,7 +29,7 @@
     <!-- View Selector -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="{{ route('teacher.timetable.index') }}" id="filterForm">
+            <form method="GET" action="{{ route('timetable.index') }}" id="filterForm">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">View Type</label>
@@ -66,11 +66,11 @@
     <div class="card">
         <div class="card-body">
             @if($view == 'daily')
-                @include('admin.timetable._daily', ['timetableData' => $timetableData])
+                @include('teacher.timetable._daily', ['timetableData' => $timetableData])
             @elseif($view == 'weekly')
-                @include('admin.timetable._weekly', ['timetableData' => $timetableData])
+                @include('teacher.timetable._weekly', ['timetableData' => $timetableData])
             @else
-                @include('admin.timetable._monthly', ['timetableData' => $timetableData])
+                @include('teacher.timetable._monthly', ['timetableData' => $timetableData])
             @endif
         </div>
     </div>
@@ -87,7 +87,15 @@ function navigateDate(direction) {
     if (direction === 'today') {
         dateInput.value = new Date().toISOString().split('T')[0];
     } else {
-        let daysToAdd = viewType === 'daily' ? (direction === 'next' ? 1 : -1) : (direction === 'next' ? 7 : -7);
+        let daysToAdd = 0;
+        if (viewType === 'daily') {
+            daysToAdd = direction === 'next' ? 1 : -1;
+        } else if (viewType === 'weekly') {
+            daysToAdd = direction === 'next' ? 7 : -7;
+        } else {
+            // Monthly
+            daysToAdd = direction === 'next' ? 30 : -30;
+        }
         currentDate.setDate(currentDate.getDate() + daysToAdd);
         dateInput.value = currentDate.toISOString().split('T')[0];
     }

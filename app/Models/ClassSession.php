@@ -31,9 +31,22 @@ class ClassSession extends Model
         return $this->belongsTo(ClassModel::class, 'class_id');
     }
 
+    /**
+     * Get all attendance records for this session.
+     * Alias for attendance() - using plural form for hasMany convention
+     */
+    public function attendances()
+    {
+        return $this->hasMany(StudentAttendance::class, 'class_session_id');
+    }
+
+    /**
+     * Get all attendance records for this session.
+     * Original method name - kept for backward compatibility
+     */
     public function attendance()
     {
-        return $this->hasMany(StudentAttendance::class);
+        return $this->hasMany(StudentAttendance::class, 'class_session_id');
     }
 
     // Scopes

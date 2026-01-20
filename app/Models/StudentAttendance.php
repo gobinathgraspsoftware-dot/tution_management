@@ -16,6 +16,7 @@ class StudentAttendance extends Model
         'student_id',
         'status',
         'check_in_time',
+        'marked_at',      // Added for tracking when attendance was marked
         'remarks',
         'marked_by',
         'parent_notified',
@@ -24,6 +25,7 @@ class StudentAttendance extends Model
 
     protected $casts = [
         'check_in_time' => 'datetime:H:i:s',
+        'marked_at' => 'datetime',     // Added cast for marked_at
         'parent_notified' => 'boolean',
         'notified_at' => 'datetime',
     ];
