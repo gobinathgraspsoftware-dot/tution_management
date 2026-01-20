@@ -39,7 +39,6 @@ class Announcement extends Model
 
     /**
      * Get the creator of the announcement.
-     * NOTE: Using 'creator' to match controller usage
      */
     public function creator()
     {
@@ -56,8 +55,18 @@ class Announcement extends Model
 
     /**
      * Get the target class for the announcement.
+     * Primary relationship - uses target_class_id column
      */
     public function targetClass()
+    {
+        return $this->belongsTo(ClassModel::class, 'target_class_id');
+    }
+
+    /**
+     * Alias for targetClass (backward compatibility for blade views using ->class)
+     * This allows both $announcement->class and $announcement->targetClass to work
+     */
+    public function class()
     {
         return $this->belongsTo(ClassModel::class, 'target_class_id');
     }
@@ -176,6 +185,25 @@ class Announcement extends Model
             if ($user->hasRole(['admin', 'super-admin'])) {
                 $q->orWhereNotNull('id'); // See all
             }
+        });
+    }
+
+    /**
+     * Scope for teacher's announcements - using correct column name
+     */
+    public function scopeForTeacher($query, $teacher)
+    {
+        $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
+
+        return $query->where(function ($q) use ($classIds) {
+            $q->whereIn('target_class_id', $classIds)
+              ->orWhere(function ($sq) {
+                  $sq->whereNull('target_class_id')
+                     ->where(function ($tq) {
+                         $tq->where('target_audience', 'all')
+                            ->orWhere('target_audience', 'teachers');
+                     });
+              });
         });
     }
 
@@ -329,5 +357,13 @@ class Announcement extends Model
             'specific_class' => $this->targetClass ? $this->targetClass->name : 'Specific Class',
             default => ucfirst($this->target_audience),
         };
+    }
+
+    /**
+     * Get class name (helper for views)
+     */
+    public function getClassNameAttribute()
+    {
+        return $this->targetClass ? $this->targetClass->name : null;
     }
 }

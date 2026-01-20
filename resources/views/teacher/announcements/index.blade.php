@@ -19,15 +19,10 @@
             @if($unreadCount > 0)
                 <form action="{{ route('teacher.announcements.mark-all-read') }}" method="POST" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn btn-outline-secondary me-2">
+                    <button type="submit" class="btn btn-outline-secondary">
                         <i class="fas fa-check-double me-1"></i> Mark All Read
                     </button>
                 </form>
-            @endif
-            @if($classes->count() > 0)
-                <a href="{{ route('teacher.announcements.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> Create Announcement
-                </a>
             @endif
         </div>
     </div>
@@ -123,9 +118,9 @@
                                                 <span class="badge bg-secondary me-2">Low</span>
                                                 @break
                                         @endswitch
-                                        @if($announcement->class_id)
+                                        @if($announcement->target_class_id)
                                             <span class="badge bg-primary me-2">
-                                                <i class="fas fa-chalkboard me-1"></i>{{ $announcement->class->name ?? 'Class' }}
+                                                <i class="fas fa-chalkboard me-1"></i>{{ $announcement->targetClass->name ?? 'Class' }}
                                             </span>
                                         @else
                                             <span class="badge bg-success me-2">
@@ -141,8 +136,8 @@
                                         {{ Str::limit(strip_tags($announcement->content), 150) }}
                                     </p>
                                     <small class="text-muted">
-                                        <i class="fas fa-user me-1"></i>{{ $announcement->createdBy->name ?? 'System' }} |
-                                        <i class="fas fa-clock me-1"></i>{{ $announcement->published_at->diffForHumans() }}
+                                        <i class="fas fa-user me-1"></i>{{ $announcement->creator->name ?? 'System' }} |
+                                        <i class="fas fa-clock me-1"></i>{{ $announcement->created_at->diffForHumans() }}
                                         @if($announcement->attachments)
                                             | <i class="fas fa-paperclip me-1"></i>Has Attachments
                                         @endif

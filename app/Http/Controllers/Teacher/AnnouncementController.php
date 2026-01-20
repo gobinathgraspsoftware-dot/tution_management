@@ -9,12 +9,21 @@ use App\Models\ClassModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 
 class AnnouncementController extends Controller
 {
     /**
+     * Constructor with permission middleware.
+     * Teacher can only VIEW announcements - no create/edit/delete
+     */
+    public function __construct()
+    {
+        // $this->middleware('permission:view-announcements');
+    }
+
+    /**
      * Display a listing of announcements for teacher.
+     * Shows announcements for teacher's classes + general announcements
      */
     public function index(Request $request)
     {
@@ -29,10 +38,10 @@ class AnnouncementController extends Controller
 
         $query = Announcement::where(function ($q) use ($classIds) {
                 // Announcements for teacher's classes
-                $q->whereIn('class_id', $classIds)
+                $q->whereIn('target_class_id', $classIds)
                   // OR general announcements for teachers
                   ->orWhere(function ($sq) {
-                      $sq->whereNull('class_id')
+                      $sq->whereNull('target_class_id')
                          ->where(function ($tq) {
                              $tq->where('target_audience', 'all')
                                 ->orWhere('target_audience', 'teachers');
@@ -40,14 +49,14 @@ class AnnouncementController extends Controller
                   });
             })
             ->where('status', 'published')
-            ->with(['class', 'createdBy']);
+            ->with(['targetClass', 'creator']);
 
         // Filter by type
         if ($request->filled('type')) {
             if ($request->type === 'class') {
-                $query->whereIn('class_id', $classIds);
+                $query->whereIn('target_class_id', $classIds);
             } elseif ($request->type === 'general') {
-                $query->whereNull('class_id');
+                $query->whereNull('target_class_id');
             }
         }
 
@@ -70,7 +79,7 @@ class AnnouncementController extends Controller
         }
 
         $announcements = $query->orderBy('is_pinned', 'desc')
-            ->orderBy('published_at', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(15)
             ->withQueryString();
 
@@ -82,9 +91,9 @@ class AnnouncementController extends Controller
 
         // Get unread count
         $unreadCount = Announcement::where(function ($q) use ($classIds) {
-                $q->whereIn('class_id', $classIds)
+                $q->whereIn('target_class_id', $classIds)
                   ->orWhere(function ($sq) {
-                      $sq->whereNull('class_id')
+                      $sq->whereNull('target_class_id')
                          ->where(function ($tq) {
                              $tq->where('target_audience', 'all')
                                 ->orWhere('target_audience', 'teachers');
@@ -97,12 +106,7 @@ class AnnouncementController extends Controller
             })
             ->count();
 
-        // Get teacher's classes for creating announcements
-        $classes = ClassModel::where('teacher_id', $teacher->id)
-            ->where('status', 'active')
-            ->get();
-
-        return view('teacher.announcements.index', compact('announcements', 'readIds', 'unreadCount', 'classes'));
+        return view('teacher.announcements.index', compact('announcements', 'readIds', 'unreadCount'));
     }
 
     /**
@@ -112,14 +116,18 @@ class AnnouncementController extends Controller
     {
         $teacher = Auth::user()->teacher;
 
+        if (!$teacher) {
+            abort(403, 'Teacher profile not found.');
+        }
+
         // Get teacher's class IDs
         $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
 
         // Verify teacher can view this announcement
         $canView = false;
-        if ($announcement->class_id && in_array($announcement->class_id, $classIds)) {
+        if ($announcement->target_class_id && in_array($announcement->target_class_id, $classIds)) {
             $canView = true;
-        } elseif (!$announcement->class_id && in_array($announcement->target_audience, ['all', 'teachers'])) {
+        } elseif (!$announcement->target_class_id && in_array($announcement->target_audience, ['all', 'teachers'])) {
             $canView = true;
         }
 
@@ -127,7 +135,7 @@ class AnnouncementController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        $announcement->load(['class', 'createdBy']);
+        $announcement->load(['targetClass', 'creator']);
 
         // Mark as read
         AnnouncementRead::firstOrCreate([
@@ -138,81 +146,6 @@ class AnnouncementController extends Controller
         ]);
 
         return view('teacher.announcements.show', compact('announcement'));
-    }
-
-    /**
-     * Show form for creating announcement for teacher's class.
-     */
-    public function create()
-    {
-        $teacher = Auth::user()->teacher;
-
-        $classes = ClassModel::where('teacher_id', $teacher->id)
-            ->where('status', 'active')
-            ->with('subject')
-            ->get();
-
-        if ($classes->isEmpty()) {
-            return redirect()->route('teacher.announcements.index')
-                ->with('error', 'You need active classes to create announcements.');
-        }
-
-        return view('teacher.announcements.create', compact('classes'));
-    }
-
-    /**
-     * Store a new announcement for teacher's class.
-     */
-    public function store(Request $request)
-    {
-        $teacher = Auth::user()->teacher;
-
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string|max:5000',
-            'class_id' => 'required|exists:classes,id',
-            'priority' => 'required|in:low,normal,high,urgent',
-            'publish_now' => 'nullable|boolean',
-            'publish_date' => 'required_without:publish_now|nullable|date|after_or_equal:today',
-            'expires_at' => 'nullable|date|after:publish_date',
-            'attachments.*' => 'nullable|file|max:10240', // 10MB max
-        ]);
-
-        // Verify teacher owns this class
-        $class = ClassModel::findOrFail($request->class_id);
-        if ($class->teacher_id !== $teacher->id) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        // Handle attachments
-        $attachments = [];
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $path = $file->store('announcements', 'public');
-                $attachments[] = [
-                    'name' => $file->getClientOriginalName(),
-                    'path' => $path,
-                    'size' => $file->getSize(),
-                    'type' => $file->getMimeType(),
-                ];
-            }
-        }
-
-        $announcement = Announcement::create([
-            'title' => $request->title,
-            'content' => $request->content,
-            'class_id' => $request->class_id,
-            'priority' => $request->priority,
-            'target_audience' => 'class', // Teacher can only announce to their class
-            'attachments' => !empty($attachments) ? json_encode($attachments) : null,
-            'status' => $request->publish_now ? 'published' : 'scheduled',
-            'published_at' => $request->publish_now ? now() : $request->publish_date,
-            'expires_at' => $request->expires_at,
-            'created_by' => Auth::id(),
-        ]);
-
-        return redirect()->route('teacher.announcements.index')
-            ->with('success', 'Announcement created successfully.');
     }
 
     /**
@@ -237,13 +170,18 @@ class AnnouncementController extends Controller
     {
         $teacher = Auth::user()->teacher;
 
+        if (!$teacher) {
+            return redirect()->route('teacher.announcements.index')
+                ->with('error', 'Teacher profile not found.');
+        }
+
         // Get teacher's class IDs
         $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
 
         $unreadAnnouncements = Announcement::where(function ($q) use ($classIds) {
-                $q->whereIn('class_id', $classIds)
+                $q->whereIn('target_class_id', $classIds)
                   ->orWhere(function ($sq) {
-                      $sq->whereNull('class_id')
+                      $sq->whereNull('target_class_id')
                          ->where(function ($tq) {
                              $tq->where('target_audience', 'all')
                                 ->orWhere('target_audience', 'teachers');
@@ -267,5 +205,47 @@ class AnnouncementController extends Controller
 
         return redirect()->route('teacher.announcements.index')
             ->with('success', 'All announcements marked as read.');
+    }
+
+    /**
+     * Download attachment.
+     */
+    public function downloadAttachment(Announcement $announcement, $index)
+    {
+        $teacher = Auth::user()->teacher;
+
+        if (!$teacher) {
+            abort(403, 'Teacher profile not found.');
+        }
+
+        // Verify teacher can access this announcement
+        $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
+
+        $canAccess = false;
+        if ($announcement->target_class_id && in_array($announcement->target_class_id, $classIds)) {
+            $canAccess = true;
+        } elseif (!$announcement->target_class_id && in_array($announcement->target_audience, ['all', 'teachers'])) {
+            $canAccess = true;
+        }
+
+        if (!$canAccess) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $attachments = $announcement->attachments;
+
+        if (!$attachments || !isset($attachments[$index])) {
+            abort(404, 'Attachment not found.');
+        }
+
+        $attachment = $attachments[$index];
+        $path = $attachment['path'];
+        $name = $attachment['name'] ?? 'attachment';
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'File not found.');
+        }
+
+        return Storage::disk('public')->download($path, $name);
     }
 }

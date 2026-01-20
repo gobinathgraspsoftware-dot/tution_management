@@ -1242,11 +1242,10 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         // Teacher Announcements Routes
         Route::prefix('announcements')->name('announcements.')->group(function () {
             Route::get('/', [TeacherAnnouncementController::class, 'index'])->name('index');
-            Route::get('/create', [TeacherAnnouncementController::class, 'create'])->name('create');
-            Route::post('/', [TeacherAnnouncementController::class, 'store'])->name('store');
             Route::get('/{announcement}', [TeacherAnnouncementController::class, 'show'])->name('show');
-            Route::post('/{announcement}/mark-read', [TeacherAnnouncementController::class, 'markAsRead'])->name('mark-read');
             Route::post('/mark-all-read', [TeacherAnnouncementController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::post('/{announcement}/mark-read', [TeacherAnnouncementController::class, 'markAsRead'])->name('mark-read');
+            Route::get('/{announcement}/attachment/{index}', [TeacherAnnouncementController::class, 'downloadAttachment'])->name('download-attachment');
         });
 
     });
