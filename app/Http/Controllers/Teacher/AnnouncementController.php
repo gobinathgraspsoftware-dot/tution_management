@@ -23,7 +23,7 @@ class AnnouncementController extends Controller
 
     /**
      * Display a listing of announcements for teacher.
-     * Shows announcements for teacher's classes + general announcements
+     * Teachers can view ALL published announcements from admin
      */
     public function index(Request $request)
     {
@@ -33,31 +33,28 @@ class AnnouncementController extends Controller
             abort(403, 'Teacher profile not found.');
         }
 
-        // Get teacher's class IDs
-        $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
-
-        $query = Announcement::where(function ($q) use ($classIds) {
-                // Announcements for teacher's classes
-                $q->whereIn('target_class_id', $classIds)
-                  // OR general announcements for teachers
-                  ->orWhere(function ($sq) {
-                      $sq->whereNull('target_class_id')
-                         ->where(function ($tq) {
-                             $tq->where('target_audience', 'all')
-                                ->orWhere('target_audience', 'teachers');
-                         });
-                  });
+        // Build query - Teachers can see ALL published announcements
+        $query = Announcement::where('status', 'published')
+            // Check publish_at date
+            ->where(function ($q) {
+                $q->whereNull('publish_at')
+                  ->orWhere('publish_at', '<=', now());
             })
-            ->where('status', 'published')
+            // Check expires_at date
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', now());
+            })
             ->with(['targetClass', 'creator']);
 
         // Filter by type
         if ($request->filled('type')) {
-            if ($request->type === 'class') {
-                $query->whereIn('target_class_id', $classIds);
-            } elseif ($request->type === 'general') {
-                $query->whereNull('target_class_id');
-            }
+            $query->where('type', $request->type);
+        }
+
+        // Filter by target audience
+        if ($request->filled('target')) {
+            $query->where('target_audience', $request->target);
         }
 
         // Filter by priority
@@ -89,18 +86,16 @@ class AnnouncementController extends Controller
             ->pluck('announcement_id')
             ->toArray();
 
-        // Get unread count
-        $unreadCount = Announcement::where(function ($q) use ($classIds) {
-                $q->whereIn('target_class_id', $classIds)
-                  ->orWhere(function ($sq) {
-                      $sq->whereNull('target_class_id')
-                         ->where(function ($tq) {
-                             $tq->where('target_audience', 'all')
-                                ->orWhere('target_audience', 'teachers');
-                         });
-                  });
+        // Get unread count - ALL published announcements
+        $unreadCount = Announcement::where('status', 'published')
+            ->where(function ($q) {
+                $q->whereNull('publish_at')
+                  ->orWhere('publish_at', '<=', now());
             })
-            ->where('status', 'published')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', now());
+            })
             ->whereDoesntHave('reads', function ($q) {
                 $q->where('user_id', Auth::id());
             })
@@ -111,6 +106,7 @@ class AnnouncementController extends Controller
 
     /**
      * Display a specific announcement.
+     * Teachers can view any published announcement
      */
     public function show(Announcement $announcement)
     {
@@ -120,19 +116,9 @@ class AnnouncementController extends Controller
             abort(403, 'Teacher profile not found.');
         }
 
-        // Get teacher's class IDs
-        $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
-
-        // Verify teacher can view this announcement
-        $canView = false;
-        if ($announcement->target_class_id && in_array($announcement->target_class_id, $classIds)) {
-            $canView = true;
-        } elseif (!$announcement->target_class_id && in_array($announcement->target_audience, ['all', 'teachers'])) {
-            $canView = true;
-        }
-
-        if (!$canView) {
-            abort(403, 'Unauthorized access.');
+        // Teachers can view any published announcement
+        if ($announcement->status !== 'published') {
+            abort(403, 'This announcement is not published.');
         }
 
         $announcement->load(['targetClass', 'creator']);
@@ -175,20 +161,16 @@ class AnnouncementController extends Controller
                 ->with('error', 'Teacher profile not found.');
         }
 
-        // Get teacher's class IDs
-        $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
-
-        $unreadAnnouncements = Announcement::where(function ($q) use ($classIds) {
-                $q->whereIn('target_class_id', $classIds)
-                  ->orWhere(function ($sq) {
-                      $sq->whereNull('target_class_id')
-                         ->where(function ($tq) {
-                             $tq->where('target_audience', 'all')
-                                ->orWhere('target_audience', 'teachers');
-                         });
-                  });
+        // Mark ALL published announcements as read
+        $unreadAnnouncements = Announcement::where('status', 'published')
+            ->where(function ($q) {
+                $q->whereNull('publish_at')
+                  ->orWhere('publish_at', '<=', now());
             })
-            ->where('status', 'published')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', now());
+            })
             ->whereDoesntHave('reads', function ($q) {
                 $q->where('user_id', Auth::id());
             })
@@ -218,18 +200,9 @@ class AnnouncementController extends Controller
             abort(403, 'Teacher profile not found.');
         }
 
-        // Verify teacher can access this announcement
-        $classIds = ClassModel::where('teacher_id', $teacher->id)->pluck('id')->toArray();
-
-        $canAccess = false;
-        if ($announcement->target_class_id && in_array($announcement->target_class_id, $classIds)) {
-            $canAccess = true;
-        } elseif (!$announcement->target_class_id && in_array($announcement->target_audience, ['all', 'teachers'])) {
-            $canAccess = true;
-        }
-
-        if (!$canAccess) {
-            abort(403, 'Unauthorized access.');
+        // Teachers can download attachments from any published announcement
+        if ($announcement->status !== 'published') {
+            abort(403, 'This announcement is not published.');
         }
 
         $attachments = $announcement->attachments;
