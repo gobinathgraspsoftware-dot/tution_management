@@ -20,12 +20,12 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
             <li>
-                <a class="dropdown-item" href="{{ route('teacher.schedule.export', ['format' => 'pdf', 'view' => $view, 'date' => $date->format('Y-m-d')]) }}">
+                <a class="dropdown-item" href="{{ route('teacher.schedule.export', ['format' => 'pdf', 'view' => $view, 'date' => $date->copy()->format('Y-m-d')]) }}">
                     <i class="fas fa-file-pdf me-2 text-danger"></i> Export PDF
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="{{ route('teacher.schedule.export', ['format' => 'csv', 'view' => $view, 'date' => $date->format('Y-m-d')]) }}">
+                <a class="dropdown-item" href="{{ route('teacher.schedule.export', ['format' => 'csv', 'view' => $view, 'date' => $date->copy()->format('Y-m-d')]) }}">
                     <i class="fas fa-file-csv me-2 text-success"></i> Export CSV
                 </a>
             </li>
@@ -46,7 +46,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h3 class="mb-0">{{ $stats['total_weekly_classes'] }}</h3>
+                        <h3 class="mb-0">{{ $stats['total_weekly_classes'] ?? 0 }}</h3>
                         <small>Weekly Classes</small>
                     </div>
                     <i class="fas fa-chalkboard fa-2x opacity-50"></i>
@@ -59,7 +59,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h3 class="mb-0">{{ $stats['total_weekly_hours'] }}</h3>
+                        <h3 class="mb-0">{{ $stats['total_weekly_hours'] ?? 0 }}</h3>
                         <small>Hours/Week</small>
                     </div>
                     <i class="fas fa-clock fa-2x opacity-50"></i>
@@ -72,7 +72,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h3 class="mb-0">{{ $stats['busiest_day'] }}</h3>
+                        <h3 class="mb-0">{{ $stats['busiest_day'] ?? 'N/A' }}</h3>
                         <small>Busiest Day</small>
                     </div>
                     <i class="fas fa-calendar-day fa-2x opacity-50"></i>
@@ -101,15 +101,15 @@
         <div class="row align-items-center">
             <div class="col-md-4">
                 <div class="btn-group" role="group">
-                    <a href="{{ route('teacher.schedule.index', ['view' => 'daily', 'date' => $date->format('Y-m-d')]) }}"
+                    <a href="{{ route('teacher.schedule.index', ['view' => 'daily', 'date' => $date->copy()->format('Y-m-d')]) }}"
                        class="btn {{ $view === 'daily' ? 'btn-primary' : 'btn-outline-primary' }}">
                         <i class="fas fa-calendar-day me-1"></i> Daily
                     </a>
-                    <a href="{{ route('teacher.schedule.index', ['view' => 'weekly', 'date' => $date->format('Y-m-d')]) }}"
+                    <a href="{{ route('teacher.schedule.index', ['view' => 'weekly', 'date' => $date->copy()->format('Y-m-d')]) }}"
                        class="btn {{ $view === 'weekly' ? 'btn-primary' : 'btn-outline-primary' }}">
                         <i class="fas fa-calendar-week me-1"></i> Weekly
                     </a>
-                    <a href="{{ route('teacher.schedule.index', ['view' => 'monthly', 'date' => $date->format('Y-m-d')]) }}"
+                    <a href="{{ route('teacher.schedule.index', ['view' => 'monthly', 'date' => $date->copy()->format('Y-m-d')]) }}"
                        class="btn {{ $view === 'monthly' ? 'btn-primary' : 'btn-outline-primary' }}">
                         <i class="fas fa-calendar me-1"></i> Monthly
                     </a>
@@ -118,8 +118,17 @@
             <div class="col-md-4 text-center">
                 <div class="d-flex justify-content-center align-items-center">
                     @php
-                        $prevDate = $view === 'monthly' ? $date->copy()->subMonth() : ($view === 'weekly' ? $date->copy()->subWeek() : $date->copy()->subDay());
-                        $nextDate = $view === 'monthly' ? $date->copy()->addMonth() : ($view === 'weekly' ? $date->copy()->addWeek() : $date->copy()->addDay());
+                        // IMPORTANT: Use copy() to avoid mutating the original $date
+                        if ($view === 'monthly') {
+                            $prevDate = $date->copy()->subMonth();
+                            $nextDate = $date->copy()->addMonth();
+                        } elseif ($view === 'weekly') {
+                            $prevDate = $date->copy()->subWeek();
+                            $nextDate = $date->copy()->addWeek();
+                        } else {
+                            $prevDate = $date->copy()->subDay();
+                            $nextDate = $date->copy()->addDay();
+                        }
                     @endphp
                     <a href="{{ route('teacher.schedule.index', ['view' => $view, 'date' => $prevDate->format('Y-m-d')]) }}"
                        class="btn btn-sm btn-outline-secondary me-2">
@@ -127,11 +136,11 @@
                     </a>
                     <h5 class="mb-0">
                         @if($view === 'monthly')
-                            {{ $date->format('F Y') }}
+                            {{ $date->copy()->format('F Y') }}
                         @elseif($view === 'weekly')
-                            {{ $date->startOfWeek()->format('d M') }} - {{ $date->endOfWeek()->format('d M Y') }}
+                            {{ $date->copy()->startOfWeek()->format('d M') }} - {{ $date->copy()->endOfWeek()->format('d M Y') }}
                         @else
-                            {{ $date->format('l, d F Y') }}
+                            {{ $date->copy()->format('l, d F Y') }}
                         @endif
                     </h5>
                     <a href="{{ route('teacher.schedule.index', ['view' => $view, 'date' => $nextDate->format('Y-m-d')]) }}"
@@ -162,7 +171,7 @@
                 <div class="card h-100 {{ $session->start_time <= now()->format('H:i:s') && $session->end_time >= now()->format('H:i:s') ? 'border-primary' : '' }}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0">{{ $session->class->name }}</h6>
+                            <h6 class="card-title mb-0">{{ $session->class->name ?? 'N/A' }}</h6>
                             @if($session->start_time <= now()->format('H:i:s') && $session->end_time >= now()->format('H:i:s'))
                                 <span class="badge bg-primary">In Progress</span>
                             @elseif($session->start_time > now()->format('H:i:s'))
@@ -171,17 +180,19 @@
                                 <span class="badge bg-secondary">Completed</span>
                             @endif
                         </div>
-                        <p class="text-muted mb-1">
+                        <p class="text-muted small mb-2">
                             <i class="fas fa-book me-1"></i> {{ $session->class->subject->name ?? 'N/A' }}
                         </p>
-                        <p class="text-muted mb-1">
-                            <i class="fas fa-clock me-1"></i>
-                            {{ \Carbon\Carbon::parse($session->start_time)->format('h:i A') }} -
+                        <p class="text-muted small mb-0">
+                            <i class="fas fa-clock me-1"></i> 
+                            {{ \Carbon\Carbon::parse($session->start_time)->format('h:i A') }} - 
                             {{ \Carbon\Carbon::parse($session->end_time)->format('h:i A') }}
                         </p>
-                        <p class="text-muted mb-0">
+                        @if($session->class->enrollments ?? false)
+                        <p class="text-muted small mb-0">
                             <i class="fas fa-users me-1"></i> {{ $session->class->enrollments->count() }} Students
                         </p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -191,87 +202,17 @@
 </div>
 @endif
 
-<!-- Schedule Display Based on View -->
-@if($view === 'weekly')
-    <!-- Weekly View -->
-    <div class="card">
-        <div class="card-header">
-            <i class="fas fa-calendar-week me-2"></i> Weekly Schedule
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-bordered mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 100px;">Time</th>
-                            @foreach($scheduleData['schedule'] as $day => $data)
-                            <th class="text-center {{ $data['is_today'] ? 'bg-primary text-white' : '' }}">
-                                {{ $data['day_name'] }}<br>
-                                <small>{{ \Carbon\Carbon::parse($data['date'])->format('d M') }}</small>
-                            </th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                            $timeSlots = [];
-                            foreach($scheduleData['schedule'] as $dayData) {
-                                foreach($dayData['schedules'] as $schedule) {
-                                    $timeSlots[$schedule->start_time] = true;
-                                }
-                            }
-                            ksort($timeSlots);
-                        @endphp
-
-                        @if(count($timeSlots) > 0)
-                            @foreach(array_keys($timeSlots) as $timeSlot)
-                            <tr>
-                                <td class="bg-light">
-                                    <strong>{{ \Carbon\Carbon::parse($timeSlot)->format('h:i A') }}</strong>
-                                </td>
-                                @foreach($scheduleData['schedule'] as $day => $data)
-                                <td class="p-1 {{ $data['is_today'] ? 'bg-light' : '' }}">
-                                    @foreach($data['schedules'] as $schedule)
-                                        @if($schedule->start_time == $timeSlot)
-                                        <div class="schedule-item p-2 rounded mb-1"
-                                             style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white;">
-                                            <strong>{{ $schedule->class->name }}</strong><br>
-                                            <small>{{ $schedule->class->subject->name ?? 'N/A' }}</small><br>
-                                            <small>
-                                                {{ \Carbon\Carbon::parse($schedule->start_time)->format('h:i A') }} -
-                                                {{ \Carbon\Carbon::parse($schedule->end_time)->format('h:i A') }}
-                                            </small>
-                                        </div>
-                                        @endif
-                                    @endforeach
-                                </td>
-                                @endforeach
-                            </tr>
-                            @endforeach
-                        @else
-                            <tr>
-                                <td colspan="8" class="text-center py-4 text-muted">
-                                    <i class="fas fa-calendar-times fa-2x mb-2"></i><br>
-                                    No classes scheduled for this week
-                                </td>
-                            </tr>
-                        @endif
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-@elseif($view === 'daily')
+<!-- Main Schedule View -->
+@if($view === 'daily')
     <!-- Daily View -->
     <div class="card">
         <div class="card-header">
-            <i class="fas fa-calendar-day me-2"></i> Daily Schedule - {{ $date->format('l, d F Y') }}
+            <i class="fas fa-calendar-day me-2"></i> Daily Schedule - {{ $date->copy()->format('l, d F Y') }}
         </div>
         <div class="card-body">
             @if(isset($scheduleData['schedules']) && $scheduleData['schedules']->count() > 0)
                 <div class="timeline">
-                    @foreach($scheduleData['schedules']->sortBy('start_time') as $schedule)
+                    @foreach($scheduleData['schedules'] as $schedule)
                     <div class="timeline-item mb-4">
                         <div class="row">
                             <div class="col-md-2 text-end">
@@ -287,21 +228,30 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
-                                                <h5 class="card-title mb-1">{{ $schedule->class->name }}</h5>
+                                                <h5 class="card-title mb-1">{{ $schedule->class->name ?? 'N/A' }}</h5>
                                                 <p class="text-muted mb-2">
                                                     <i class="fas fa-book me-1"></i> {{ $schedule->class->subject->name ?? 'N/A' }}
                                                 </p>
                                             </div>
+                                            @if($schedule->class->enrollments ?? false)
                                             <span class="badge bg-success">
                                                 {{ $schedule->class->enrollments->count() }} Students
                                             </span>
+                                            @endif
                                         </div>
+                                        @if($schedule->location)
+                                        <p class="text-muted small mb-2">
+                                            <i class="fas fa-map-marker-alt me-1"></i> {{ $schedule->location }}
+                                        </p>
+                                        @endif
                                         <div class="d-flex gap-2">
+                                            @if(Route::has('teacher.classes.show'))
                                             <a href="{{ route('teacher.classes.show', $schedule->class) }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye me-1"></i> View Class
                                             </a>
-                                            @if(Route::has('teacher.attendance.take'))
-                                            <a href="{{ route('teacher.attendance.take', $schedule->class) }}" class="btn btn-sm btn-outline-success">
+                                            @endif
+                                            @if(Route::has('teacher.attendance.mark'))
+                                            <a href="{{ route('teacher.attendance.mark', ['session' => $schedule->id]) }}" class="btn btn-sm btn-outline-success">
                                                 <i class="fas fa-check-square me-1"></i> Take Attendance
                                             </a>
                                             @endif
@@ -323,11 +273,75 @@
         </div>
     </div>
 
+@elseif($view === 'weekly')
+    <!-- Weekly View -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-calendar-week me-2"></i> Weekly Schedule
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            @php
+                                $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                            @endphp
+                            @foreach($days as $day)
+                                @php
+                                    $dayData = $scheduleData['schedule'][$day] ?? null;
+                                    $isToday = $dayData && ($dayData['is_today'] ?? false);
+                                @endphp
+                                <th class="text-center {{ $isToday ? 'bg-primary text-white' : '' }}" style="width: 14.28%;">
+                                    {{ ucfirst($day) }}
+                                    @if($dayData)
+                                        <br><small>{{ \Carbon\Carbon::parse($dayData['date'])->format('d M') }}</small>
+                                    @endif
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            @foreach($days as $day)
+                                @php
+                                    $dayData = $scheduleData['schedule'][$day] ?? null;
+                                    $daySchedules = $dayData['schedules'] ?? collect();
+                                @endphp
+                                <td class="align-top p-2" style="min-height: 150px;">
+                                    @forelse($daySchedules as $schedule)
+                                        <div class="card mb-2 border-start border-3 border-primary">
+                                            <div class="card-body p-2">
+                                                <h6 class="card-title mb-1 small">{{ $schedule->class->name ?? 'N/A' }}</h6>
+                                                <p class="text-muted mb-1 small">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    {{ \Carbon\Carbon::parse($schedule->start_time)->format('h:i A') }}
+                                                </p>
+                                                <p class="text-muted mb-0 small">
+                                                    <i class="fas fa-book me-1"></i>
+                                                    {{ Str::limit($schedule->class->subject->name ?? 'N/A', 15) }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="text-center text-muted py-3">
+                                            <small>No classes</small>
+                                        </div>
+                                    @endforelse
+                                </td>
+                            @endforeach
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 @else
     <!-- Monthly View -->
     <div class="card">
         <div class="card-header">
-            <i class="fas fa-calendar me-2"></i> Monthly Schedule - {{ $scheduleData['month_name'] }}
+            <i class="fas fa-calendar me-2"></i> Monthly Schedule - {{ $scheduleData['month_name'] ?? $date->copy()->format('F Y') }}
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -345,11 +359,14 @@
                     </thead>
                     <tbody>
                         @php
-                            $firstDay = \Carbon\Carbon::createFromDate($scheduleData['year'], $scheduleData['month'], 1);
+                            $month = $scheduleData['month'] ?? $date->month;
+                            $year = $scheduleData['year'] ?? $date->year;
+                            $firstDay = \Carbon\Carbon::createFromDate($year, $month, 1);
                             $startPadding = $firstDay->dayOfWeek;
                             $daysInMonth = $firstDay->daysInMonth;
                             $day = 1;
                             $weeks = ceil(($startPadding + $daysInMonth) / 7);
+                            $calendar = $scheduleData['calendar'] ?? [];
                         @endphp
 
                         @for($week = 0; $week < $weeks; $week++)
@@ -362,18 +379,21 @@
 
                                 @if($currentDay > 0 && $currentDay <= $daysInMonth)
                                     @php
-                                        $dateKey = sprintf('%04d-%02d-%02d', $scheduleData['year'], $scheduleData['month'], $currentDay);
-                                        $dayData = $scheduleData['calendar'][$dateKey] ?? null;
+                                        $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $currentDay);
+                                        $dayData = $calendar[$dateKey] ?? null;
+                                        $isToday = $dayData && ($dayData['is_today'] ?? false);
+                                        $isWeekend = $dayData && ($dayData['is_weekend'] ?? false);
+                                        $hasClasses = $dayData && ($dayData['has_classes'] ?? false);
                                     @endphp
-                                    <td class="calendar-cell {{ $dayData && $dayData['is_today'] ? 'bg-primary-light' : '' }} {{ $dayData && $dayData['is_weekend'] ? 'bg-light' : '' }}">
-                                        <div class="calendar-day-number {{ $dayData && $dayData['is_today'] ? 'fw-bold text-primary' : '' }}">
+                                    <td class="calendar-cell {{ $isToday ? 'bg-primary-light' : '' }} {{ $isWeekend ? 'bg-light' : '' }}">
+                                        <div class="calendar-day-number {{ $isToday ? 'fw-bold text-primary' : '' }}">
                                             {{ $currentDay }}
                                         </div>
-                                        @if($dayData && $dayData['has_classes'])
+                                        @if($hasClasses && isset($dayData['schedules']))
                                             @foreach($dayData['schedules']->take(3) as $schedule)
                                             <div class="calendar-event small p-1 mb-1 rounded bg-success text-white"
-                                                 title="{{ $schedule->class->name }} - {{ \Carbon\Carbon::parse($schedule->start_time)->format('h:i A') }}">
-                                                {{ Str::limit($schedule->class->name, 12) }}
+                                                 title="{{ $schedule->class->name ?? 'Class' }} - {{ \Carbon\Carbon::parse($schedule->start_time)->format('h:i A') }}">
+                                                {{ Str::limit($schedule->class->name ?? 'Class', 12) }}
                                             </div>
                                             @endforeach
                                             @if($dayData['schedules']->count() > 3)
@@ -414,6 +434,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: pointer;
+}
+
+.calendar-event:hover {
+    opacity: 0.9;
 }
 
 .bg-primary-light {

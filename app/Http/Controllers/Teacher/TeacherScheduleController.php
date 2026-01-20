@@ -25,11 +25,23 @@ class TeacherScheduleController extends Controller
     public function index(Request $request)
     {
         $teacher = auth()->user()->teacher;
+        
+        // Check if teacher exists
+        if (!$teacher) {
+            return redirect()->route('teacher.dashboard')
+                ->with('error', 'Teacher profile not found.');
+        }
+
         $view = $request->get('view', 'weekly'); // daily, weekly, monthly
-        $date = $request->filled('date') ? Carbon::parse($request->date) : now();
+        
+        // IMPORTANT: Create a fresh Carbon instance to avoid mutation issues
+        $date = $request->filled('date') 
+            ? Carbon::parse($request->date) 
+            : Carbon::now();
 
         // Get schedule data based on view type
-        $scheduleData = $this->scheduleService->getTeacherSchedule($teacher->id, $view, $date);
+        // Pass a copy of the date to prevent mutation
+        $scheduleData = $this->scheduleService->getTeacherSchedule($teacher->id, $view, $date->copy());
 
         // Get upcoming sessions for today
         $todaySessions = $this->scheduleService->getTodaySessions($teacher->id);
@@ -53,11 +65,16 @@ class TeacherScheduleController extends Controller
     public function weeklySchedule(Request $request)
     {
         $teacher = auth()->user()->teacher;
-        $startDate = $request->filled('start_date')
-            ? Carbon::parse($request->start_date)
-            : now()->startOfWeek();
+        
+        if (!$teacher) {
+            return response()->json(['success' => false, 'message' => 'Teacher not found'], 404);
+        }
 
-        $scheduleData = $this->scheduleService->getWeeklySchedule($teacher->id, $startDate);
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->start_date)->startOfWeek()
+            : Carbon::now()->startOfWeek();
+
+        $scheduleData = $this->scheduleService->getWeeklySchedule($teacher->id, $startDate->copy());
 
         return response()->json([
             'success' => true,
@@ -73,10 +90,15 @@ class TeacherScheduleController extends Controller
     public function monthlySchedule(Request $request)
     {
         $teacher = auth()->user()->teacher;
+        
+        if (!$teacher) {
+            return response()->json(['success' => false, 'message' => 'Teacher not found'], 404);
+        }
+
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
 
-        $scheduleData = $this->scheduleService->getMonthlySchedule($teacher->id, $month, $year);
+        $scheduleData = $this->scheduleService->getMonthlySchedule($teacher->id, (int)$month, (int)$year);
 
         return response()->json([
             'success' => true,
@@ -92,9 +114,17 @@ class TeacherScheduleController extends Controller
     public function dailySchedule(Request $request)
     {
         $teacher = auth()->user()->teacher;
-        $date = $request->filled('date') ? Carbon::parse($request->date) : now();
+        
+        if (!$teacher) {
+            return redirect()->route('teacher.dashboard')
+                ->with('error', 'Teacher profile not found.');
+        }
 
-        $sessions = $this->scheduleService->getDailySchedule($teacher->id, $date);
+        $date = $request->filled('date') 
+            ? Carbon::parse($request->date) 
+            : Carbon::now();
+
+        $sessions = $this->scheduleService->getDailySchedule($teacher->id, $date->copy());
 
         return view('teacher.schedule.daily', compact('teacher', 'sessions', 'date'));
     }
@@ -105,6 +135,11 @@ class TeacherScheduleController extends Controller
     public function sessionDetails(ClassSession $session)
     {
         $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return redirect()->route('teacher.dashboard')
+                ->with('error', 'Teacher profile not found.');
+        }
 
         // Ensure teacher owns this class
         if ($session->class->teacher_id !== $teacher->id) {
@@ -122,17 +157,26 @@ class TeacherScheduleController extends Controller
     public function export(Request $request)
     {
         $teacher = auth()->user()->teacher;
-        $format = $request->get('format', 'pdf');
-        $view = $request->get('view', 'weekly');
-        $date = $request->filled('date') ? Carbon::parse($request->date) : now();
-
-        $scheduleData = $this->scheduleService->getTeacherSchedule($teacher->id, $view, $date);
-
-        if ($format === 'csv') {
-            return $this->scheduleService->exportToCsv($scheduleData, $teacher, $view, $date);
+        
+        if (!$teacher) {
+            return redirect()->route('teacher.dashboard')
+                ->with('error', 'Teacher profile not found.');
         }
 
-        return $this->scheduleService->exportToPdf($scheduleData, $teacher, $view, $date);
+        $format = $request->get('format', 'pdf');
+        $view = $request->get('view', 'weekly');
+        $date = $request->filled('date') 
+            ? Carbon::parse($request->date) 
+            : Carbon::now();
+
+        // Get schedule data - pass a copy to avoid mutation
+        $scheduleData = $this->scheduleService->getTeacherSchedule($teacher->id, $view, $date->copy());
+
+        if ($format === 'csv') {
+            return $this->scheduleService->exportToCsv($scheduleData, $teacher, $view, $date->copy());
+        }
+
+        return $this->scheduleService->exportToPdf($scheduleData, $teacher, $view, $date->copy());
     }
 
     /**
@@ -141,14 +185,24 @@ class TeacherScheduleController extends Controller
     public function syncCalendar(Request $request)
     {
         $teacher = auth()->user()->teacher;
+        
+        if (!$teacher) {
+            return redirect()->route('teacher.dashboard')
+                ->with('error', 'Teacher profile not found.');
+        }
+
         $startDate = $request->filled('start_date')
             ? Carbon::parse($request->start_date)
-            : now()->startOfMonth();
+            : Carbon::now()->startOfMonth();
         $endDate = $request->filled('end_date')
             ? Carbon::parse($request->end_date)
-            : now()->endOfMonth();
+            : Carbon::now()->endOfMonth();
 
-        $icalContent = $this->scheduleService->generateICalFeed($teacher->id, $startDate, $endDate);
+        $icalContent = $this->scheduleService->generateICalFeed(
+            $teacher->id, 
+            $startDate->copy(), 
+            $endDate->copy()
+        );
 
         return response($icalContent)
             ->header('Content-Type', 'text/calendar')
