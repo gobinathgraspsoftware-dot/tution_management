@@ -114,17 +114,15 @@ class ExamController extends Controller
         $teacher = Auth::user()->teacher;
 
         $request->validate([
-            'title' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'class_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
             'exam_date' => 'required|date|after_or_equal:today',
             'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
-            'total_marks' => 'required|integer|min:1|max:1000',
-            'passing_marks' => 'required|integer|min:0|lte:total_marks',
-            'exam_type' => 'required|in:quiz,test,midterm,final,assignment,practical',
+            'duration_minutes' => 'required|integer|min:1|max:480',
+            'max_marks' => 'required|numeric|min:1|max:1000',
+            'passing_marks' => 'required|numeric|min:0|lte:max_marks',
             'description' => 'nullable|string|max:1000',
-            'instructions' => 'nullable|string|max:2000',
         ]);
 
         // Verify teacher owns the class
@@ -134,19 +132,16 @@ class ExamController extends Controller
         }
 
         $exam = Exam::create([
-            'title' => $request->title,
+            'name' => $request->name,
             'class_id' => $request->class_id,
             'subject_id' => $request->subject_id,
             'exam_date' => $request->exam_date,
             'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'total_marks' => $request->total_marks,
+            'duration_minutes' => $request->duration_minutes,
+            'max_marks' => $request->max_marks,
             'passing_marks' => $request->passing_marks,
-            'exam_type' => $request->exam_type,
             'description' => $request->description,
-            'instructions' => $request->instructions,
             'status' => 'scheduled',
-            'created_by' => Auth::id(),
         ]);
 
         return redirect()->route('teacher.exams.show', $exam)
@@ -240,17 +235,15 @@ class ExamController extends Controller
         }
 
         $request->validate([
-            'title' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'class_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
             'exam_date' => 'required|date',
             'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
-            'total_marks' => 'required|integer|min:1|max:1000',
-            'passing_marks' => 'required|integer|min:0|lte:total_marks',
-            'exam_type' => 'required|in:quiz,test,midterm,final,assignment,practical',
+            'duration_minutes' => 'required|integer|min:1|max:480',
+            'max_marks' => 'required|numeric|min:1|max:1000',
+            'passing_marks' => 'required|numeric|min:0|lte:max_marks',
             'description' => 'nullable|string|max:1000',
-            'instructions' => 'nullable|string|max:2000',
             'status' => 'required|in:scheduled,ongoing,completed,cancelled',
         ]);
 
@@ -261,8 +254,8 @@ class ExamController extends Controller
         }
 
         $exam->update($request->only([
-            'title', 'class_id', 'subject_id', 'exam_date', 'start_time', 'end_time',
-            'total_marks', 'passing_marks', 'exam_type', 'description', 'instructions', 'status'
+            'name', 'class_id', 'subject_id', 'exam_date', 'start_time',
+            'duration_minutes', 'max_marks', 'passing_marks', 'description', 'status'
         ]));
 
         return redirect()->route('teacher.exams.show', $exam)
@@ -311,7 +304,7 @@ class ExamController extends Controller
         $request->validate([
             'results' => 'required|array',
             'results.*.student_id' => 'required|exists:students,id',
-            'results.*.marks_obtained' => 'required|numeric|min:0|max:' . $exam->total_marks,
+            'results.*.marks_obtained' => 'required|numeric|min:0|max:' . $exam->max_marks,
             'results.*.remarks' => 'nullable|string|max:500',
         ]);
 
@@ -319,7 +312,7 @@ class ExamController extends Controller
         try {
             foreach ($request->results as $result) {
                 // Calculate grade
-                $percentage = ($result['marks_obtained'] / $exam->total_marks) * 100;
+                $percentage = ($result['marks_obtained'] / $exam->max_marks) * 100;
                 $grade = $this->calculateGrade($percentage);
 
                 ExamResult::updateOrCreate(
@@ -332,7 +325,6 @@ class ExamController extends Controller
                         'percentage' => round($percentage, 2),
                         'grade' => $grade,
                         'remarks' => $result['remarks'] ?? null,
-                        'entered_by' => Auth::id(),
                     ]
                 );
             }

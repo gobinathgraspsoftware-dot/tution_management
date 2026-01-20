@@ -156,11 +156,12 @@
                     <table class="table table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>Title</th>
+                                <th>Name</th>
                                 <th>Class</th>
                                 <th>Subject</th>
-                                <th>Date</th>
-                                <th>Total Marks</th>
+                                <th>Date & Time</th>
+                                <th>Duration</th>
+                                <th>Max Marks</th>
                                 <th>Status</th>
                                 <th>Results</th>
                                 <th width="150">Actions</th>
@@ -170,17 +171,25 @@
                             @foreach($exams as $exam)
                                 <tr>
                                     <td>
-                                        <strong>{{ $exam->title }}</strong>
-                                        <br><small class="text-muted">{{ ucfirst($exam->exam_type) }}</small>
+                                        <strong>{{ $exam->name }}</strong>
                                     </td>
                                     <td>{{ $exam->class->name ?? 'N/A' }}</td>
                                     <td>{{ $exam->subject->name ?? 'N/A' }}</td>
                                     <td>
                                         {{ $exam->exam_date->format('M d, Y') }}
-                                        <br><small class="text-muted">{{ \Carbon\Carbon::parse($exam->start_time)->format('h:i A') }}</small>
+                                        @if($exam->start_time)
+                                            <br><small class="text-muted">{{ \Carbon\Carbon::parse($exam->start_time)->format('h:i A') }}</small>
+                                        @endif
                                     </td>
                                     <td>
-                                        <strong>{{ $exam->total_marks }}</strong>
+                                        @if($exam->duration_minutes)
+                                            {{ $exam->duration_minutes }} mins
+                                        @else
+                                            N/A
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <strong>{{ $exam->max_marks }}</strong>
                                         <br><small class="text-muted">Pass: {{ $exam->passing_marks }}</small>
                                     </td>
                                     <td>
