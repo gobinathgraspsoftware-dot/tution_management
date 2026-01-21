@@ -1287,20 +1287,28 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/{invoice}', [ParentInvoiceController::class, 'show'])->name('show');
         });
 
-        // Payment Management (View Only)
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Management - FIXED ROUTE ORDERING
+        |--------------------------------------------------------------------------
+        | CRITICAL: Specific routes (pay-online, history, outstanding) MUST come
+        | BEFORE wildcard routes ({payment})
+        |--------------------------------------------------------------------------
+        */
         Route::prefix('payments')->name('payments.')->group(function () {
+            // Static routes FIRST
             Route::get('/', [ParentPaymentController::class, 'index'])->name('index');
             Route::get('/history', [ParentPaymentController::class, 'history'])->name('history');
             Route::get('/outstanding', [ParentPaymentController::class, 'outstanding'])->name('outstanding');
+
+            // *** PAY-ONLINE MUST BE HERE - BEFORE {payment} ***
+            Route::get('/pay-online/{invoice?}', [OnlinePaymentController::class, 'parentPayOnline'])->name('pay-online');
+
+            // Wildcard routes LAST (these catch any remaining patterns)
             Route::get('/{payment}', [ParentPaymentController::class, 'show'])->name('show');
             Route::get('/{payment}/receipt', [ParentPaymentController::class, 'receipt'])->name('receipt');
             Route::get('/{payment}/download-receipt', [ParentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
         });
-
-        // Parent Online Payment
-        Route::get('/payments/pay-online/{invoice?}', [OnlinePaymentController::class, 'parentPayOnline'])
-            // ->middleware('permission:make-payment')
-            ->name('payments.pay-online');
 
         // Child Enrollments
         Route::prefix('enrollments')->name('enrollments.')->group(function () {

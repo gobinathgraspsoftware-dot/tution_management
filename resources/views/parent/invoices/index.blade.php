@@ -147,7 +147,7 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="fas fa-list me-2"></i> Invoice History</span>
-        <a href="{{ route('parent.invoices.payment-history') }}" class="btn btn-outline-success btn-sm">
+        <a href="{{ route('parent.invoices.history') }}" class="btn btn-outline-success btn-sm">
             <i class="fas fa-history me-1"></i> Payment History
         </a>
     </div>

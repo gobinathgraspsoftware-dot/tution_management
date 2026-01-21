@@ -309,4 +309,167 @@ class OnlinePaymentController extends Controller
 
         return $this->checkout(request(), $invoice);
     }
+
+    /**
+     * Parent online payment page.
+     * Shows unpaid invoices for parent's children and allows payment.
+     */
+    public function parentPayOnline(Request $request, ?Invoice $invoice = null)
+    {
+        $user = auth()->user();
+
+        // Ensure user is a parent
+        if (!$user->hasRole('parent')) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $parent = $user->parent;
+
+        if (!$parent) {
+            return redirect()->route('parent.dashboard')
+                ->with('error', 'Parent profile not found.');
+        }
+
+        // Get children IDs
+        $childrenIds = $parent->students->pluck('id')->toArray();
+
+        // If specific invoice is provided, redirect to checkout
+        if ($invoice) {
+            // Verify invoice belongs to parent's child
+            if (!in_array($invoice->student_id, $childrenIds)) {
+                abort(403, 'Unauthorized access to this invoice.');
+            }
+
+            // Check if invoice can receive payment
+            if (!$invoice->canReceivePayment()) {
+                return redirect()->route('parent.payments.pay-online')
+                    ->with('error', 'This invoice cannot receive online payments.');
+            }
+
+            return $this->checkout($request, $invoice);
+        }
+
+        // Get unpaid invoices for all children
+        // NOTE: 'balance' is an accessor (computed), not a real column
+        // Use whereRaw('total_amount > paid_amount') instead of where('balance', '>', 0)
+        $unpaidInvoices = Invoice::with(['student.user', 'enrollment.package', 'enrollment.class'])
+            ->whereIn('student_id', $childrenIds)
+            ->where(function($query) {
+                $query->where('status', 'pending')
+                      ->orWhere('status', 'partial')
+                      ->orWhere('status', 'overdue');
+            })
+            ->whereRaw('total_amount > paid_amount')  // FIXED: Use actual columns, not accessor
+            ->orderBy('due_date')
+            ->get();
+
+        // Get children for filter dropdown
+        $children = $parent->students()->with('user')->get();
+
+        // Calculate summary
+        $summary = [
+            'total_outstanding' => $unpaidInvoices->sum('balance'),  // This uses the accessor on fetched models
+            'total_overdue' => $unpaidInvoices->where('status', 'overdue')->sum('balance'),
+            'invoices_count' => $unpaidInvoices->count(),
+            'overdue_count' => $unpaidInvoices->where('status', 'overdue')->count(),
+        ];
+
+        // Check if any payment gateway is available
+        $gatewaysAvailable = !empty($this->gatewayService->getGatewayOptions());
+
+        // Get recent transactions for this parent's children
+        $recentTransactions = PaymentGatewayTransaction::with(['invoice.student.user', 'gatewayConfig'])
+            ->whereHas('invoice', function($query) use ($childrenIds) {
+                $query->whereIn('student_id', $childrenIds);
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('parent.payments.pay-online', compact(
+            'unpaidInvoices',
+            'children',
+            'summary',
+            'gatewaysAvailable',
+            'recentTransactions'
+        ));
+    }
+
+    /**
+     * Student online payment page.
+     * Shows unpaid invoices for student and allows payment.
+     */
+    public function studentPayOnline(Request $request, ?Invoice $invoice = null)
+    {
+        $user = auth()->user();
+
+        // Ensure user is a student
+        if (!$user->hasRole('student')) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $student = $user->student;
+
+        if (!$student) {
+            return redirect()->route('student.dashboard')
+                ->with('error', 'Student profile not found.');
+        }
+
+        // If specific invoice is provided, redirect to checkout
+        if ($invoice) {
+            // Verify invoice belongs to this student
+            if ($invoice->student_id !== $student->id) {
+                abort(403, 'Unauthorized access to this invoice.');
+            }
+
+            // Check if invoice can receive payment
+            if (!$invoice->canReceivePayment()) {
+                return redirect()->route('student.payments.pay-online')
+                    ->with('error', 'This invoice cannot receive online payments.');
+            }
+
+            return $this->checkout($request, $invoice);
+        }
+
+        // Get unpaid invoices for the student
+        // NOTE: 'balance' is an accessor (computed), not a real column
+        // Use whereRaw('total_amount > paid_amount') instead of where('balance', '>', 0)
+        $unpaidInvoices = Invoice::with(['enrollment.package', 'enrollment.class'])
+            ->where('student_id', $student->id)
+            ->where(function($query) {
+                $query->where('status', 'pending')
+                      ->orWhere('status', 'partial')
+                      ->orWhere('status', 'overdue');
+            })
+            ->whereRaw('total_amount > paid_amount')  // FIXED: Use actual columns, not accessor
+            ->orderBy('due_date')
+            ->get();
+
+        // Calculate summary
+        $summary = [
+            'total_outstanding' => $unpaidInvoices->sum('balance'),  // This uses the accessor on fetched models
+            'total_overdue' => $unpaidInvoices->where('status', 'overdue')->sum('balance'),
+            'invoices_count' => $unpaidInvoices->count(),
+            'overdue_count' => $unpaidInvoices->where('status', 'overdue')->count(),
+        ];
+
+        // Check if any payment gateway is available
+        $gatewaysAvailable = !empty($this->gatewayService->getGatewayOptions());
+
+        // Get recent transactions for this student
+        $recentTransactions = PaymentGatewayTransaction::with(['invoice', 'gatewayConfig'])
+            ->whereHas('invoice', function($query) use ($student) {
+                $query->where('student_id', $student->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('student.payments.pay-online', compact(
+            'unpaidInvoices',
+            'summary',
+            'gatewaysAvailable',
+            'recentTransactions'
+        ));
+    }
 }
