@@ -230,8 +230,7 @@ class EnrollmentController extends Controller
                 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
                 'description' => "Updated enrollment for {$enrollment->student->user->name}" .
-                    ($oldStatus != $request->status ? " (Status: {$oldStatus} → {$request->status})" : '') .
-                    ($oldFee != $request->monthly_fee ? " (Fee: RM{$oldFee} → RM{$request->monthly_fee})" : ''),
+                    ($oldFee != $request->monthly_fee ? " (Fee changed from RM{$oldFee} to RM{$request->monthly_fee})" : ''),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -253,12 +252,12 @@ class EnrollmentController extends Controller
      */
     public function destroy(Enrollment $enrollment)
     {
-        // Check if enrollment has paid invoices
-        if ($enrollment->invoices()->where('paid_amount', '>', 0)->exists()) {
-            return back()->with('error', 'Cannot delete enrollment with paid invoices.');
-        }
-
         try {
+            // Check if enrollment has any paid invoices
+            if ($enrollment->invoices()->where('paid_amount', '>', 0)->exists()) {
+                return back()->with('error', 'Cannot delete enrollment with paid invoices.');
+            }
+
             $studentName = $enrollment->student->user->name;
 
             ActivityLog::create([
@@ -287,25 +286,22 @@ class EnrollmentController extends Controller
     public function cancel(Request $request, Enrollment $enrollment)
     {
         $request->validate([
-            'cancellation_reason' => 'required|string|max:500',
+            'reason' => 'nullable|string|max:500',
         ]);
 
         try {
             $enrollment->update([
                 'status' => 'cancelled',
-                'cancellation_reason' => $request->cancellation_reason,
                 'cancelled_at' => now(),
             ]);
-
-            // Revoke material access
-            $enrollment->materialAccess()->update(['revoked_at' => now()]);
 
             ActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'cancel',
                 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
-                'description' => "Cancelled enrollment for {$enrollment->student->user->name}. Reason: {$request->cancellation_reason}",
+                'description' => "Cancelled enrollment for {$enrollment->student->user->name}" .
+                    ($request->reason ? ". Reason: {$request->reason}" : ''),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -444,11 +440,12 @@ class EnrollmentController extends Controller
 
     /**
      * AJAX: Get class fee
+     * FIXED: Using 'price' instead of 'monthly_fee' from ClassModel
      */
     public function getClassFee(ClassModel $class)
     {
         return response()->json([
-            'fee' => $class->monthly_fee,
+            'fee' => $class->price, // FIXED: Use 'price' from ClassModel
             'name' => $class->name,
             'subject' => $class->subject->name ?? null,
             'teacher' => $class->teacher->user->name ?? null,
@@ -496,6 +493,7 @@ class EnrollmentController extends Controller
                     return [
                         'id' => $class->id,
                         'name' => $class->name,
+                        'price' => $class->price, // FIXED: Use 'price' instead of any other field
                         'teacher' => $class->teacher->user->name ?? 'TBA',
                         'schedule' => $class->schedules->map(function ($s) {
                             return $s->day_of_week . ' ' . substr($s->start_time, 0, 5);
@@ -516,6 +514,7 @@ class EnrollmentController extends Controller
 
     /**
      * AJAX: Get classes by subject
+     * FIXED: Using 'price' instead of 'monthly_fee' from ClassModel
      */
     public function getClassesBySubject(Subject $subject)
     {
@@ -527,7 +526,7 @@ class EnrollmentController extends Controller
                 return [
                     'id' => $class->id,
                     'name' => $class->name,
-                    'monthly_fee' => $class->monthly_fee,
+                    'price' => $class->price, // FIXED: Use 'price' from ClassModel
                     'teacher' => $class->teacher->user->name ?? 'TBA',
                     'schedule' => $class->schedules->map(function ($s) {
                         return $s->day_of_week . ' ' . substr($s->start_time, 0, 5) . '-' . substr($s->end_time, 0, 5);

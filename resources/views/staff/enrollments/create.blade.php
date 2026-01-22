@@ -127,19 +127,7 @@
                             </div>
                         </div>
 
-                        <!-- Subject Selection (for class enrollment) -->
-                        <div class="form-group" id="subject_section" style="display: none;">
-                            <label for="subject_id">Subject</label>
-                            <select class="form-control" id="subject_id">
-                                <option value="">Select Subject first...</option>
-                                @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                @endforeach
-                            </select>
-                            <small class="form-text text-muted">Filter classes by subject</small>
-                        </div>
-
-                        <!-- Class Selection Section -->
+                        <!-- Class Selection Section (Single Class Enrollment) -->
                         <div id="class_selection_section" style="display: none;">
                             <div class="card mb-3">
                                 <div class="card-header py-2 bg-light">
@@ -155,11 +143,11 @@
                                                     <option value="">Select Class...</option>
                                                     @foreach($classes as $class)
                                                         <option value="{{ $class->id }}"
-                                                                data-fee="{{ $class->monthly_fee }}"
-                                                                data-subject="{{ $class->subject_id }}"
+                                                                data-fee="{{ $class->price }}"
+                                                                data-subject="{{ $class->subject->name ?? 'N/A' }}"
                                                                 data-teacher="{{ $class->teacher->user->name ?? 'TBA' }}"
                                                                 {{ old('class_id') == $class->id ? 'selected' : '' }}>
-                                                            {{ $class->name }} - {{ $class->subject->name ?? 'N/A' }} ({{ $class->teacher->user->name ?? 'TBA' }})
+                                                            {{ $class->name }} - RM {{ number_format($class->price, 2) }}/month ({{ $class->teacher->user->name ?? 'TBA' }})
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -184,10 +172,18 @@
                             </div>
                         </div>
 
-                        <!-- Class Details Display (Teacher info) -->
+                        <!-- Class Details Display (Teacher & Subject info) -->
                         <div id="classDetails" class="alert alert-info" style="display: none;">
-                            <i class="fas fa-chalkboard-teacher mr-2"></i>
-                            <strong>Teacher:</strong> <span id="classTeacher">-</span>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <i class="fas fa-book mr-2"></i>
+                                    <strong>Subject:</strong> <span id="classSubject">-</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <i class="fas fa-chalkboard-teacher mr-2"></i>
+                                    <strong>Teacher:</strong> <span id="classTeacher">-</span>
+                                </div>
+                            </div>
                         </div>
 
                         <hr>
@@ -213,8 +209,7 @@
                                     <label for="payment_cycle_day">Payment Cycle Day <span class="text-danger">*</span></label>
                                     <select class="form-control @error('payment_cycle_day') is-invalid @enderror"
                                             id="payment_cycle_day" name="payment_cycle_day" required>
-                                        <option value="">Select Day...</option>
-                                        @for($i = 1; $i <= 28; $i++)
+                                        @for($i = 1; $i <= 15; $i++)
                                             <option value="{{ $i }}" {{ old('payment_cycle_day') == $i ? 'selected' : '' }}>
                                                 Day {{ $i }} of each month
                                             </option>
@@ -228,18 +223,6 @@
                             </div>
                         </div>
 
-                        <!-- Monthly Fee (for single class) -->
-                        <div class="form-group" id="monthly_fee_section" style="display: none;">
-                            <label for="monthly_fee">Monthly Fee (RM) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control @error('monthly_fee') is-invalid @enderror"
-                                   id="monthly_fee" name="monthly_fee" value="{{ old('monthly_fee') }}"
-                                   placeholder="0.00">
-                            @error('monthly_fee')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Auto-filled from class fee, but can be adjusted</small>
-                        </div>
-
                         <!-- Status -->
                         <div class="form-group">
                             <label for="status">Status</label>
@@ -249,14 +232,20 @@
                             </select>
                         </div>
 
-                        <!-- Submit Buttons -->
-                        <hr>
+                        <!-- Notes -->
                         <div class="form-group">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Create Enrollment
+                            <label for="notes">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2"
+                                      placeholder="Optional notes...">{{ old('notes') }}</textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="form-group mb-0 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plus-circle mr-1"></i> Create Enrollment
                             </button>
-                            <a href="{{ route('staff.enrollments.index') }}" class="btn btn-secondary">
-                                Cancel
+                            <a href="{{ route('staff.enrollments.index') }}" class="btn btn-secondary btn-lg ml-2">
+                                <i class="fas fa-times mr-1"></i> Cancel
                             </a>
                         </div>
                     </form>
@@ -264,47 +253,45 @@
             </div>
         </div>
 
-        <!-- Info Panel -->
+        <!-- Side Panel - Existing Enrollments -->
         <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Information</h6>
-                </div>
-                <div class="card-body">
-                    <h6 class="text-primary">Package Enrollment</h6>
-                    <p class="small">
-                        Select a package to enroll the student in multiple subjects at once.
-                        The monthly fee will be based on the package price.
-                    </p>
-
-                    <h6 class="text-primary mt-3">Single Class Enrollment</h6>
-                    <p class="small">
-                        Select individual classes for students who want specific subjects only.
-                        The monthly fee will be based on the class fee.
-                    </p>
-
-                    <h6 class="text-primary mt-3">Payment Cycle Day</h6>
-                    <p class="small">
-                        This is the day of each month when the monthly fee is due. Choose a consistent day
-                        for easier payment tracking.
-                    </p>
-
-                    <h6 class="text-primary mt-3">Automatic Invoice</h6>
-                    <p class="small">
-                        A registration invoice will be automatically generated upon enrollment.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Existing Enrollments (for selected student) -->
             <div class="card shadow mb-4" id="existingEnrollmentsCard" style="display: none;">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-warning">Existing Enrollments</h6>
+                <div class="card-header py-3 bg-warning text-dark">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Existing Enrollments
+                    </h6>
                 </div>
                 <div class="card-body">
                     <div id="existingEnrollmentsList">
-                        <!-- Will be populated via AJAX -->
+                        <!-- Dynamically loaded -->
                     </div>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-info-circle mr-1"></i> Enrollment Guide
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    <p><strong>Package Enrollment:</strong></p>
+                    <ul class="pl-3">
+                        <li>Student gets access to multiple subjects</li>
+                        <li>Fixed monthly fee for all subjects</li>
+                        <li>Classes can be assigned later</li>
+                    </ul>
+
+                    <p class="mt-3"><strong>Single Class Enrollment:</strong></p>
+                    <ul class="pl-3">
+                        <li>Student enrolls in one specific class</li>
+                        <li>Fee based on class price</li>
+                        <li>Immediate class assignment</li>
+                    </ul>
+
+                    <p class="mt-3"><strong>Payment Cycle:</strong></p>
+                    <p class="text-muted">Invoices will be generated on the selected day each month.</p>
                 </div>
             </div>
         </div>
@@ -316,13 +303,13 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 <style>
-.select2-container .select2-selection--single {
-    height: calc(1.5em + 0.75rem + 2px);
-    padding: 0.375rem 0.75rem;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 1.5;
-}
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
+        border: 1px solid #ced4da;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        line-height: 36px;
+    }
 </style>
 @endpush
 
@@ -373,14 +360,19 @@ $(document).ready(function() {
         if ($(this).val() === 'package') {
             $('#package_section').show();
             $('#packageDetails').hide();
-            $('#subject_section, #class_selection_section, #classDetails').hide();
+            $('#class_selection_section, #classDetails').hide();
             $('#package_id').prop('required', true);
-            $('#class_id, #monthly_fee').prop('required', false);
+            $('#class_id').prop('required', false);
+            // Clear class selection
+            $('#class_id').val('');
+            $('#monthly_fee').val('');
         } else {
-            $('#subject_section, #class_selection_section').show();
+            $('#class_selection_section').show();
             $('#package_section, #packageDetails').hide();
-            $('#class_id, #monthly_fee').prop('required', true);
+            $('#class_id').prop('required', true);
             $('#package_id').prop('required', false);
+            // Clear package selection
+            $('#package_id').val('');
         }
     });
 
@@ -404,40 +396,23 @@ $(document).ready(function() {
         }
     });
 
-    // Filter classes by subject
-    $('#subject_id').change(function() {
-        const subjectId = $(this).val();
-
-        if (subjectId) {
-            $.get('{{ url("staff/enrollments/subject") }}/' + subjectId + '/classes', function(data) {
-                let options = '<option value="">Select Class...</option>';
-                data.forEach(function(cls) {
-                    options += '<option value="' + cls.id + '" data-fee="' + cls.monthly_fee + '" data-teacher="' + cls.teacher + '">' +
-                        cls.name + ' - RM ' + parseFloat(cls.monthly_fee).toFixed(2) + '/month (' + cls.teacher + ')' +
-                        '</option>';
-                });
-                $('#class_id').html(options);
-            });
-        } else {
-            // Reset to show all classes
-            let options = '<option value="">Select Class...</option>';
-            @foreach($classes as $class)
-                options += '<option value="{{ $class->id }}" data-fee="{{ $class->monthly_fee }}" data-teacher="{{ $class->teacher->user->name ?? "TBA" }}">{{ $class->name }} ({{ $class->subject->name ?? "N/A" }}) - RM {{ number_format($class->monthly_fee, 2) }}/month</option>';
-            @endforeach
-            $('#class_id').html(options);
-        }
-    });
-
     // Auto-fill monthly fee when class is selected
     $('#class_id').change(function() {
         const selectedOption = $(this).find(':selected');
         const fee = selectedOption.data('fee');
         const teacher = selectedOption.data('teacher');
+        const subject = selectedOption.data('subject');
 
-        if (fee) {
-            $('#monthly_fee').val(parseFloat(fee).toFixed(2));
+        if (fee !== undefined && fee !== null && fee !== '') {
+            var feeValue = parseFloat(fee);
+            if (!isNaN(feeValue)) {
+                $('#monthly_fee').val(feeValue.toFixed(2));
+            } else {
+                $('#monthly_fee').val('0.00');
+            }
             $('#classDetails').show();
             $('#classTeacher').text(teacher || '-');
+            $('#classSubject').text(subject || '-');
         } else {
             $('#monthly_fee').val('');
             $('#classDetails').hide();

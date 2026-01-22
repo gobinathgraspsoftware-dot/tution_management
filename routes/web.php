@@ -1173,65 +1173,64 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         });
 
 
-// Enrollment Management (Full Features - Matching Admin)
-Route::prefix('enrollments')->name('enrollments.')->group(function () {
-    // List all enrollments
-    Route::get('/', [StaffEnrollmentController::class, 'index'])
-        ->name('index');
+        // Enrollment Management (Full Features - Matching Admin)
+        Route::prefix('enrollments')->name('enrollments.')->group(function () {
+            // List all enrollments
+            Route::get('/', [StaffEnrollmentController::class, 'index'])->name('index');
 
-    // Create new enrollment
-    Route::get('/create', [StaffEnrollmentController::class, 'create'])
-        ->name('create');
+            // Create new enrollment
+            Route::get('/create', [StaffEnrollmentController::class, 'create'])
+                ->name('create');
 
-    Route::post('/', [StaffEnrollmentController::class, 'store'])
-        ->name('store');
+            Route::post('/', [StaffEnrollmentController::class, 'store'])
+                ->name('store');
 
-    // Student Search AJAX endpoint for Select2
-    Route::get('/search-students', [StaffEnrollmentController::class, 'searchStudents'])
-        ->name('search-students');
+            // Student Search AJAX endpoint for Select2
+            Route::get('/search-students', [StaffEnrollmentController::class, 'searchStudents'])
+                ->name('search-students');
 
-    // AJAX endpoints (must be before {enrollment} routes)
-    Route::get('/class/{class}/fee', [StaffEnrollmentController::class, 'getClassFee'])
-        ->name('class.fee');
+            // AJAX endpoints (must be before {enrollment} routes)
+            Route::get('/class/{class}/fee', [StaffEnrollmentController::class, 'getClassFee'])
+                ->name('class.fee');
 
-    Route::get('/package/{package}/details', [StaffEnrollmentController::class, 'getPackageDetails'])
-        ->name('package.details');
+            Route::get('/package/{package}/details', [StaffEnrollmentController::class, 'getPackageDetails'])
+                ->name('package.details');
 
-    Route::get('/package/{package}/subjects-classes', [StaffEnrollmentController::class, 'getPackageSubjectsWithClasses'])
-        ->name('package.subjects-classes');
+            Route::get('/package/{package}/subjects-classes', [StaffEnrollmentController::class, 'getPackageSubjectsWithClasses'])
+                ->name('package.subjects-classes');
 
-    Route::get('/subject/{subject}/classes', [StaffEnrollmentController::class, 'getClassesBySubject'])
-        ->name('subject.classes');
+            Route::get('/subject/{subject}/classes', [StaffEnrollmentController::class, 'getClassesBySubject'])
+                ->name('subject.classes');
 
-    Route::get('/student/{student}/enrollments', [StaffEnrollmentController::class, 'getStudentEnrollments'])
-        ->name('student.enrollments');
+            Route::get('/student/{student}/enrollments', [StaffEnrollmentController::class, 'getStudentEnrollments'])
+                ->name('student.enrollments');
 
-    // Single enrollment operations
-    Route::get('/{enrollment}', [StaffEnrollmentController::class, 'show'])
-        ->name('show');
+            // Single enrollment operations
+            Route::get('/{enrollment}', [StaffEnrollmentController::class, 'show'])
+                ->name('show');
 
-    Route::get('/{enrollment}/edit', [StaffEnrollmentController::class, 'edit'])
-        ->name('edit');
+            Route::get('/{enrollment}/edit', [StaffEnrollmentController::class, 'edit'])
+                ->name('edit');
 
-    Route::put('/{enrollment}', [StaffEnrollmentController::class, 'update'])
-        ->name('update');
+            Route::put('/{enrollment}', [StaffEnrollmentController::class, 'update'])
+                ->name('update');
 
-    Route::delete('/{enrollment}', [StaffEnrollmentController::class, 'destroy'])
-        ->name('destroy');
+            Route::delete('/{enrollment}', [StaffEnrollmentController::class, 'destroy'])
+                ->name('destroy');
 
-    // Status Management
-    Route::patch('/{enrollment}/cancel', [StaffEnrollmentController::class, 'cancel'])
-        ->name('cancel');
+            // Status Management
+            Route::patch('/{enrollment}/cancel', [StaffEnrollmentController::class, 'cancel'])
+                ->name('cancel');
 
-    Route::patch('/{enrollment}/suspend', [StaffEnrollmentController::class, 'suspend'])
-        ->name('suspend');
+            Route::patch('/{enrollment}/suspend', [StaffEnrollmentController::class, 'suspend'])
+                ->name('suspend');
 
-    Route::patch('/{enrollment}/resume', [StaffEnrollmentController::class, 'resume'])
-        ->name('resume');
+            Route::patch('/{enrollment}/resume', [StaffEnrollmentController::class, 'resume'])
+                ->name('resume');
 
-    Route::post('/{enrollment}/renew', [StaffEnrollmentController::class, 'renew'])
-        ->name('renew');
-});
+            Route::post('/{enrollment}/renew', [StaffEnrollmentController::class, 'renew'])
+                ->name('renew');
+        });
 
         /*
         |--------------------------------------------------------------------------
