@@ -79,6 +79,8 @@ use App\Http\Controllers\Teacher\ResultController as TeacherResultController;
 use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncementController;
 use App\Http\Controllers\Parent\AnnouncementController as ParentAnnouncementController;
 use App\Http\Controllers\Staff\PhysicalMaterialController as StaffPhysicalMaterialController;
+use App\Http\Controllers\Staff\StudentController as StaffStudentController;
+use App\Http\Controllers\Staff\TrialClassController as StaffTrialClassController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1111,6 +1113,47 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // AJAX: Search Parents
         Route::get('/registration/search-parent', [StudentRegistrationController::class, 'searchParent'])->name('registration.search-parent');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Management (Staff)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('students')->name('students.')->group(function () {
+            // List all students
+            Route::get('/', [StaffStudentController::class, 'index'])->name('index');
+
+            // View student details
+            Route::get('/{student}', [StaffStudentController::class, 'show'])->name('show');
+
+            // AJAX: Search students for Select2
+            Route::get('/search/ajax', [StaffStudentController::class, 'searchStudents'])->name('search');
+
+            // AJAX: Get student enrollments
+            Route::get('/{student}/enrollments', [StaffStudentController::class, 'getStudentEnrollments'])->name('enrollments');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trial Class Management (Staff)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('trial-classes')->name('trial-classes.')->group(function () {
+            // List all trial classes
+            Route::get('/', [StaffTrialClassController::class, 'index'])->name('index');
+
+            // View trial class details
+            Route::get('/{trialClass}', [StaffTrialClassController::class, 'show'])->name('show');
+
+            // Mark attendance (staff can mark attended/no_show)
+            Route::post('/{trialClass}/mark-attendance', [StaffTrialClassController::class, 'markAttendance'])->name('mark-attendance');
+
+            // AJAX: Get today's trials
+            Route::get('/ajax/today', [StaffTrialClassController::class, 'todaysTrials'])->name('ajax.today');
+
+            // AJAX: Get upcoming trials
+            Route::get('/ajax/upcoming', [StaffTrialClassController::class, 'upcomingTrials'])->name('ajax.upcoming');
+        });
 
         // Payment Management
         Route::prefix('payments')->name('payments.')->group(function () {

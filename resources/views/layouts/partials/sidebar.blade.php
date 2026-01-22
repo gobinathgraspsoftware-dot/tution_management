@@ -678,23 +678,40 @@
     </div>
 </div>
 @endif
+
 <!-- Students -->
 <div class="menu-dropdown">
     <a href="#section26" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Students
     </a>
     <div class="collapse" id="section26">
+    @if(Route::has('staff.students.index'))
+    <a href="{{ route('staff.students.index') }}" class="menu-item {{ request()->routeIs('staff.students.index') ? 'active' : '' }}">
+    <i class="fas fa-users"></i> All Students
+    </a>
+    @else
     <a href="#" class="menu-item">
     <i class="fas fa-users"></i> All Students
     </a>
-    {{-- Staff can view pending but limited actions --}}
-    {{-- <a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
-    <i class="fas fa-clock"></i> Pending Approvals
-    </a> --}}
+    @endif
 
+    @if(Route::has('staff.trial-classes.index'))
+    <a href="{{ route('staff.trial-classes.index') }}" class="menu-item {{ request()->routeIs('staff.trial-classes.*') ? 'active' : '' }}">
+    <i class="fas fa-user-graduate"></i> Trial Classes
+    @php
+        $todayTrialsCount = \App\Models\TrialClass::whereDate('scheduled_date', today())
+            ->whereIn('status', ['pending', 'approved'])
+            ->count();
+    @endphp
+    @if($todayTrialsCount > 0)
+        <span class="badge bg-danger ms-auto">{{ $todayTrialsCount }}</span>
+    @endif
+    </a>
+    @else
     <a href="#" class="menu-item">
     <i class="fas fa-user-graduate"></i> Trial Classes
     </a>
+    @endif
 
     </div>
 </div>
