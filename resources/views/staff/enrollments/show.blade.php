@@ -28,26 +28,35 @@
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Enrollment Information</h6>
-                    @if($enrollment->status == 'active')
-                        <span class="badge badge-success badge-pill">Active</span>
-                    @elseif($enrollment->status == 'suspended')
-                        <span class="badge badge-warning badge-pill">Suspended</span>
-                    @elseif($enrollment->status == 'expired')
-                        <span class="badge badge-danger badge-pill">Expired</span>
-                    @elseif($enrollment->status == 'cancelled')
-                        <span class="badge badge-dark badge-pill">Cancelled</span>
-                    @elseif($enrollment->status == 'trial')
-                        <span class="badge badge-info badge-pill">Trial</span>
-                    @endif
+                    @switch($enrollment->status)
+                        @case('active')
+                            <span class="badge badge-success badge-pill">Active</span>
+                            @break
+                        @case('suspended')
+                            <span class="badge badge-warning badge-pill">Suspended</span>
+                            @break
+                        @case('expired')
+                            <span class="badge badge-danger badge-pill">Expired</span>
+                            @break
+                        @case('cancelled')
+                            <span class="badge badge-dark badge-pill">Cancelled</span>
+                            @break
+                        @case('trial')
+                            <span class="badge badge-info badge-pill">Trial</span>
+                            @break
+                    @endswitch
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <h6 class="text-primary">Student Information</h6>
-                            <p class="mb-1"><strong>Name:</strong> {{ $enrollment->student->user->name }}</p>
-                            <p class="mb-1"><strong>Student ID:</strong> {{ $enrollment->student->student_id }}</p>
-                            <p class="mb-1"><strong>Email:</strong> {{ $enrollment->student->user->email }}</p>
+                            <p class="mb-1"><strong>Name:</strong> {{ $enrollment->student->user->name ?? 'N/A' }}</p>
+                            <p class="mb-1"><strong>Student ID:</strong> {{ $enrollment->student->student_id ?? '-' }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ $enrollment->student->user->email ?? '-' }}</p>
                             <p class="mb-1"><strong>Phone:</strong> {{ $enrollment->student->user->phone ?? '-' }}</p>
+                            @if($enrollment->student->parent)
+                            <p class="mb-1"><strong>Parent:</strong> {{ $enrollment->student->parent->user->name ?? '-' }}</p>
+                            @endif
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -58,19 +67,25 @@
                                     <strong>{{ $enrollment->package->name }}</strong>
                                 </p>
                                 <p class="mb-1"><strong>Duration:</strong> {{ $enrollment->package->duration_months }} months</p>
+                                @if($enrollment->package->subjects && $enrollment->package->subjects->count() > 0)
                                 <p class="mb-1"><strong>Subjects:</strong></p>
                                 <ul class="small mb-0">
                                     @foreach($enrollment->package->subjects as $subject)
                                         <li>{{ $subject->name }}</li>
                                     @endforeach
                                 </ul>
-                            @else
+                                @endif
+                            @elseif($enrollment->class)
                                 <p class="mb-1">
                                     <span class="badge badge-secondary">Single Class</span><br>
                                     <strong>{{ $enrollment->class->name }}</strong>
                                 </p>
-                                <p class="mb-1"><strong>Subject:</strong> {{ $enrollment->class->subject->name }}</p>
-                                <p class="mb-1"><strong>Teacher:</strong> {{ $enrollment->class->teacher->user->name }}</p>
+                                <p class="mb-1"><strong>Subject:</strong> {{ $enrollment->class->subject->name ?? '-' }}</p>
+                                @if($enrollment->class->teacher)
+                                <p class="mb-1"><strong>Teacher:</strong> {{ $enrollment->class->teacher->user->name ?? '-' }}</p>
+                                @endif
+                            @else
+                                <p class="text-muted">No package or class assigned</p>
                             @endif
                         </div>
                     </div>
@@ -80,7 +95,7 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <h6 class="text-primary">Duration</h6>
-                            <p class="mb-1"><strong>Start Date:</strong><br>{{ $enrollment->start_date->format('d M Y') }}</p>
+                            <p class="mb-1"><strong>Start Date:</strong><br>{{ $enrollment->start_date ? $enrollment->start_date->format('d M Y') : '-' }}</p>
                             <p class="mb-1"><strong>End Date:</strong><br>
                                 @if($enrollment->end_date)
                                     {{ $enrollment->end_date->format('d M Y') }}
@@ -115,142 +130,105 @@
                             <h6 class="text-primary">Timeline</h6>
                             <p class="mb-1"><strong>Enrolled On:</strong><br>{{ $enrollment->created_at->format('d M Y g:i A') }}</p>
                             @if($enrollment->cancelled_at)
-                                <p class="mb-1"><strong>Cancelled On:</strong><br>{{ $enrollment->cancelled_at->format('d M Y g:i A') }}</p>
+                                <p class="mb-1"><strong>Cancelled On:</strong><br>
+                                    <span class="text-danger">{{ $enrollment->cancelled_at->format('d M Y g:i A') }}</span>
+                                </p>
                             @endif
                             <p class="mb-1"><strong>Last Updated:</strong><br>{{ $enrollment->updated_at->format('d M Y g:i A') }}</p>
                         </div>
                     </div>
 
-                    @if($enrollment->class_id)
+                    @if($enrollment->cancellation_reason)
+                    <hr>
+                    <div class="alert alert-danger">
+                        <strong>Cancellation Reason:</strong> {{ $enrollment->cancellation_reason }}
+                    </div>
+                    @endif
+
+                    @if($enrollment->class && $enrollment->class->schedules && $enrollment->class->schedules->isNotEmpty())
                     <hr>
                     <div class="row">
                         <div class="col-12">
                             <h6 class="text-primary">Class Schedule</h6>
-                            @if($enrollment->class->schedules->isNotEmpty())
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-bordered">
-                                        <thead class="thead-light">
-                                            <tr>
-                                                <th>Day</th>
-                                                <th>Time</th>
-                                                <th>Venue</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($enrollment->class->schedules as $schedule)
-                                            <tr>
-                                                <td>{{ $schedule->day_of_week }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}</td>
-                                                <td>{{ $schedule->venue ?? '-' }}</td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @else
-                                <p class="text-muted">No schedule available</p>
-                            @endif
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Day</th>
+                                            <th>Time</th>
+                                            <th>Venue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($enrollment->class->schedules as $schedule)
+                                        <tr>
+                                            <td>{{ ucfirst($schedule->day_of_week) }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}</td>
+                                            <td>{{ $schedule->venue ?? '-' }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                    @endif
-
-                    @if($enrollment->cancellation_reason)
-                    <hr>
-                    <div class="alert alert-warning">
-                        <strong><i class="fas fa-info-circle"></i> Cancellation Reason:</strong><br>
-                        {{ $enrollment->cancellation_reason }}
                     </div>
                     @endif
                 </div>
             </div>
 
-            <!-- Attendance Summary -->
-            @if($attendanceSummary && $attendanceSummary->total_sessions > 0)
+            <!-- Invoices Card -->
+            @if($enrollment->invoices && $enrollment->invoices->count() > 0)
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Attendance Summary</h6>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Invoice History</h6>
+                    <span class="badge badge-primary">{{ $enrollment->invoices->count() }} invoices</span>
                 </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <h4 class="text-primary">{{ $attendanceSummary->total_sessions }}</h4>
-                            <small class="text-muted">Total Sessions</small>
-                        </div>
-                        <div class="col-md-3">
-                            <h4 class="text-success">{{ $attendanceSummary->present_count }}</h4>
-                            <small class="text-muted">Present</small>
-                        </div>
-                        <div class="col-md-3">
-                            <h4 class="text-danger">{{ $attendanceSummary->absent_count }}</h4>
-                            <small class="text-muted">Absent</small>
-                        </div>
-                        <div class="col-md-3">
-                            <h4 class="text-warning">{{ $attendanceSummary->late_count }}</h4>
-                            <small class="text-muted">Late</small>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="text-center">
-                        <h5>Attendance Rate:
-                            @php
-                                $rate = $attendanceSummary->total_sessions > 0 ? ($attendanceSummary->present_count / $attendanceSummary->total_sessions) * 100 : 0;
-                            @endphp
-                            <span class="@if($rate >= 80) text-success @elseif($rate >= 60) text-warning @else text-danger @endif">
-                                {{ number_format($rate, 1) }}%
-                            </span>
-                        </h5>
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar bg-success" style="width: {{ $rate }}%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            <!-- Invoices -->
-            @if($enrollment->invoices->count() > 0)
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Payment History</h6>
-                </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
                                 <tr>
-                                    <th>Invoice No</th>
-                                    <th>Date</th>
+                                    <th>Invoice #</th>
+                                    <th>Period</th>
                                     <th>Amount</th>
                                     <th>Paid</th>
                                     <th>Status</th>
-                                    <th>Action</th>
+                                    <th>Due Date</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($enrollment->invoices as $invoice)
+                                @foreach($enrollment->invoices->sortByDesc('created_at')->take(10) as $invoice)
                                 <tr>
-                                    <td><strong>{{ $invoice->invoice_number }}</strong></td>
-                                    <td>{{ $invoice->created_at->format('d M Y') }}</td>
+                                    <td>
+                                        <a href="#" class="font-weight-bold">{{ $invoice->invoice_number }}</a>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ $invoice->billing_start ? $invoice->billing_start->format('d M') : '-' }} -
+                                            {{ $invoice->billing_end ? $invoice->billing_end->format('d M Y') : '-' }}
+                                        </small>
+                                    </td>
                                     <td>RM {{ number_format($invoice->total_amount, 2) }}</td>
                                     <td>RM {{ number_format($invoice->paid_amount, 2) }}</td>
                                     <td>
-                                        @if($invoice->status == 'paid')
-                                            <span class="badge badge-success">Paid</span>
-                                        @elseif($invoice->status == 'pending')
-                                            <span class="badge badge-warning">Pending</span>
-                                        @elseif($invoice->status == 'overdue')
-                                            <span class="badge badge-danger">Overdue</span>
-                                        @elseif($invoice->status == 'cancelled')
-                                            <span class="badge badge-secondary">Cancelled</span>
-                                        @endif
+                                        @switch($invoice->status)
+                                            @case('paid')
+                                                <span class="badge badge-success">Paid</span>
+                                                @break
+                                            @case('pending')
+                                                <span class="badge badge-warning">Pending</span>
+                                                @break
+                                            @case('overdue')
+                                                <span class="badge badge-danger">Overdue</span>
+                                                @break
+                                            @case('cancelled')
+                                                <span class="badge badge-dark">Cancelled</span>
+                                                @break
+                                            @default
+                                                <span class="badge badge-secondary">{{ ucfirst($invoice->status) }}</span>
+                                        @endswitch
                                     </td>
-                                    <td>
-                                        @if(Route::has('admin.invoices.show'))
-                                        <a href="{{ route('admin.invoices.show', $invoice) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        @endif
-                                    </td>
+                                    <td>{{ $invoice->due_date ? $invoice->due_date->format('d M Y') : '-' }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -260,32 +238,30 @@
             </div>
             @endif
 
-            <!-- Fee Change History -->
-            @if($enrollment->feeHistory->count() > 0)
+            <!-- Fee History Card -->
+            @if($enrollment->feeHistory && $enrollment->feeHistory->count() > 0)
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Fee Change History</h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
                                 <tr>
                                     <th>Date</th>
                                     <th>Old Fee</th>
                                     <th>New Fee</th>
-                                    <th>Changed By</th>
                                     <th>Reason</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($enrollment->feeHistory as $history)
+                                @foreach($enrollment->feeHistory->sortByDesc('created_at') as $history)
                                 <tr>
-                                    <td>{{ $history->change_date->format('d M Y') }}</td>
+                                    <td>{{ $history->created_at->format('d M Y g:i A') }}</td>
                                     <td>RM {{ number_format($history->old_fee, 2) }}</td>
                                     <td>RM {{ number_format($history->new_fee, 2) }}</td>
-                                    <td>{{ $history->changedBy->name ?? 'System' }}</td>
-                                    <td>{{ $history->reason }}</td>
+                                    <td>{{ $history->reason ?? '-' }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -296,26 +272,31 @@
             @endif
         </div>
 
-        <!-- Actions Sidebar -->
+        <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- Quick Actions -->
+            <!-- Quick Actions Card -->
             @can('edit-enrollments')
-            <div class="card shadow mb-4">
+            <div class="card shadow mb-4 border-left-primary">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
                 </div>
                 <div class="card-body">
                     @if($enrollment->status == 'active')
+                        @can('suspend-enrollments')
                         <button type="button" class="btn btn-warning btn-block mb-2" onclick="suspendEnrollment()">
                             <i class="fas fa-pause"></i> Suspend Enrollment
                         </button>
+                        @endcan
+                        @can('cancel-enrollments')
                         <button type="button" class="btn btn-danger btn-block mb-2" onclick="cancelEnrollment()">
                             <i class="fas fa-times"></i> Cancel Enrollment
                         </button>
+                        @endcan
                         <button type="button" class="btn btn-success btn-block" onclick="renewEnrollment()">
                             <i class="fas fa-redo"></i> Renew Enrollment
                         </button>
                     @elseif($enrollment->status == 'suspended')
+                        @can('activate-enrollments')
                         <form action="{{ route('staff.enrollments.resume', $enrollment) }}" method="POST">
                             @csrf
                             @method('PATCH')
@@ -323,31 +304,97 @@
                                 <i class="fas fa-play"></i> Resume Enrollment
                             </button>
                         </form>
+                        @endcan
+                        @can('cancel-enrollments')
                         <button type="button" class="btn btn-danger btn-block" onclick="cancelEnrollment()">
                             <i class="fas fa-times"></i> Cancel Enrollment
                         </button>
+                        @endcan
                     @elseif($enrollment->status == 'expired')
                         <button type="button" class="btn btn-success btn-block" onclick="renewEnrollment()">
                             <i class="fas fa-redo"></i> Renew Enrollment
                         </button>
+                    @elseif($enrollment->status == 'cancelled')
+                        <div class="alert alert-secondary mb-0">
+                            <i class="fas fa-info-circle"></i> This enrollment has been cancelled.
+                        </div>
                     @endif
                 </div>
             </div>
             @endcan
 
-            <!-- Statistics -->
-            <div class="card shadow mb-4 border-left-primary">
+            <!-- Statistics Card -->
+            <div class="card shadow mb-4 border-left-info">
                 <div class="card-body">
-                    <h6 class="text-primary">Enrollment Statistics</h6>
-                    <p class="mb-2"><strong>Total Invoices:</strong> {{ $enrollment->invoices->count() }}</p>
-                    <p class="mb-2"><strong>Paid Invoices:</strong> {{ $enrollment->invoices->where('status', 'paid')->count() }}</p>
+                    <h6 class="text-info">Enrollment Statistics</h6>
+                    <p class="mb-2"><strong>Total Invoices:</strong> {{ $enrollment->invoices ? $enrollment->invoices->count() : 0 }}</p>
+                    <p class="mb-2"><strong>Paid Invoices:</strong> {{ $enrollment->invoices ? $enrollment->invoices->where('status', 'paid')->count() : 0 }}</p>
                     <p class="mb-2"><strong>Outstanding:</strong>
-                        RM {{ number_format($enrollment->invoices->where('status', '!=', 'paid')->sum('total_amount') - $enrollment->invoices->sum('paid_amount'), 2) }}
+                        @php
+                            $outstanding = $enrollment->invoices
+                                ? $enrollment->invoices->whereIn('status', ['pending', 'overdue'])->sum('total_amount')
+                                  - $enrollment->invoices->whereIn('status', ['pending', 'overdue'])->sum('paid_amount')
+                                : 0;
+                        @endphp
+                        RM {{ number_format($outstanding, 2) }}
                     </p>
-                    @if($attendanceSummary && $attendanceSummary->total_sessions > 0)
+                    @if($attendanceSummary && isset($attendanceSummary->total_sessions) && $attendanceSummary->total_sessions > 0)
                         <p class="mb-0"><strong>Attendance Rate:</strong>
                             {{ number_format(($attendanceSummary->present_count / $attendanceSummary->total_sessions) * 100, 1) }}%
                         </p>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Student Enrollments Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Other Enrollments</h6>
+                </div>
+                <div class="card-body">
+                    @php
+                        $otherEnrollments = $enrollment->student->enrollments()
+                            ->where('id', '!=', $enrollment->id)
+                            ->with(['package', 'class.subject'])
+                            ->latest()
+                            ->limit(5)
+                            ->get();
+                    @endphp
+                    @if($otherEnrollments->count() > 0)
+                        <ul class="list-unstyled mb-0">
+                            @foreach($otherEnrollments as $otherEnrollment)
+                            <li class="mb-2 pb-2 border-bottom">
+                                <a href="{{ route('staff.enrollments.show', $otherEnrollment) }}">
+                                    @if($otherEnrollment->package)
+                                        {{ $otherEnrollment->package->name }}
+                                    @elseif($otherEnrollment->class)
+                                        {{ $otherEnrollment->class->name }}
+                                    @endif
+                                </a>
+                                <br>
+                                <small class="text-muted">
+                                    @switch($otherEnrollment->status)
+                                        @case('active')
+                                            <span class="badge badge-success">Active</span>
+                                            @break
+                                        @case('suspended')
+                                            <span class="badge badge-warning">Suspended</span>
+                                            @break
+                                        @case('expired')
+                                            <span class="badge badge-danger">Expired</span>
+                                            @break
+                                        @case('cancelled')
+                                            <span class="badge badge-dark">Cancelled</span>
+                                            @break
+                                        @default
+                                            <span class="badge badge-secondary">{{ ucfirst($otherEnrollment->status) }}</span>
+                                    @endswitch
+                                </small>
+                            </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p class="text-muted mb-0">No other enrollments</p>
                     @endif
                 </div>
             </div>
@@ -432,6 +479,10 @@
                             <option value="12">12 Months</option>
                         </select>
                         <small class="form-text text-muted">Leave default to use package duration</small>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="generate_invoice" name="generate_invoice" value="1" checked>
+                        <label class="custom-control-label" for="generate_invoice">Generate renewal invoice</label>
                     </div>
                 </div>
                 <div class="modal-footer">
