@@ -335,8 +335,8 @@
                                 <tbody>
                                     @foreach($student->attendance->take(10) as $attendance)
                                         <tr>
-                                            <td>{{ $attendance->date ? $attendance->date->format('d M Y') : ($attendance->created_at ? $attendance->created_at->format('d M Y') : 'N/A') }}</td>
-                                            <td>{{ $attendance->classModel->name ?? 'N/A' }}</td>
+                                            <td>{{ $attendance->classSession && $attendance->classSession->session_date ? $attendance->classSession->session_date->format('d M Y') : ($attendance->created_at ? $attendance->created_at->format('d M Y') : 'N/A') }}</td>
+                                            <td>{{ $attendance->classSession->class->name ?? 'N/A' }}</td>
                                             <td>
                                                 <span class="attendance-badge {{ $attendance->status }}">
                                                     @switch($attendance->status)

@@ -113,7 +113,7 @@ class StudentController extends Controller
                   ->take(10);
             },
             'attendance' => function ($q) {
-                $q->with(['classModel', 'session'])
+                $q->with(['classSession.class'])
                   ->latest()
                   ->take(20);
             },
