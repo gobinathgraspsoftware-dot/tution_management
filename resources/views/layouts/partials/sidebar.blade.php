@@ -977,6 +977,8 @@
     </div>
 </div>
 @endrole
+
+{{-- Parents Sidebar --}}
 @role('parent')
 <!-- Main -->
 <div class="menu-dropdown">
@@ -1108,13 +1110,9 @@
     </a>
     <div class="collapse" id="section48">
         @if(Route::has('parent.announcements.index'))
-        <a href="{{ route('parent.announcements.index') }}" class="menu-item {{ request()->routeIs('parent.announcements.*') ? 'active' : '' }}">
-            <i class="fas fa-bullhorn"></i> Announcements
-        </a>
-        @else
-        <a href="#" class="menu-item">
-            <i class="fas fa-bullhorn"></i> Announcements
-        </a>
+            <a href="{{ route('parent.announcements.index') }}" class="menu-item {{ request()->routeIs('parent.announcements.*') ? 'active' : '' }}">
+                <i class="fas fa-bullhorn"></i> Announcements
+            </a>
         @endif
     </div>
 </div>

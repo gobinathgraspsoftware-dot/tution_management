@@ -41,10 +41,33 @@ class Student extends Model
         'approved_at' => 'datetime',
     ];
 
-    protected $appends = ['waiting_time'];
+    /**
+     * REMOVED: $appends = ['waiting_time']
+     *
+     * Reason: The blade views (approvals-index-blade.php) calculate waiting time
+     * inline using @php blocks, not via this accessor. Having it in $appends
+     * forces Laravel to call getWaitingTimeAttribute() on every model load,
+     * causing errors when method name doesn't match.
+     *
+     * If you need waiting_time, explicitly call $student->waiting_time or
+     * add it back to $appends after verifying the accessor method exists.
+     */
 
-    public function getWaitingStatusAttribute(): array {
-        $createdDate = $this->registration_date? Carbon::parse($this->registration_date) : $this->created_at;
+    /**
+     * Get waiting time for approval queue display.
+     *
+     * Usage: $student->waiting_time['value'], $student->waiting_time['badge']
+     *
+     * Note: This is NOT auto-appended. Blade views calculate inline instead.
+     * If you want to use this accessor, you can:
+     * 1. Call $student->waiting_time directly in blade
+     * 2. Or add 'waiting_time' back to $appends array above
+     */
+    public function getWaitingTimeAttribute(): array
+    {
+        $createdDate = $this->registration_date
+            ? Carbon::parse($this->registration_date)
+            : $this->created_at;
 
         if (!$createdDate) {
             return [
@@ -54,18 +77,18 @@ class Student extends Model
         }
 
         $now = Carbon::now();
-        $diffInDays = (int)$createdDate->diffInDays($now);
+        $diffInDays = (int) $createdDate->diffInDays($now);
 
         // Less than 1 day → show hours
         if ($diffInDays < 1) {
-            $hours = (int)$createdDate->diffInHours($now);
+            $hours = (int) $createdDate->diffInHours($now);
             return [
                 'value' => $hours . ' ' . ($hours === 1 ? 'hour' : 'hours'),
                 'badge' => 'bg-success',
             ];
         }
 
-        // More than 7 days
+        // More than 7 days - urgent
         if ($diffInDays > 7) {
             return [
                 'value' => $diffInDays . ' days',
@@ -73,7 +96,7 @@ class Student extends Model
             ];
         }
 
-        // More than 3 days
+        // More than 3 days - warning
         if ($diffInDays > 3) {
             return [
                 'value' => $diffInDays . ' days',
@@ -81,14 +104,17 @@ class Student extends Model
             ];
         }
 
-        // 1–3 days
+        // 1-3 days - normal
         return [
             'value' => $diffInDays . ' days',
             'badge' => 'bg-success',
         ];
     }
 
-    // Relationships
+    // ==========================================
+    // RELATIONSHIPS
+    // ==========================================
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -184,7 +210,10 @@ class Student extends Model
         return $this->hasMany(ClassAttendanceSummary::class);
     }
 
-    // Scopes
+    // ==========================================
+    // SCOPES
+    // ==========================================
+
     public function scopePending($query)
     {
         return $query->where('approval_status', 'pending');
@@ -210,182 +239,61 @@ class Student extends Model
         return $query->where('registration_type', 'offline');
     }
 
-    // Helpers
-    public function getFullNameAttribute()
-    {
-        return $this->user->name;
-    }
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
 
-    public function isPending()
+    public function isPending(): bool
     {
         return $this->approval_status === 'pending';
     }
 
-    public function isApproved()
+    public function isApproved(): bool
     {
         return $this->approval_status === 'approved';
     }
 
-    public function isRejected()
+    public function isRejected(): bool
     {
         return $this->approval_status === 'rejected';
     }
 
-    public function generateReferralCode()
+    public function getAge(): ?int
     {
-        if (!$this->referral_code) {
-            $this->referral_code = 'REF' . str_pad($this->id, 6, '0', STR_PAD_LEFT);
-            $this->save();
-        }
-        return $this->referral_code;
-    }
-
-    public function referredBy()
-    {
-        return $this->belongsTo(Student::class, 'referred_by');
-    }
-
-    /**
-     * Get formatted IC number with hyphens (YYMMDD-BP-XXXX)
-     *
-     * @return string
-     */
-    public function getFormattedIcNumberAttribute()
-    {
-        if (empty($this->ic_number) || strlen($this->ic_number) !== 12) {
-            return $this->ic_number;
-        }
-
-        return substr($this->ic_number, 0, 6) . '-' .
-               substr($this->ic_number, 6, 2) . '-' .
-               substr($this->ic_number, 8, 4);
-    }
-
-    /**
-     * Get IC number without formatting (digits only)
-     *
-     * @return string
-     */
-    public function getCleanIcNumberAttribute()
-    {
-        return $this->ic_number;
-    }
-
-    /**
-     * Format IC number for display
-     *
-     * @param string|null $icNumber
-     * @return string
-     */
-    public static function formatIcNumber($icNumber)
-    {
-        if (empty($icNumber)) {
-            return '';
-        }
-
-        // Remove any non-digit characters
-        $cleaned = preg_replace('/[^0-9]/', '', $icNumber);
-
-        if (strlen($cleaned) !== 12) {
-            return $icNumber;
-        }
-
-        return substr($cleaned, 0, 6) . '-' .
-               substr($cleaned, 6, 2) . '-' .
-               substr($cleaned, 8, 4);
-    }
-
-    /**
-     * Clean IC number (remove hyphens, keep digits only)
-     *
-     * @param string|null $icNumber
-     * @return string
-     */
-    public static function cleanIcNumber($icNumber)
-    {
-        if (empty($icNumber)) {
-            return '';
-        }
-
-        return preg_replace('/[^0-9]/', '', $icNumber);
-    }
-
-    /**
-     * Extract date of birth from IC number
-     *
-     * @param string|null $icNumber
-     * @return string|null Date in Y-m-d format
-     */
-    public static function extractDobFromIc($icNumber)
-    {
-        $cleaned = self::cleanIcNumber($icNumber);
-
-        if (strlen($cleaned) !== 12) {
+        if (!$this->date_of_birth) {
             return null;
         }
-
-        $year = substr($cleaned, 0, 2);
-        $month = substr($cleaned, 2, 2);
-        $day = substr($cleaned, 4, 2);
-
-        // Determine century (00-25 = 2000s, 26-99 = 1900s)
-        $fullYear = (intval($year) <= 25) ? '20' . $year : '19' . $year;
-
-        return $fullYear . '-' . $month . '-' . $day;
+        return $this->date_of_birth->age;
     }
 
     /**
-     * Extract gender from IC number
-     *
-     * @param string|null $icNumber
-     * @return string|null 'male' or 'female'
+     * Generate unique student ID
      */
-    public static function extractGenderFromIc($icNumber)
+    public static function generateStudentId(): string
     {
-        $cleaned = self::cleanIcNumber($icNumber);
+        $year = date('Y');
+        $lastStudent = self::whereYear('created_at', $year)
+            ->orderBy('id', 'desc')
+            ->first();
 
-        if (strlen($cleaned) !== 12) {
-            return null;
+        if ($lastStudent && preg_match('/STU-' . $year . '-(\d+)/', $lastStudent->student_id, $matches)) {
+            $nextNumber = intval($matches[1]) + 1;
+        } else {
+            $nextNumber = 1;
         }
 
-        $lastDigit = intval(substr($cleaned, 11, 1));
-
-        return ($lastDigit % 2 === 0) ? 'female' : 'male';
+        return 'STU-' . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Validate IC number format
-     *
-     * @param string|null $icNumber
-     * @return bool
+     * Generate unique referral code
      */
-    public static function isValidIcNumber($icNumber)
+    public static function generateReferralCode(): string
     {
-        $cleaned = self::cleanIcNumber($icNumber);
+        do {
+            $code = 'REF-' . strtoupper(substr(md5(uniqid()), 0, 8));
+        } while (self::where('referral_code', $code)->exists());
 
-        // Must be exactly 12 digits
-        if (strlen($cleaned) !== 12) {
-            return false;
-        }
-
-        // Must be all numeric
-        if (!ctype_digit($cleaned)) {
-            return false;
-        }
-
-        // Validate date portion (basic validation)
-        $year = intval(substr($cleaned, 0, 2));
-        $month = intval(substr($cleaned, 2, 2));
-        $day = intval(substr($cleaned, 4, 2));
-
-        if ($month < 1 || $month > 12) {
-            return false;
-        }
-
-        if ($day < 1 || $day > 31) {
-            return false;
-        }
-
-        return true;
+        return $code;
     }
 }

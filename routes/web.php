@@ -77,6 +77,7 @@ use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceContro
 use App\Http\Controllers\Teacher\ExamController as TeacherExamController;
 use App\Http\Controllers\Teacher\ResultController as TeacherResultController;
 use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncementController;
+use App\Http\Controllers\Parent\AnnouncementController as ParentAnnouncementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1314,6 +1315,19 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
             Route::get('/', [ParentEnrollmentController::class, 'index'])->name('index');
             Route::get('/{enrollment}', [ParentEnrollmentController::class, 'show'])->name('show');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Parent Announcement Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('announcements')->name('announcements.')->group(function () {
+            Route::get('/', [ParentAnnouncementController::class, 'index'])->name('index');
+            Route::post('/mark-all-read', [ParentAnnouncementController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::get('/{announcement}', [ParentAnnouncementController::class, 'show'])->name('show');
+            Route::post('/{announcement}/mark-read', [ParentAnnouncementController::class, 'markAsRead'])->name('mark-read');
+            Route::get('/{announcement}/attachment/{index}', [ParentAnnouncementController::class, 'downloadAttachment'])->name('download-attachment');
         });
 
     });
