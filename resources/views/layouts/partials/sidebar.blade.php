@@ -977,8 +977,6 @@
     </div>
 </div>
 @endrole
-
-{{-- Parent Sidebar --}}
 @role('parent')
 <!-- Main -->
 <div class="menu-dropdown">
@@ -986,9 +984,9 @@
         <i class="fas fa-chevron-down"></i> Main
     </a>
     <div class="collapse" id="section42">
-    <a href="{{ route('parent.dashboard') }}" class="menu-item {{ request()->routeIs('parent.dashboard') ? 'active' : '' }}">
-    <i class="fas fa-home"></i> Dashboard
-    </a>
+        <a href="{{ route('parent.dashboard') }}" class="menu-item {{ request()->routeIs('parent.dashboard') ? 'active' : '' }}">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
     </div>
 </div>
 
@@ -998,16 +996,16 @@
         <i class="fas fa-chevron-down"></i> Children
     </a>
     <div class="collapse" id="section43">
-    @if(Route::has('parent.children.index'))
-    <a href="{{ route('parent.children.index') }}" class="menu-item {{ request()->routeIs('parent.children.index') || request()->routeIs('parent.children.show') ? 'active' : '' }}">
-    <i class="fas fa-users"></i> My Children
-    </a>
-    @endif
-    @if(Route::has('parent.children.register'))
-    <a href="{{ route('parent.children.register') }}" class="menu-item {{ request()->routeIs('parent.children.register') ? 'active' : '' }}">
-    <i class="fas fa-user-plus"></i> Register Child
-    </a>
-    @endif
+        @if(Route::has('parent.children.index'))
+        <a href="{{ route('parent.children.index') }}" class="menu-item {{ request()->routeIs('parent.children.index') || request()->routeIs('parent.children.show') ? 'active' : '' }}">
+            <i class="fas fa-users"></i> My Children
+        </a>
+        @endif
+        @if(Route::has('parent.children.register'))
+        <a href="{{ route('parent.children.register') }}" class="menu-item {{ request()->routeIs('parent.children.register') ? 'active' : '' }}">
+            <i class="fas fa-user-plus"></i> Register Child
+        </a>
+        @endif
     </div>
 </div>
 
@@ -1017,18 +1015,16 @@
         <i class="fas fa-chevron-down"></i> Academic
     </a>
     <div class="collapse" id="section44">
-    @if(Route::has('timetable.index'))
-    <a href="{{ route('timetable.index') }}"
-       class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Timetable
-    </a>
-    @endif
-    @if(Route::has('parent.materials.index'))
-    <a href="{{ route('parent.materials.index') }}" class="menu-item {{ request()->routeIs('parent.materials.*') ? 'active' : '' }}">
-    <i class="fas fa-book-open"></i> Study Materials
-    </a>
-    @endif
+        @if(Route::has('timetable.index'))
+        <a href="{{ route('timetable.index') }}" class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+            <i class="fas fa-calendar-week"></i> Timetable
+        </a>
+        @endif
+        @if(Route::has('parent.materials.index'))
+        <a href="{{ route('parent.materials.index') }}" class="menu-item {{ request()->routeIs('parent.materials.*') ? 'active' : '' }}">
+            <i class="fas fa-book-open"></i> Study Materials
+        </a>
+        @endif
     </div>
 </div>
 
@@ -1046,56 +1042,48 @@
 </div>
 @endif
 
-<!-- Financial -->
+{{-- ============================================================ --}}
+{{-- BILLING & PAYMENTS - UNIFIED SECTION (Replaces Financial + Payments) --}}
+{{-- ============================================================ --}}
 <div class="menu-dropdown">
-    <a href="#section45" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Financial
+    <a href="#section_billing" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Billing & Payments
     </a>
-    <div class="collapse" id="section45">
-    @if(Route::has('parent.invoices.index'))
-    <a href="{{ route('parent.invoices.index') }}" class="menu-item {{ request()->routeIs('parent.invoices.index') || request()->routeIs('parent.invoices.show') ? 'active' : '' }}">
-    <i class="fas fa-file-invoice"></i> Invoices
-    </a>
-    @endif
+    <div class="collapse" id="section_billing">
+        {{-- Invoices --}}
+        @if(Route::has('parent.invoices.index'))
+        <a href="{{ route('parent.invoices.index') }}" class="menu-item {{ request()->routeIs('parent.invoices.index') || request()->routeIs('parent.invoices.show') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice"></i> Invoices
+        </a>
+        @endif
 
-    {{-- FIXED: Changed from parent.payments.create to parent.payments.pay-online --}}
-    @if(Route::has('parent.payments.pay-online'))
-    <a href="{{ route('parent.payments.pay-online') }}" class="menu-item {{ request()->routeIs('parent.payments.pay-online') ? 'active' : '' }}">
-    <i class="fas fa-money-bill-wave"></i> Make Payment
-    </a>
-    @endif
+        {{-- Make Payment (Online) --}}
+        @if(Route::has('parent.payments.pay-online'))
+        <a href="{{ route('parent.payments.pay-online') }}" class="menu-item {{ request()->routeIs('parent.payments.pay-online') ? 'active' : '' }}">
+            <i class="fas fa-credit-card"></i> Make Payment
+        </a>
+        @endif
 
-    @if(Route::has('parent.invoices.history'))
-    <a href="{{ route('parent.invoices.history') }}" class="menu-item {{ request()->routeIs('parent.invoices.history') ? 'active' : '' }}">
-    <i class="fas fa-history"></i> Payment History
-    </a>
-    @endif
-    </div>
-</div>
+        {{-- All Payments --}}
+        @if(Route::has('parent.payments.index'))
+        <a href="{{ route('parent.payments.index') }}" class="menu-item {{ request()->routeIs('parent.payments.index') || request()->routeIs('parent.payments.show') ? 'active' : '' }}">
+            <i class="fas fa-money-bill-wave"></i> Payment Records
+        </a>
+        @endif
 
-<!-- Payments -->
-<div class="menu-dropdown">
-    <a href="#section46" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Payments
-    </a>
-    <div class="collapse" id="section46">
-    @if(Route::has('parent.payments.index'))
-    <a href="{{ route('parent.payments.index') }}" class="menu-item {{ request()->routeIs('parent.payments.index') || request()->routeIs('parent.payments.show') ? 'active' : '' }}">
-    <i class="fas fa-money-bill-wave"></i> All Payments
-    </a>
-    @endif
+        {{-- Payment History --}}
+        @if(Route::has('parent.payments.history'))
+        <a href="{{ route('parent.payments.history') }}" class="menu-item {{ request()->routeIs('parent.payments.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Payment History
+        </a>
+        @endif
 
-    @if(Route::has('parent.payments.history'))
-    <a href="{{ route('parent.payments.history') }}" class="menu-item {{ request()->routeIs('parent.payments.history') ? 'active' : '' }}">
-    <i class="fas fa-history"></i> Payment History
-    </a>
-    @endif
-
-    @if(Route::has('parent.payments.outstanding'))
-    <a href="{{ route('parent.payments.outstanding') }}" class="menu-item {{ request()->routeIs('parent.payments.outstanding') ? 'active' : '' }}">
-    <i class="fas fa-exclamation-circle"></i> Outstanding
-    </a>
-    @endif
+        {{-- Outstanding --}}
+        @if(Route::has('parent.payments.outstanding'))
+        <a href="{{ route('parent.payments.outstanding') }}" class="menu-item {{ request()->routeIs('parent.payments.outstanding') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-circle text-warning"></i> Outstanding
+        </a>
+        @endif
     </div>
 </div>
 
@@ -1105,12 +1093,11 @@
         <i class="fas fa-chevron-down"></i> Attendance
     </a>
     <div class="collapse" id="section47">
-    {{-- FIXED: Changed from # to parent.attendance.index --}}
-    @if(Route::has('parent.attendance.index'))
-    <a href="{{ route('parent.attendance.index') }}" class="menu-item {{ request()->routeIs('parent.attendance.*') ? 'active' : '' }}">
-    <i class="fas fa-check-square"></i> View Attendance
-    </a>
-    @endif
+        @if(Route::has('parent.attendance.index'))
+        <a href="{{ route('parent.attendance.index') }}" class="menu-item {{ request()->routeIs('parent.attendance.*') ? 'active' : '' }}">
+            <i class="fas fa-check-square"></i> View Attendance
+        </a>
+        @endif
     </div>
 </div>
 
@@ -1120,15 +1107,15 @@
         <i class="fas fa-chevron-down"></i> Other
     </a>
     <div class="collapse" id="section48">
-    @if(Route::has('parent.announcements.index'))
-    <a href="{{ route('parent.announcements.index') }}" class="menu-item {{ request()->routeIs('parent.announcements.*') ? 'active' : '' }}">
-    <i class="fas fa-bullhorn"></i> Announcements
-    </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
-    </a>
-    @endif
+        @if(Route::has('parent.announcements.index'))
+        <a href="{{ route('parent.announcements.index') }}" class="menu-item {{ request()->routeIs('parent.announcements.*') ? 'active' : '' }}">
+            <i class="fas fa-bullhorn"></i> Announcements
+        </a>
+        @else
+        <a href="#" class="menu-item">
+            <i class="fas fa-bullhorn"></i> Announcements
+        </a>
+        @endif
     </div>
 </div>
 
@@ -1138,9 +1125,9 @@
         <i class="fas fa-chevron-down"></i> Account
     </a>
     <div class="collapse" id="section49">
-    <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-    <i class="fas fa-user"></i> My Profile
-    </a>
+        <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+            <i class="fas fa-user"></i> My Profile
+        </a>
     </div>
 </div>
 @endrole

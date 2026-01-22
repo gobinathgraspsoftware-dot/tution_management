@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Services\PaymentService;
 use App\Services\ReceiptService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
@@ -57,6 +58,8 @@ class PaymentController extends Controller
         $children = $parent->students()->with('user')->get();
 
         // Get payment summary
+        // FIXED: 'balance' is an accessor, not a real column
+        // Use DB::raw('total_amount - paid_amount') instead of sum('balance')
         $summary = [
             'total_paid' => Payment::whereIn('student_id', $childrenIds)
                 ->where('status', 'completed')
@@ -68,10 +71,10 @@ class PaymentController extends Controller
                 ->sum('amount'),
             'pending_invoices' => Invoice::whereIn('student_id', $childrenIds)
                 ->unpaid()
-                ->sum('balance'),
+                ->sum(DB::raw('total_amount - paid_amount')),  // FIXED
             'overdue_invoices' => Invoice::whereIn('student_id', $childrenIds)
                 ->overdue()
-                ->sum('balance'),
+                ->sum(DB::raw('total_amount - paid_amount')),  // FIXED
         ];
 
         $paymentStatuses = PaymentService::getPaymentStatuses();
@@ -192,6 +195,8 @@ class PaymentController extends Controller
         $parent = auth()->user()->parent;
         $childrenIds = $parent->students->pluck('id')->toArray();
 
+        // FIXED: Don't use ->sum('balance') in the query
+        // Fetch invoices first, then use the accessor on the collection
         $unpaidInvoices = Invoice::with(['student.user', 'enrollment.package'])
             ->whereIn('student_id', $childrenIds)
             ->unpaid()
@@ -200,8 +205,9 @@ class PaymentController extends Controller
 
         $children = $parent->students()->with('user')->get();
 
+        // Now use the accessor on the collection (this works because models are loaded)
         $summary = [
-            'total_outstanding' => $unpaidInvoices->sum('balance'),
+            'total_outstanding' => $unpaidInvoices->sum('balance'),  // Works on collection
             'total_overdue' => $unpaidInvoices->where('status', 'overdue')->sum('balance'),
             'due_this_week' => $unpaidInvoices->filter(function($inv) {
                 return $inv->due_date && $inv->due_date->isBetween(Carbon::today(), Carbon::today()->addDays(7));
