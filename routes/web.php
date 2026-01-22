@@ -78,6 +78,7 @@ use App\Http\Controllers\Teacher\ExamController as TeacherExamController;
 use App\Http\Controllers\Teacher\ResultController as TeacherResultController;
 use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncementController;
 use App\Http\Controllers\Parent\AnnouncementController as ParentAnnouncementController;
+use App\Http\Controllers\Staff\PhysicalMaterialController as StaffPhysicalMaterialController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1134,6 +1135,22 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/create', [StaffEnrollmentController::class, 'create'])->name('create')->middleware('permission:create-enrollments');
             Route::post('/', [StaffEnrollmentController::class, 'store'])->name('store')->middleware('permission:create-enrollments');
             Route::get('/{enrollment}', [StaffEnrollmentController::class, 'show'])->name('show')->middleware('permission:view-enrollments');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Physical Material Management (Staff)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('physical-materials')->name('physical-materials.')->group(function () {
+            // List all physical materials
+            Route::get('/', [StaffPhysicalMaterialController::class, 'index'])->name('index');
+
+            // View collections for a specific material
+            Route::get('/{physicalMaterial}/collections', [StaffPhysicalMaterialController::class, 'collections'])->name('collections');
+
+            // Record a collection
+            Route::post('/{physicalMaterial}/record-collection', [StaffPhysicalMaterialController::class, 'recordCollection'])->name('record-collection');
         });
 
     });

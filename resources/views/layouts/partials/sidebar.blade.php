@@ -666,17 +666,18 @@
     </div>
 </div>
 <!-- Materials -->
+@if(Route::has('staff.physical-materials.index'))
 <div class="menu-dropdown">
     <a href="#section25" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Materials
     </a>
     <div class="collapse" id="section25">
-    <a href="{{ route('admin.physical-materials.collections', ['physicalMaterial' => 1]) }}" class="menu-item">
-    <i class="fas fa-hands"></i> Material Collection
+    <a href="{{ route('staff.physical-materials.index') }}" class="menu-item {{ request()->routeIs('staff.physical-materials.*') ? 'active' : '' }}">
+        <i class="fas fa-book"></i> Physical Materials
     </a>
-    {{-- End: Meterials --}}
     </div>
 </div>
+@endif
 <!-- Students -->
 <div class="menu-dropdown">
     <a href="#section26" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
