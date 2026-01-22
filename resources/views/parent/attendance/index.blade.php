@@ -1,4 +1,4 @@
-@extends('layouts.parent')
+@extends('layouts.app')
 
 @section('title', 'Attendance Overview')
 
@@ -105,8 +105,8 @@
                     <h5 class="mb-1">Attendance Alert</h5>
                     <p class="mb-0">
                         @foreach($lowAttendanceAlerts as $alert)
-                            <strong>{{ $alert->student->user->name }}</strong> has 
-                            {{ number_format($alert->attendance_percentage, 1) }}% attendance in 
+                            <strong>{{ $alert->student->user->name }}</strong> has
+                            {{ number_format($alert->attendance_percentage, 1) }}% attendance in
                             {{ $alert->class->name }}.
                             @if(!$loop->last) <br> @endif
                         @endforeach
@@ -127,7 +127,7 @@
                     'late' => 0,
                     'percentage' => 0
                 ];
-                
+
                 $percentageClass = 'success';
                 if ($childStats['percentage'] < 75) $percentageClass = 'danger';
                 elseif ($childStats['percentage'] < 85) $percentageClass = 'warning';
@@ -155,11 +155,11 @@
                         {{-- Progress Bar --}}
                         <div class="mb-3">
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-{{ $percentageClass }}" 
-                                     role="progressbar" 
+                                <div class="progress-bar bg-{{ $percentageClass }}"
+                                     role="progressbar"
                                      style="width: {{ $childStats['percentage'] }}%"
-                                     aria-valuenow="{{ $childStats['percentage'] }}" 
-                                     aria-valuemin="0" 
+                                     aria-valuenow="{{ $childStats['percentage'] }}"
+                                     aria-valuemin="0"
                                      aria-valuemax="100">
                                 </div>
                             </div>
@@ -227,7 +227,7 @@
                                                 default => ['question', 'secondary']
                                             };
                                         @endphp
-                                        <span class="badge bg-{{ $statusIcon[1] }}" 
+                                        <span class="badge bg-{{ $statusIcon[1] }}"
                                               title="{{ ucfirst($attendance->status) }} - {{ $attendance->classSession->session_date->format('d/m') }}">
                                             <i class="fas fa-{{ $statusIcon[0] }}"></i>
                                         </span>
@@ -274,7 +274,7 @@
                                         {{ $notification->data['student_name'] ?? 'Your child' }}'s attendance marked
                                     </div>
                                     <small class="text-muted">
-                                        {{ $notification->data['class_name'] ?? 'N/A' }} - 
+                                        {{ $notification->data['class_name'] ?? 'N/A' }} -
                                         {{ $notification->data['attendance_status'] ?? 'N/A' }}
                                     </small>
                                 </div>

@@ -1,4 +1,4 @@
-@extends('layouts.parent')
+@extends('layouts.app')
 
 @section('title', $child->user->name . ' - Attendance')
 
@@ -183,7 +183,7 @@
                                         </span>
                                     </div>
                                     <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-{{ $classStat['percentage'] >= 85 ? 'success' : ($classStat['percentage'] >= 75 ? 'warning' : 'danger') }}" 
+                                        <div class="progress-bar bg-{{ $classStat['percentage'] >= 85 ? 'success' : ($classStat['percentage'] >= 75 ? 'warning' : 'danger') }}"
                                              style="width: {{ $classStat['percentage'] }}%"></div>
                                     </div>
                                     <small class="text-muted">
@@ -239,7 +239,7 @@
                                                     $dayAttendance = $calendarData[$dateKey] ?? null;
                                                     $dayClass = '';
                                                     $dayIcon = '';
-                                                    
+
                                                     if ($dayAttendance) {
                                                         switch($dayAttendance['status']) {
                                                             case 'present':
@@ -261,7 +261,7 @@
                                                         }
                                                     }
                                                 @endphp
-                                                <td class="{{ $dayClass }}" 
+                                                <td class="{{ $dayClass }}"
                                                     @if($dayAttendance) title="{{ ucfirst($dayAttendance['status']) }} - {{ $dayAttendance['class_name'] ?? 'N/A' }}" @endif>
                                                     <div class="fw-semibold">{{ $day }}</div>
                                                     @if($dayIcon)
@@ -276,7 +276,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     {{-- Legend --}}
                     <div class="d-flex justify-content-center gap-4 mt-3">
                         <span><span class="badge bg-success">&nbsp;</span> Present</span>
@@ -321,7 +321,7 @@
                                                 </small>
                                             </td>
                                             <td>
-                                                {{ $record->classSession->start_time->format('H:i') }} - 
+                                                {{ $record->classSession->start_time->format('H:i') }} -
                                                 {{ $record->classSession->end_time->format('H:i') }}
                                             </td>
                                             <td>{{ $record->classSession->class->name ?? 'N/A' }}</td>

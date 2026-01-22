@@ -25,7 +25,7 @@ class AttendanceController extends Controller
     public function index()
     {
         $parent = auth()->user()->parent;
-        
+
         if (!$parent) {
             return redirect()->route('parent.dashboard')
                 ->with('error', 'Parent profile not found.');
@@ -48,7 +48,7 @@ class AttendanceController extends Controller
             $childrenStats[$child->id] = $stats;
             $totalPresent += $stats['present'];
             $totalAbsent += $stats['absent'];
-            
+
             // Get recent attendance for each child
             $recentAttendance[$child->id] = $this->attendanceService->getRecentAttendance($child->id, 7);
         }
@@ -60,8 +60,9 @@ class AttendanceController extends Controller
         $lowAttendanceAlerts = $this->attendanceService->getParentLowAttendanceAlerts($parent->id);
 
         // Get notification history (attendance related)
-        $notificationHistory = Notification::where('notifiable_id', auth()->id())
-            ->where('notifiable_type', 'App\Models\User')
+        // FIXED: Use 'user_id' instead of 'notifiable_id' and 'notifiable_type'
+        // The notifications table in this project uses user_id, not polymorphic columns
+        $notificationHistory = Notification::where('user_id', auth()->id())
             ->where('type', 'like', '%attendance%')
             ->orderBy('created_at', 'desc')
             ->limit(10)
@@ -85,7 +86,7 @@ class AttendanceController extends Controller
     public function childAttendance(Request $request, Student $student)
     {
         $parent = auth()->user()->parent;
-        
+
         if (!$parent) {
             return redirect()->route('parent.dashboard')
                 ->with('error', 'Parent profile not found.');
@@ -130,7 +131,7 @@ class AttendanceController extends Controller
             ->whereHas('classSession', function($q) use ($selectedMonth, $selectedYear, $classId) {
                 $q->whereMonth('session_date', $selectedMonth)
                   ->whereYear('session_date', $selectedYear);
-                
+
                 if ($classId) {
                     $q->where('class_id', $classId);
                 }
