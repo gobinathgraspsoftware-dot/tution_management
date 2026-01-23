@@ -82,6 +82,7 @@ use App\Http\Controllers\Staff\PhysicalMaterialController as StaffPhysicalMateri
 use App\Http\Controllers\Staff\StudentController as StaffStudentController;
 use App\Http\Controllers\Staff\TrialClassController as StaffTrialClassController;
 use App\Http\Controllers\Staff\AttendanceController as StaffAttendanceController;
+use App\Http\Controllers\Staff\SeminarController as StaffSeminarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1268,6 +1269,22 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             // AJAX Endpoints
             Route::get('/get-sessions', [StaffAttendanceController::class, 'getSessions'])->name('get-sessions');
             Route::get('/session/{session}/summary', [StaffAttendanceController::class, 'getSessionSummary'])->name('session.summary');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Staff Seminar Routes (View-Only)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('seminars')->name('seminars.')->middleware('permission:view-seminars')->group(function () {
+            // Seminar listing
+            Route::get('/', [StaffSeminarController::class, 'index'])->name('index');
+
+            // Seminar details (requires view-seminar-participants permission)
+            Route::get('/{seminar}', [StaffSeminarController::class, 'show'])->name('show');
+
+            // Participant list (requires view-seminar-participants permission)
+            Route::get('/{seminar}/participants', [StaffSeminarController::class, 'participants'])->name('participants');
         });
 
     });

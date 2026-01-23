@@ -811,6 +811,27 @@
     </div>
 </div>
 
+{{-- Start: Seminar Management (Staff - View Only) --}}
+<div class="menu-dropdown">
+    <a href="#staff_seminar_section" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Seminars
+    </a>
+    <div class="collapse" id="staff_seminar_section">
+        @if(Route::has('staff.seminars.index'))
+        <a href="{{ route('staff.seminars.index') }}" class="menu-item {{ request()->routeIs('staff.seminars.index') ? 'active' : '' }}">
+            <i class="fas fa-calendar-alt"></i> All Seminars
+            @php
+                $openSeminarsCount = \App\Models\Seminar::where('status', 'open')->count();
+            @endphp
+            @if($openSeminarsCount > 0)
+                <span class="badge bg-success ms-auto">{{ $openSeminarsCount }}</span>
+            @endif
+        </a>
+        @endif
+    </div>
+</div>
+{{-- End: Seminar Management (Staff - View Only) --}}
+
 <!-- Arrears -->
 <div class="menu-dropdown">
     <a href="#sectionArrears" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
