@@ -146,7 +146,7 @@
                                     <option value="half_day" {{ $existingRecord && $existingRecord->status == 'half_day' ? 'selected' : '' }}>
                                         ½ Half Day
                                     </option>
-                                    <option value="on_leave" {{ $existingRecord && $existingRecord->status == 'on_leave' ? 'selected' : '' }}>
+                                    <option value="leave" {{ $existingRecord && $existingRecord->status == 'leave' ? 'selected' : '' }}>
                                         📅 On Leave
                                     </option>
                                 </select>

@@ -80,41 +80,47 @@ class AttendanceController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Get sessions for today by default
+        // Get date - today by default
         $selectedDate = $request->input('date', Carbon::today()->toDateString());
         $selectedClassId = $request->input('class_id');
 
-        $sessions = [];
         $students = collect();
         $existingAttendance = collect();
 
         if ($selectedClassId) {
-            $sessions = ClassSession::where('class_id', $selectedClassId)
-                ->whereDate('session_date', $selectedDate)
-                ->with(['class.subject'])
-                ->orderBy('start_time')
-                ->get();
-
-            // Get enrolled students for selected class
+            // Get enrolled students for selected class - FIX: Use unique to prevent duplicates
             $students = Enrollment::where('class_id', $selectedClassId)
                 ->where('status', 'active')
                 ->with('student.user')
                 ->get()
-                ->pluck('student');
+                ->pluck('student')
+                ->unique('id')  // Prevent duplicate students
+                ->filter()      // Remove null values
+                ->values();     // Re-index collection
 
-            // Get existing attendance for selected date and session
-            if ($request->input('session_id')) {
-                $existingAttendance = StudentAttendance::where('class_session_id', $request->input('session_id'))
-                    ->get()
-                    ->keyBy('student_id');
-            }
+            // Get or create session for this class and date
+            $session = ClassSession::firstOrCreate(
+                [
+                    'class_id' => $selectedClassId,
+                    'session_date' => $selectedDate,
+                ],
+                [
+                    'start_time' => '08:00:00',
+                    'end_time' => '10:00:00',
+                    'status' => 'scheduled',
+                ]
+            );
+
+            // Get existing attendance for selected date
+            $existingAttendance = StudentAttendance::where('class_session_id', $session->id)
+                ->get()
+                ->keyBy('student_id');
         }
 
         return view('staff.attendance.mark-student', compact(
             'classes',
             'selectedDate',
             'selectedClassId',
-            'sessions',
             'students',
             'existingAttendance'
         ));
@@ -126,7 +132,7 @@ class AttendanceController extends Controller
     public function storeStudent(Request $request)
     {
         $request->validate([
-            'session_id' => 'required|exists:class_sessions,id',
+            'class_id' => 'required|exists:classes,id',
             'date' => 'required|date',
             'attendance' => 'required|array',
             'attendance.*.status' => 'nullable|in:present,absent,late,excused',
@@ -134,8 +140,21 @@ class AttendanceController extends Controller
         ]);
 
         try {
+            // Get or create session for this class and date
+            $session = ClassSession::firstOrCreate(
+                [
+                    'class_id' => $request->class_id,
+                    'session_date' => $request->date,
+                ],
+                [
+                    'start_time' => '08:00:00',
+                    'end_time' => '10:00:00',
+                    'status' => 'scheduled',
+                ]
+            );
+
             $result = $this->attendanceService->markStudentAttendance([
-                'session_id' => $request->session_id,
+                'session_id' => $session->id,
                 'date' => $request->date,
                 'attendance' => $request->attendance,
                 'send_notifications' => $request->boolean('send_notifications'),
@@ -168,31 +187,100 @@ class AttendanceController extends Controller
             ->orderBy('name')
             ->get();
 
-        $students = Student::with('user')
-            ->whereHas('user', fn($q) => $q->where('status', 'active'))
-            ->orderBy('student_id')
-            ->get();
-
         $selectedClassId = $request->input('class_id');
         $selectedStudentId = $request->input('student_id');
         $month = $request->input('month', now()->month);
         $year = $request->input('year', now()->year);
 
+        // Get students based on selected class (like Mark Student Attendance)
+        $students = collect();
+        if ($selectedClassId) {
+            $students = Enrollment::where('class_id', $selectedClassId)
+                ->where('status', 'active')
+                ->with('student.user')
+                ->get()
+                ->pluck('student')
+                ->unique('id')
+                ->filter()
+                ->values();
+        }
+
         $calendarData = [];
         $stats = [];
+        $selectedStudent = null;
 
         if ($selectedStudentId) {
+            // Individual student calendar
+            $selectedStudent = Student::with('user')->find($selectedStudentId);
             $calendarData = $this->attendanceService->getStudentAttendanceCalendar(
                 $selectedStudentId,
                 $month,
                 $year
             );
-            $stats = $this->attendanceService->getStudentStats($selectedStudentId, $month, $year);
+            $stats = $this->attendanceService->getStudentMonthlyStats($selectedStudentId, $month, $year);
         } elseif ($selectedClassId) {
-            $calendarData = $this->attendanceService->getClassAttendanceCalendar(
-                $selectedClassId,
-                "{$year}-{$month}"
-            );
+            // Class calendar - build directly in controller
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+            $sessions = ClassSession::where('class_id', $selectedClassId)
+                ->whereBetween('session_date', [$startDate, $endDate])
+                ->with(['attendances.student.user'])
+                ->get();
+
+            foreach ($sessions as $session) {
+                $dateKey = $session->session_date->format('Y-m-d');
+                
+                if (!isset($calendarData[$dateKey])) {
+                    $calendarData[$dateKey] = [
+                        'sessions' => [],
+                        'summary' => ['present' => 0, 'absent' => 0, 'late' => 0, 'excused' => 0],
+                    ];
+                }
+
+                // Get session summary
+                $sessionSummary = [
+                    'present' => $session->attendances->where('status', 'present')->count(),
+                    'absent' => $session->attendances->where('status', 'absent')->count(),
+                    'late' => $session->attendances->where('status', 'late')->count(),
+                    'excused' => $session->attendances->where('status', 'excused')->count(),
+                ];
+
+                $calendarData[$dateKey]['sessions'][] = [
+                    'id' => $session->id,
+                    'topic' => $session->topic ?? '',
+                    'time' => Carbon::parse($session->start_time)->format('H:i'),
+                    'summary' => $sessionSummary,
+                ];
+
+                // Aggregate summary
+                foreach (['present', 'absent', 'late', 'excused'] as $status) {
+                    $calendarData[$dateKey]['summary'][$status] += $sessionSummary[$status];
+                }
+            }
+
+            // Calculate class stats
+            $totalPresent = 0;
+            $totalAbsent = 0;
+            $totalLate = 0;
+            $totalExcused = 0;
+            
+            foreach ($calendarData as $dayData) {
+                $totalPresent += $dayData['summary']['present'];
+                $totalAbsent += $dayData['summary']['absent'];
+                $totalLate += $dayData['summary']['late'];
+                $totalExcused += $dayData['summary']['excused'];
+            }
+            
+            $totalRecords = $totalPresent + $totalAbsent + $totalLate + $totalExcused;
+            $stats = [
+                'total_sessions' => $sessions->count(),
+                'present' => $totalPresent,
+                'absent' => $totalAbsent,
+                'late' => $totalLate,
+                'excused' => $totalExcused,
+                'percentage' => $totalRecords > 0 ? round(($totalPresent / $totalRecords) * 100, 2) : 0,
+            ];
         }
 
         return view('staff.attendance.student-calendar', compact(
@@ -200,6 +288,7 @@ class AttendanceController extends Controller
             'students',
             'selectedClassId',
             'selectedStudentId',
+            'selectedStudent',
             'month',
             'year',
             'calendarData',
@@ -239,7 +328,7 @@ class AttendanceController extends Controller
         $request->validate([
             'date' => 'required|date',
             'attendance' => 'required|array',
-            'attendance.*.status' => 'nullable|in:present,absent,half_day,on_leave',
+            'attendance.*.status' => 'nullable|in:present,absent,half_day,leave',
             'attendance.*.time_in' => 'nullable|date_format:H:i',
             'attendance.*.time_out' => 'nullable|date_format:H:i',
             'attendance.*.remarks' => 'nullable|string|max:255',
@@ -277,19 +366,61 @@ class AttendanceController extends Controller
 
         $calendarData = [];
         $stats = [];
+        $selectedTeacher = null;
 
         if ($selectedTeacherId) {
-            $calendarData = $this->attendanceService->getTeacherAttendanceCalendar(
-                $selectedTeacherId,
-                $month,
-                $year
-            );
-            $stats = $this->attendanceService->getTeacherStats($selectedTeacherId, $month, $year);
+            $selectedTeacher = Teacher::with('user')->find($selectedTeacherId);
+            
+            // Build calendar data directly
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+            $attendanceRecords = TeacherAttendance::where('teacher_id', $selectedTeacherId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->get()
+                ->keyBy(function($item) {
+                    return Carbon::parse($item->date)->format('Y-m-d');
+                });
+
+            // Build calendar data for each day
+            $currentDate = $startDate->copy();
+            while ($currentDate <= $endDate) {
+                $dateKey = $currentDate->format('Y-m-d');
+                $record = $attendanceRecords->get($dateKey);
+                
+                if ($record) {
+                    $calendarData[$dateKey] = [
+                        'id' => $record->id,
+                        'status' => $record->status,
+                        'time_in' => $record->time_in,
+                        'time_out' => $record->time_out,
+                        'hours_worked' => $record->hours_worked,
+                        'remarks' => $record->remarks,
+                    ];
+                }
+                
+                $currentDate->addDay();
+            }
+
+            // Calculate stats
+            $allRecords = TeacherAttendance::where('teacher_id', $selectedTeacherId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->get();
+
+            $stats = [
+                'working_days' => $allRecords->count(),
+                'present' => $allRecords->where('status', 'present')->count(),
+                'absent' => $allRecords->where('status', 'absent')->count(),
+                'half_day' => $allRecords->where('status', 'half_day')->count(),
+                'leave' => $allRecords->where('status', 'leave')->count(),
+                'total_hours' => $allRecords->sum('hours_worked') ?? 0,
+            ];
         }
 
         return view('staff.attendance.teacher-calendar', compact(
             'teachers',
             'selectedTeacherId',
+            'selectedTeacher',
             'month',
             'year',
             'calendarData',
@@ -344,16 +475,22 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'class_id' => 'nullable|exists:classes,id',
-            'student_id' => 'nullable|exists:students,id',
-            'date_from' => 'nullable|date',
-            'date_to' => 'nullable|date|after_or_equal:date_from',
-            'status' => 'nullable|in:present,absent,late,excused',
+            'student_id' => 'required|exists:students,id',
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
         ]);
 
-        $filters = $request->only(['class_id', 'student_id', 'date_from', 'date_to', 'status']);
-        $filename = 'student_attendance_' . now()->format('Y-m-d_His') . '.xlsx';
+        $student = Student::find($request->student_id);
+        $filename = "attendance_{$student->student_id}_{$request->date_from}_{$request->date_to}.csv";
 
-        return Excel::download(new StudentAttendanceExport($filters), $filename);
+        $export = new StudentAttendanceExport(
+            (int) $request->student_id,
+            $request->date_from,
+            $request->date_to,
+            $request->class_id ? (int) $request->class_id : null
+        );
+
+        return $export->download($filename);
     }
 
     /**
@@ -519,7 +656,7 @@ class AttendanceController extends Controller
     public function updateTeacher(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:present,absent,half_day,on_leave',
+            'status' => 'required|in:present,absent,half_day,leave',
             'time_in' => 'nullable|date_format:H:i',
             'time_out' => 'nullable|date_format:H:i',
             'remarks' => 'nullable|string|max:500',

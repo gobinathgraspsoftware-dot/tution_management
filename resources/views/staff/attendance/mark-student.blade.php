@@ -39,7 +39,7 @@
     <div class="card-body">
         <form id="filterForm" method="GET" action="{{ route('staff.attendance.student.mark') }}">
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label for="class_id" class="form-label">Class <span class="text-danger">*</span></label>
                     <select name="class_id" id="class_id" class="form-select" required>
                         <option value="">-- Select Class --</option>
@@ -51,26 +51,12 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
                     <input type="date" name="date" id="date" class="form-control" 
                            value="{{ $selectedDate }}" required>
                 </div>
-                <div class="col-md-3">
-                    <label for="session_id" class="form-label">Session</label>
-                    <select name="session_id" id="session_id" class="form-select">
-                        <option value="">-- Select Session --</option>
-                        @foreach($sessions as $session)
-                            <option value="{{ $session->id }}" 
-                                {{ request('session_id') == $session->id ? 'selected' : '' }}>
-                                {{ Carbon\Carbon::parse($session->start_time)->format('h:i A') }} - 
-                                {{ Carbon\Carbon::parse($session->end_time)->format('h:i A') }}
-                                @if($session->topic) ({{ $session->topic }}) @endif
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
+                <div class="col-md-4 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="fas fa-search me-2"></i> Load Students
                     </button>
@@ -95,7 +81,6 @@
             @csrf
             <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
             <input type="hidden" name="date" value="{{ $selectedDate }}">
-            <input type="hidden" name="session_id" value="{{ request('session_id') }}">
 
             <!-- Quick Actions -->
             <div class="mb-4">
@@ -262,12 +247,6 @@ document.getElementById('date').addEventListener('change', function() {
     }
 });
 
-document.getElementById('session_id').addEventListener('change', function() {
-    if (document.getElementById('class_id').value) {
-        document.getElementById('filterForm').submit();
-    }
-});
-
 // Mark all students with a specific status
 function markAll(status) {
     document.querySelectorAll(`input[value="${status}"].status-radio`).forEach(radio => {
@@ -288,14 +267,6 @@ document.getElementById('attendanceForm')?.addEventListener('submit', function(e
     if (checkedRadios.length === 0) {
         e.preventDefault();
         alert('Please mark attendance for at least one student.');
-        return false;
-    }
-    
-    // Check if session is selected
-    const sessionId = document.querySelector('input[name="session_id"]').value;
-    if (!sessionId) {
-        e.preventDefault();
-        alert('Please select a session before marking attendance.');
         return false;
     }
 });

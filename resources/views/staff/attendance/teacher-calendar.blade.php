@@ -164,7 +164,7 @@
     </div>
     <div class="col-md-2">
         <div class="stat-mini-card">
-            <div class="stat-value text-info">{{ $stats['on_leave'] ?? 0 }}</div>
+            <div class="stat-value text-info">{{ $stats['leave'] ?? 0 }}</div>
             <div class="stat-label">On Leave</div>
         </div>
     </div>
@@ -183,6 +183,9 @@
         <span>
             <i class="fas fa-calendar me-2"></i> 
             {{ Carbon\Carbon::create($year, $month)->format('F Y') }}
+            @if(isset($selectedTeacher) && $selectedTeacher)
+                - {{ $selectedTeacher->user->name ?? 'Teacher' }}
+            @endif
         </span>
         <div>
             <span class="badge bg-success me-1">P - Present</span>
@@ -238,7 +241,7 @@
                                 @case('half_day')
                                     <span class="status-badge bg-warning text-dark">H</span>
                                     @break
-                                @case('on_leave')
+                                @case('leave')
                                     <span class="status-badge bg-info text-white">L</span>
                                     @break
                             @endswitch
@@ -302,7 +305,7 @@
                                 @case('half_day')
                                     <span class="badge bg-warning">Half Day</span>
                                     @break
-                                @case('on_leave')
+                                @case('leave')
                                     <span class="badge bg-info">On Leave</span>
                                     @break
                             @endswitch

@@ -78,9 +78,9 @@
                                 </label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="status" id="status_on_leave" 
-                                       value="on_leave" {{ $attendance->status == 'on_leave' ? 'checked' : '' }}>
-                                <label class="form-check-label text-info" for="status_on_leave">
+                                <input class="form-check-input" type="radio" name="status" id="status_leave" 
+                                       value="leave" {{ $attendance->status == 'leave' ? 'checked' : '' }}>
+                                <label class="form-check-label text-info" for="status_leave">
                                     <i class="fas fa-calendar-alt me-1"></i> On Leave
                                 </label>
                             </div>

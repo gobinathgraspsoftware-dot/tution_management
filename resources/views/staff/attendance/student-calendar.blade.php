@@ -97,22 +97,11 @@
         <i class="fas fa-filter me-2"></i> Filter Options
     </div>
     <div class="card-body">
-        <form method="GET" action="{{ route('staff.attendance.student.calendar') }}">
+        <form method="GET" action="{{ route('staff.attendance.student.calendar') }}" id="filterForm">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label for="student_id" class="form-label">Student</label>
-                    <select name="student_id" id="student_id" class="form-select">
-                        <option value="">-- Select Student --</option>
-                        @foreach($students as $student)
-                            <option value="{{ $student->id }}" {{ $selectedStudentId == $student->id ? 'selected' : '' }}>
-                                {{ $student->student_id }} - {{ $student->user->name ?? 'N/A' }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="class_id" class="form-label">Or Filter by Class</label>
-                    <select name="class_id" id="class_id" class="form-select" {{ $selectedStudentId ? 'disabled' : '' }}>
+                    <label for="class_id" class="form-label">Class <span class="text-danger">*</span></label>
+                    <select name="class_id" id="class_id" class="form-select" required>
                         <option value="">-- Select Class --</option>
                         @foreach($classes as $class)
                             <option value="{{ $class->id }}" {{ $selectedClassId == $class->id ? 'selected' : '' }}>
@@ -120,6 +109,20 @@
                             </option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="student_id" class="form-label">Student <small class="text-muted">(Optional)</small></label>
+                    <select name="student_id" id="student_id" class="form-select" {{ !$selectedClassId ? 'disabled' : '' }}>
+                        <option value="">-- All Students --</option>
+                        @foreach($students as $student)
+                            <option value="{{ $student->id }}" {{ $selectedStudentId == $student->id ? 'selected' : '' }}>
+                                {{ $student->student_id }} - {{ $student->user->name ?? 'N/A' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    {{-- @if(!$selectedClassId)
+                    <small class="text-muted">Select a class first</small>
+                    @endif --}}
                 </div>
                 <div class="col-md-2">
                     <label for="month" class="form-label">Month</label>
@@ -200,8 +203,13 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>
-            <i class="fas fa-calendar me-2"></i> 
+            <i class="fas fa-calendar me-2"></i>
             {{ Carbon\Carbon::create($year, $month)->format('F Y') }}
+            @if($selectedStudent)
+                - {{ $selectedStudent->user->name ?? 'Student' }}
+            @elseif($selectedClassId)
+                - {{ $classes->firstWhere('id', $selectedClassId)?->name ?? 'Class' }}
+            @endif
         </span>
         <div>
             <span class="badge bg-success me-1"><i class="fas fa-circle text-xs me-1"></i> Present</span>
@@ -231,7 +239,7 @@
             @php
                 $currentDate = $startOfCalendar->copy();
             @endphp
-            
+
             @while($currentDate <= $endOfCalendar)
                 @php
                     $isCurrentMonth = $currentDate->month == $month;
@@ -239,15 +247,15 @@
                     $dateKey = $currentDate->format('Y-m-d');
                     $dayData = $calendarData[$dateKey] ?? null;
                 @endphp
-                
+
                 <div class="calendar-day {{ !$isCurrentMonth ? 'other-month' : '' }} {{ $isToday ? 'today' : '' }}">
                     <div class="calendar-day-number">{{ $currentDate->day }}</div>
-                    
+
                     @if($dayData && $isCurrentMonth)
                         <div class="mt-1">
                             @if(isset($dayData['status']))
                                 {{-- Student view - single status --}}
-                                <span class="attendance-indicator {{ $dayData['status'] }}" 
+                                <span class="attendance-indicator {{ $dayData['status'] }}"
                                       title="{{ ucfirst($dayData['status']) }}"></span>
                             @elseif(isset($dayData['sessions']))
                                 {{-- Class view - multiple sessions --}}
@@ -266,7 +274,7 @@
                         </div>
                     @endif
                 </div>
-                
+
                 @php
                     $currentDate->addDay();
                 @endphp
@@ -279,14 +287,15 @@
 <div class="card">
     <div class="card-body text-center py-5">
         <i class="fas fa-hand-pointer text-muted fa-4x mb-3"></i>
-        <h5>Select Filter Options</h5>
-        <p class="text-muted">Please select a student or class above to view the attendance calendar.</p>
+        <h5>Select a Class</h5>
+        <p class="text-muted">Please select a class above to view the attendance calendar.<br>
+        You can then optionally filter by a specific student.</p>
     </div>
 </div>
 @endif
 
-<!-- Export Section -->
-@if($selectedStudentId || $selectedClassId)
+<!-- Export Section - Only available when specific student is selected -->
+@if($selectedStudentId)
 <div class="card mt-4">
     <div class="card-header">
         <i class="fas fa-download me-2"></i> Export Options
@@ -304,27 +313,36 @@
         @endcan
     </div>
 </div>
+@elseif($selectedClassId)
+<div class="card mt-4">
+    <div class="card-body text-center py-3">
+        <i class="fas fa-info-circle text-info me-2"></i>
+        <span class="text-muted">Select a specific student to enable export functionality.</span>
+    </div>
+</div>
 @endif
 @endsection
 
 @push('scripts')
 <script>
-// Clear class_id when student is selected and vice versa
-document.getElementById('student_id').addEventListener('change', function() {
-    const classSelect = document.getElementById('class_id');
+// Auto-submit when class is selected (like Mark Student Attendance)
+document.getElementById('class_id').addEventListener('change', function() {
+    // Clear student selection when class changes
+    document.getElementById('student_id').value = '';
+
     if (this.value) {
-        classSelect.value = '';
-        classSelect.disabled = true;
+        // Submit form to load students for selected class
+        document.getElementById('filterForm').submit();
     } else {
-        classSelect.disabled = false;
+        // Disable student dropdown if no class selected
+        document.getElementById('student_id').disabled = true;
     }
 });
 
-document.getElementById('class_id').addEventListener('change', function() {
-    const studentSelect = document.getElementById('student_id');
-    if (this.value) {
-        studentSelect.value = '';
-    }
+// Enable student dropdown if class is already selected
+document.addEventListener('DOMContentLoaded', function() {
+    const classId = document.getElementById('class_id').value;
+    document.getElementById('student_id').disabled = !classId;
 });
 </script>
 @endpush

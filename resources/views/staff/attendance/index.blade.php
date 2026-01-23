@@ -291,7 +291,7 @@
                                             @case('half_day')
                                                 <span class="badge bg-warning">Half Day</span>
                                                 @break
-                                            @case('on_leave')
+                                            @case('leave')
                                                 <span class="badge bg-info">On Leave</span>
                                                 @break
                                         @endswitch

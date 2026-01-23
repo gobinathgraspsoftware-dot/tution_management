@@ -56,12 +56,12 @@
                 </div>
                 <div class="col-md-2">
                     <label for="date_from" class="form-label">Date From</label>
-                    <input type="date" name="date_from" id="date_from" class="form-control" 
+                    <input type="date" name="date_from" id="date_from" class="form-control"
                            value="{{ $dateFrom }}">
                 </div>
                 <div class="col-md-2">
                     <label for="date_to" class="form-label">Date To</label>
-                    <input type="date" name="date_to" id="date_to" class="form-control" 
+                    <input type="date" name="date_to" id="date_to" class="form-control"
                            value="{{ $dateTo }}">
                 </div>
                 <div class="col-md-3">
@@ -139,13 +139,15 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="fas fa-table me-2"></i> Attendance Records</span>
-        @if($attendanceData && $attendanceData->total() > 0)
+        @if($attendanceData && $attendanceData->count() > 0)
         <div class="d-flex gap-2">
             @can('export-student-attendance')
-            <a href="{{ route('staff.attendance.export-student', request()->all()) }}" 
+            @if($studentId)
+            <a href="{{ route('staff.attendance.export-student', request()->all()) }}"
                class="btn btn-sm btn-success">
                 <i class="fas fa-file-excel me-1"></i> Export Excel
             </a>
+            @endif
             @endcan
         </div>
         @endif
@@ -225,7 +227,7 @@
                             </td>
                             @can('edit-student-attendance')
                             <td>
-                                <a href="{{ route('staff.attendance.edit-student', $record->id) }}" 
+                                <a href="{{ route('staff.attendance.edit-student', $record->id) }}"
                                    class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -238,7 +240,7 @@
             </div>
 
             <!-- Pagination -->
-            @if($attendanceData->hasPages())
+            @if(method_exists($attendanceData, 'hasPages') && $attendanceData->hasPages())
             <div class="card-footer">
                 {{ $attendanceData->links() }}
             </div>
