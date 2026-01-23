@@ -775,51 +775,90 @@
     </div>
 </div>
 {{-- End: Attendance Management (Staff) --}}
-
-<!-- Financial -->
+<!-- Payments -->
 <div class="menu-dropdown">
-    <a href="#section28" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Financial
+    <a href="#sectionPayments" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Payments
     </a>
-    <div class="collapse" id="section28">
-    @if(Route::has('admin.arrears.index'))
-    <a href="{{ route('admin.arrears.index') }}"
-       class="menu-item {{ request()->routeIs('admin.arrears.*') ? 'active' : '' }}">
-    <i class="fas fa-exclamation-circle"></i> Arrears View
-    </a>
-    @endif
-    {{-- Staff Payment Menu with Submenu --}}
-    @if(Route::has('staff.payments.index'))
-    <div class="menu-item-group">
-    <a href="{{ route('staff.payments.index') }}" class="menu-item {{ request()->routeIs('staff.payments.*') ? 'active' : '' }}">
-        <i class="fas fa-money-bill-wave"></i> Payments
-        <i class="fas fa-chevron-down menu-arrow ms-auto"></i>
-    </a>
-    <div class="submenu {{ request()->routeIs('staff.payments.*') ? 'show' : '' }}">
-        <a href="{{ route('staff.payments.index') }}" class="menu-item {{ request()->routeIs('staff.payments.index') ? 'active' : '' }}">
+    <div class="collapse" id="sectionPayments">
+        @if(Route::has('staff.payments.index'))
+        <a href="{{ route('staff.payments.index') }}"
+           class="menu-item {{ request()->routeIs('staff.payments.index') ? 'active' : '' }}">
             <i class="fas fa-list"></i> Today's Payments
         </a>
-        <a href="{{ route('staff.payments.create') }}" class="menu-item {{ request()->routeIs('staff.payments.create') ? 'active' : '' }}">
+        @endif
+
+        @if(Route::has('staff.payments.create'))
+        <a href="{{ route('staff.payments.create') }}"
+           class="menu-item {{ request()->routeIs('staff.payments.create') ? 'active' : '' }}">
             <i class="fas fa-plus"></i> Record Payment
         </a>
+        @endif
+
         @if(Route::has('staff.payments.quick-payment'))
-        <a href="{{ route('staff.payments.quick-payment') }}" class="menu-item {{ request()->routeIs('staff.payments.quick-payment') ? 'active' : '' }}">
+        <a href="{{ route('staff.payments.quick-payment') }}"
+           class="menu-item {{ request()->routeIs('staff.payments.quick-payment') ? 'active' : '' }}">
             <i class="fas fa-bolt"></i> Quick Payment
         </a>
         @endif
-    </div>
-    </div>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-money-bill-wave"></i> Payments
-    </a>
-    @endif
-    <a href="{{ route('timetable.index') }}"
-       class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Timetable
-    </a>
 
+        @if(Route::has('staff.payments.history'))
+        <a href="{{ route('staff.payments.history') }}"
+           class="menu-item {{ request()->routeIs('staff.payments.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Payment History
+        </a>
+        @endif
+    </div>
+</div>
+
+<!-- Arrears -->
+<div class="menu-dropdown">
+    <a href="#sectionArrears" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Arrears
+    </a>
+    <div class="collapse" id="sectionArrears">
+        @if(Route::has('admin.arrears.index'))
+        <a href="{{ route('admin.arrears.index') }}"
+           class="menu-item {{ request()->routeIs('admin.arrears.index') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-circle"></i> Arrears View
+        </a>
+        @endif
+
+        @if(Route::has('admin.arrears.overdue'))
+        <a href="{{ route('admin.arrears.overdue') }}"
+           class="menu-item {{ request()->routeIs('admin.arrears.overdue') ? 'active' : '' }}">
+            <i class="fas fa-clock"></i> Overdue List
+        </a>
+        @endif
+
+        @if(Route::has('admin.arrears.reminders'))
+        <a href="{{ route('admin.arrears.reminders') }}"
+           class="menu-item {{ request()->routeIs('admin.arrears.reminders') ? 'active' : '' }}">
+            <i class="fas fa-bell"></i> Send Reminders
+        </a>
+        @endif
+
+        @if(Route::has('admin.arrears.reports'))
+        <a href="{{ route('admin.arrears.reports') }}"
+           class="menu-item {{ request()->routeIs('admin.arrears.reports') ? 'active' : '' }}">
+            <i class="fas fa-chart-bar"></i> Arrears Reports
+        </a>
+        @endif
+    </div>
+</div>
+
+<!-- Timetable (Keep separate or move to Other section) -->
+<div class="menu-dropdown">
+    <a href="#sectionTimetable" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Timetable
+    </a>
+    <div class="collapse" id="sectionTimetable">
+        @if(Route::has('timetable.index'))
+        <a href="{{ route('timetable.index') }}"
+           class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+            <i class="fas fa-calendar-week"></i> View Timetable
+        </a>
+        @endif
     </div>
 </div>
 <!-- Other -->
