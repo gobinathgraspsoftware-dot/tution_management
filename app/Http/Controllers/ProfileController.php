@@ -185,6 +185,11 @@ class ProfileController extends Controller
 
     /**
      * Update the user's password.
+     * 
+     * IMPORTANT: Also updates password_view column to keep plain text password
+     * in sync for admin reference (WhatsApp credential resend functionality).
+     * This follows the same pattern as admin controllers (StaffController, 
+     * TeacherController, StudentController, ParentController).
      */
     public function updatePassword(Request $request)
     {
@@ -200,9 +205,12 @@ class ProfileController extends Controller
             return back()->withErrors(['current_password' => 'Current password is incorrect.']);
         }
 
-        // Update password
+        // Update password - both hashed and plain text (password_view)
+        // password_view is used by admin to resend credentials via WhatsApp
+        // This keeps it in sync when user changes their own password
         $user->update([
             'password' => Hash::make($validated['password']),
+            'password_view' => $validated['password'],  // Store plain text for admin reference
         ]);
 
         // Log activity
