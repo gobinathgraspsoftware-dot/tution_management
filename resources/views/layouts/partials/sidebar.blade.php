@@ -893,19 +893,35 @@
         @endif
     </div>
 </div>
+
+<!-- Announcements -->
+<div class="menu-dropdown">
+    <a href="#staff_announcements_section" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Announcements
+    </a>
+    <div class="collapse" id="staff_announcements_section">
+        @if(Route::has('staff.announcements.index'))
+        <a href="{{ route('staff.announcements.index') }}"
+           class="menu-item {{ request()->routeIs('staff.announcements.*') ? 'active' : '' }}">
+            <i class="fas fa-bullhorn"></i> Announcements
+        </a>
+        @else
+        <a href="#" class="menu-item disabled">
+            <i class="fas fa-bullhorn"></i> Announcements
+        </a>
+        @endif
+    </div>
+</div>
+
 <!-- Other -->
 <div class="menu-dropdown">
     <a href="#section29" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Other
     </a>
     <div class="collapse" id="section29">
-    <a href="#" class="menu-item">
-    <i class="fas fa-shopping-cart"></i> Cafeteria POS
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
-    </a>
-
+        <a href="#" class="menu-item">
+            <i class="fas fa-shopping-cart"></i> Cafeteria POS
+        </a>
     </div>
 </div>
 <!-- Account -->

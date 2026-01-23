@@ -84,6 +84,7 @@ use App\Http\Controllers\Staff\TrialClassController as StaffTrialClassController
 use App\Http\Controllers\Staff\AttendanceController as StaffAttendanceController;
 use App\Http\Controllers\Staff\SeminarController as StaffSeminarController;
 use App\Http\Controllers\Staff\ArrearsController as StaffArrearsController;
+use App\Http\Controllers\Staff\AnnouncementController as StaffAnnouncementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1214,13 +1215,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::prefix('physical-materials')->name('physical-materials.')->group(function () {
-            // List all physical materials
             Route::get('/', [StaffPhysicalMaterialController::class, 'index'])->name('index');
-
-            // View collections for a specific material
             Route::get('/{physicalMaterial}/collections', [StaffPhysicalMaterialController::class, 'collections'])->name('collections');
-
-            // Record a collection
             Route::post('/{physicalMaterial}/record-collection', [StaffPhysicalMaterialController::class, 'recordCollection'])->name('record-collection');
         });
 
@@ -1230,44 +1226,26 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::prefix('attendance')->name('attendance.')->group(function () {
-            // Dashboard
             Route::get('/', [StaffAttendanceController::class, 'index'])->name('index');
 
-            // Student Attendance
             Route::prefix('student')->name('student.')->group(function () {
-                // Mark student attendance
                 Route::get('/mark', [StaffAttendanceController::class, 'markStudent'])->name('mark');
                 Route::post('/mark', [StaffAttendanceController::class, 'storeStudent'])->name('store');
-
-                // Student calendar view
                 Route::get('/calendar', [StaffAttendanceController::class, 'studentCalendar'])->name('calendar');
             });
 
-            // Teacher Attendance
             Route::prefix('teacher')->name('teacher.')->group(function () {
-                // Mark teacher attendance
                 Route::get('/mark', [StaffAttendanceController::class, 'markTeacher'])->name('mark');
                 Route::post('/mark', [StaffAttendanceController::class, 'storeTeacher'])->name('store');
-
-                // Teacher calendar view
                 Route::get('/calendar', [StaffAttendanceController::class, 'teacherCalendar'])->name('calendar');
             });
 
-            // Attendance Reports
             Route::get('/reports', [StaffAttendanceController::class, 'reports'])->name('reports');
-
-            // Export student attendance
             Route::get('/export-student', [StaffAttendanceController::class, 'exportStudent'])->name('export-student');
-
-            // Edit Student Attendance (must be before {id} routes)
             Route::get('/student/{id}/edit', [StaffAttendanceController::class, 'editStudent'])->name('edit-student');
             Route::put('/student/{id}', [StaffAttendanceController::class, 'updateStudent'])->name('update-student');
-
-            // Edit Teacher Attendance
             Route::get('/teacher/{id}/edit', [StaffAttendanceController::class, 'editTeacher'])->name('edit-teacher');
             Route::put('/teacher/{id}', [StaffAttendanceController::class, 'updateTeacher'])->name('update-teacher');
-
-            // AJAX Endpoints
             Route::get('/get-sessions', [StaffAttendanceController::class, 'getSessions'])->name('get-sessions');
             Route::get('/session/{session}/summary', [StaffAttendanceController::class, 'getSessionSummary'])->name('session.summary');
         });
@@ -1278,42 +1256,35 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::prefix('seminars')->name('seminars.')->middleware('permission:view-seminars')->group(function () {
-            // Seminar listing
             Route::get('/', [StaffSeminarController::class, 'index'])->name('index');
-
-            // Seminar details (requires view-seminar-participants permission)
             Route::get('/{seminar}', [StaffSeminarController::class, 'show'])->name('show');
-
-            // Participant list (requires view-seminar-participants permission)
             Route::get('/{seminar}/participants', [StaffSeminarController::class, 'participants'])->name('participants');
         });
 
         /*
         |--------------------------------------------------------------------------
-        | Arrears Management Routes (Staff - View Only)
+        | Arrears Management Routes
         |--------------------------------------------------------------------------
         */
         Route::prefix('arrears')->name('arrears.')->group(function () {
-            // Arrears Dashboard - requires 'view-arrears' permission
-            Route::get('/', [StaffArrearsController::class, 'index'])
-                ->name('index');
+            Route::get('/', [StaffArrearsController::class, 'index'])->name('index');
+            Route::get('/students-list', [StaffArrearsController::class, 'studentsWithArrears'])->name('students-list');
+            Route::get('/due-report', [StaffArrearsController::class, 'dueReport'])->name('due-report');
+            Route::get('/summary', [StaffArrearsController::class, 'getSummary'])->name('summary');
+            Route::get('/student/{student}', [StaffArrearsController::class, 'student'])->name('student');
+        });
 
-            // Students with Arrears List - requires 'view-arrears' permission
-            Route::get('/students-list', [StaffArrearsController::class, 'studentsWithArrears'])
-                ->name('students-list');
-
-            // Due Report - requires 'view-due-reports' permission
-            Route::get('/due-report', [StaffArrearsController::class, 'dueReport'])
-                ->name('due-report');
-
-            // API endpoint for AJAX summary
-            Route::get('/summary', [StaffArrearsController::class, 'getSummary'])
-                ->name('summary');
-
-            // Student Arrears Details - requires 'view-student-arrears' permission
-            // IMPORTANT: This route must come AFTER the other routes to avoid conflicts
-            Route::get('/student/{student}', [StaffArrearsController::class, 'student'])
-                ->name('student');
+        /*
+        |--------------------------------------------------------------------------
+        | Staff Announcement Routes (View Only)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('announcements')->name('announcements.')->group(function () {
+            Route::get('/', [StaffAnnouncementController::class, 'index'])->name('index');
+            Route::post('/mark-all-read', [StaffAnnouncementController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::get('/{announcement}', [StaffAnnouncementController::class, 'show'])->name('show');
+            Route::post('/{announcement}/mark-read', [StaffAnnouncementController::class, 'markAsRead'])->name('mark-read');
+            Route::get('/{announcement}/attachment/{index}', [StaffAnnouncementController::class, 'downloadAttachment'])->name('download-attachment');
         });
 
     });
