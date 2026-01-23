@@ -832,41 +832,52 @@
 </div>
 {{-- End: Seminar Management (Staff - View Only) --}}
 
-<!-- Arrears -->
+
+{{-- Start: Arrears Management (Staff - View Only) --}}
 <div class="menu-dropdown">
-    <a href="#sectionArrears" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+    <a href="#staff_arrears_section" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Arrears
+        @php
+            $overdueCount = \App\Models\Invoice::where('status', 'overdue')->count();
+        @endphp
+        @if($overdueCount > 0)
+            <span class="badge bg-danger ms-auto">{{ $overdueCount }}</span>
+        @endif
     </a>
-    <div class="collapse" id="sectionArrears">
-        @if(Route::has('admin.arrears.index'))
-        <a href="{{ route('admin.arrears.index') }}"
-           class="menu-item {{ request()->routeIs('admin.arrears.index') ? 'active' : '' }}">
-            <i class="fas fa-exclamation-circle"></i> Arrears View
+    <div class="collapse" id="staff_arrears_section">
+
+        @if(Route::has('staff.arrears.index'))
+        <a href="{{ route('staff.arrears.index') }}"
+           class="menu-item {{ request()->routeIs('staff.arrears.index') ? 'active' : '' }}">
+            <i class="fas fa-tachometer-alt"></i> Arrears Dashboard
         </a>
         @endif
 
-        @if(Route::has('admin.arrears.overdue'))
-        <a href="{{ route('admin.arrears.overdue') }}"
-           class="menu-item {{ request()->routeIs('admin.arrears.overdue') ? 'active' : '' }}">
-            <i class="fas fa-clock"></i> Overdue List
+        @if(Route::has('staff.arrears.students-list'))
+        <a href="{{ route('staff.arrears.students-list') }}"
+           class="menu-item {{ request()->routeIs('staff.arrears.students-list') ? 'active' : '' }}">
+            <i class="fas fa-users"></i> Students with Arrears
+            @php
+                $studentsWithArrearsCount = \App\Models\Invoice::unpaid()
+                    ->distinct('student_id')
+                    ->count('student_id');
+            @endphp
+            @if($studentsWithArrearsCount > 0)
+                <span class="badge bg-warning text-dark ms-auto">{{ $studentsWithArrearsCount }}</span>
+            @endif
         </a>
         @endif
 
-        @if(Route::has('admin.arrears.reminders'))
-        <a href="{{ route('admin.arrears.reminders') }}"
-           class="menu-item {{ request()->routeIs('admin.arrears.reminders') ? 'active' : '' }}">
-            <i class="fas fa-bell"></i> Send Reminders
-        </a>
-        @endif
-
-        @if(Route::has('admin.arrears.reports'))
-        <a href="{{ route('admin.arrears.reports') }}"
-           class="menu-item {{ request()->routeIs('admin.arrears.reports') ? 'active' : '' }}">
-            <i class="fas fa-chart-bar"></i> Arrears Reports
+        @if(Route::has('staff.arrears.due-report'))
+        <a href="{{ route('staff.arrears.due-report') }}"
+           class="menu-item {{ request()->routeIs('staff.arrears.due-report') ? 'active' : '' }}">
+            <i class="fas fa-calendar-times"></i> Due Report
         </a>
         @endif
     </div>
 </div>
+{{-- End: Arrears Management (Staff - View Only) --}}
+
 
 <!-- Timetable (Keep separate or move to Other section) -->
 <div class="menu-dropdown">

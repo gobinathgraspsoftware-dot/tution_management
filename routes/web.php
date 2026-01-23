@@ -83,6 +83,7 @@ use App\Http\Controllers\Staff\StudentController as StaffStudentController;
 use App\Http\Controllers\Staff\TrialClassController as StaffTrialClassController;
 use App\Http\Controllers\Staff\AttendanceController as StaffAttendanceController;
 use App\Http\Controllers\Staff\SeminarController as StaffSeminarController;
+use App\Http\Controllers\Staff\ArrearsController as StaffArrearsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1285,6 +1286,34 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
             // Participant list (requires view-seminar-participants permission)
             Route::get('/{seminar}/participants', [StaffSeminarController::class, 'participants'])->name('participants');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Arrears Management Routes (Staff - View Only)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('arrears')->name('arrears.')->group(function () {
+            // Arrears Dashboard - requires 'view-arrears' permission
+            Route::get('/', [StaffArrearsController::class, 'index'])
+                ->name('index');
+
+            // Students with Arrears List - requires 'view-arrears' permission
+            Route::get('/students-list', [StaffArrearsController::class, 'studentsWithArrears'])
+                ->name('students-list');
+
+            // Due Report - requires 'view-due-reports' permission
+            Route::get('/due-report', [StaffArrearsController::class, 'dueReport'])
+                ->name('due-report');
+
+            // API endpoint for AJAX summary
+            Route::get('/summary', [StaffArrearsController::class, 'getSummary'])
+                ->name('summary');
+
+            // Student Arrears Details - requires 'view-student-arrears' permission
+            // IMPORTANT: This route must come AFTER the other routes to avoid conflicts
+            Route::get('/student/{student}', [StaffArrearsController::class, 'student'])
+                ->name('student');
         });
 
     });
