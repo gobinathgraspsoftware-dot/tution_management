@@ -81,6 +81,7 @@ use App\Http\Controllers\Parent\AnnouncementController as ParentAnnouncementCont
 use App\Http\Controllers\Staff\PhysicalMaterialController as StaffPhysicalMaterialController;
 use App\Http\Controllers\Staff\StudentController as StaffStudentController;
 use App\Http\Controllers\Staff\TrialClassController as StaffTrialClassController;
+use App\Http\Controllers\Staff\AttendanceController as StaffAttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1179,57 +1180,30 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/', [StaffEnrollmentController::class, 'index'])->name('index');
 
             // Create new enrollment
-            Route::get('/create', [StaffEnrollmentController::class, 'create'])
-                ->name('create');
-
-            Route::post('/', [StaffEnrollmentController::class, 'store'])
-                ->name('store');
+            Route::get('/create', [StaffEnrollmentController::class, 'create'])->name('create');
+            Route::post('/', [StaffEnrollmentController::class, 'store'])->name('store');
 
             // Student Search AJAX endpoint for Select2
-            Route::get('/search-students', [StaffEnrollmentController::class, 'searchStudents'])
-                ->name('search-students');
+            Route::get('/search-students', [StaffEnrollmentController::class, 'searchStudents'])->name('search-students');
 
             // AJAX endpoints (must be before {enrollment} routes)
-            Route::get('/class/{class}/fee', [StaffEnrollmentController::class, 'getClassFee'])
-                ->name('class.fee');
-
-            Route::get('/package/{package}/details', [StaffEnrollmentController::class, 'getPackageDetails'])
-                ->name('package.details');
-
-            Route::get('/package/{package}/subjects-classes', [StaffEnrollmentController::class, 'getPackageSubjectsWithClasses'])
-                ->name('package.subjects-classes');
-
-            Route::get('/subject/{subject}/classes', [StaffEnrollmentController::class, 'getClassesBySubject'])
-                ->name('subject.classes');
-
-            Route::get('/student/{student}/enrollments', [StaffEnrollmentController::class, 'getStudentEnrollments'])
-                ->name('student.enrollments');
+            Route::get('/class/{class}/fee', [StaffEnrollmentController::class, 'getClassFee'])->name('class.fee');
+            Route::get('/package/{package}/details', [StaffEnrollmentController::class, 'getPackageDetails'])->name('package.details');
+            Route::get('/package/{package}/subjects-classes', [StaffEnrollmentController::class, 'getPackageSubjectsWithClasses'])->name('package.subjects-classes');
+            Route::get('/subject/{subject}/classes', [StaffEnrollmentController::class, 'getClassesBySubject'])->name('subject.classes');
+            Route::get('/student/{student}/enrollments', [StaffEnrollmentController::class, 'getStudentEnrollments'])->name('student.enrollments');
 
             // Single enrollment operations
-            Route::get('/{enrollment}', [StaffEnrollmentController::class, 'show'])
-                ->name('show');
-
-            Route::get('/{enrollment}/edit', [StaffEnrollmentController::class, 'edit'])
-                ->name('edit');
-
-            Route::put('/{enrollment}', [StaffEnrollmentController::class, 'update'])
-                ->name('update');
-
-            Route::delete('/{enrollment}', [StaffEnrollmentController::class, 'destroy'])
-                ->name('destroy');
+            Route::get('/{enrollment}', [StaffEnrollmentController::class, 'show'])->name('show');
+            Route::get('/{enrollment}/edit', [StaffEnrollmentController::class, 'edit'])->name('edit');
+            Route::put('/{enrollment}', [StaffEnrollmentController::class, 'update'])->name('update');
+            Route::delete('/{enrollment}', [StaffEnrollmentController::class, 'destroy'])->name('destroy');
 
             // Status Management
-            Route::patch('/{enrollment}/cancel', [StaffEnrollmentController::class, 'cancel'])
-                ->name('cancel');
-
-            Route::patch('/{enrollment}/suspend', [StaffEnrollmentController::class, 'suspend'])
-                ->name('suspend');
-
-            Route::patch('/{enrollment}/resume', [StaffEnrollmentController::class, 'resume'])
-                ->name('resume');
-
-            Route::post('/{enrollment}/renew', [StaffEnrollmentController::class, 'renew'])
-                ->name('renew');
+            Route::patch('/{enrollment}/cancel', [StaffEnrollmentController::class, 'cancel'])->name('cancel');
+            Route::patch('/{enrollment}/suspend', [StaffEnrollmentController::class, 'suspend'])->name('suspend');
+            Route::patch('/{enrollment}/resume', [StaffEnrollmentController::class, 'resume'])->name('resume');
+            Route::post('/{enrollment}/renew', [StaffEnrollmentController::class, 'renew'])->name('renew');
         });
 
         /*
@@ -1246,6 +1220,54 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
             // Record a collection
             Route::post('/{physicalMaterial}/record-collection', [StaffPhysicalMaterialController::class, 'recordCollection'])->name('record-collection');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Staff Attendance Management Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            // Dashboard
+            Route::get('/', [StaffAttendanceController::class, 'index'])->name('index');
+
+            // Student Attendance
+            Route::prefix('student')->name('student.')->group(function () {
+                // Mark student attendance
+                Route::get('/mark', [StaffAttendanceController::class, 'markStudent'])->name('mark');
+                Route::post('/mark', [StaffAttendanceController::class, 'storeStudent'])->name('store');
+
+                // Student calendar view
+                Route::get('/calendar', [StaffAttendanceController::class, 'studentCalendar'])->name('calendar');
+            });
+
+            // Teacher Attendance
+            Route::prefix('teacher')->name('teacher.')->group(function () {
+                // Mark teacher attendance
+                Route::get('/mark', [StaffAttendanceController::class, 'markTeacher'])->name('mark');
+                Route::post('/mark', [StaffAttendanceController::class, 'storeTeacher'])->name('store');
+
+                // Teacher calendar view
+                Route::get('/calendar', [StaffAttendanceController::class, 'teacherCalendar'])->name('calendar');
+            });
+
+            // Attendance Reports
+            Route::get('/reports', [StaffAttendanceController::class, 'reports'])->name('reports');
+
+            // Export student attendance
+            Route::get('/export-student', [StaffAttendanceController::class, 'exportStudent'])->name('export-student');
+
+            // Edit Student Attendance (must be before {id} routes)
+            Route::get('/student/{id}/edit', [StaffAttendanceController::class, 'editStudent'])->name('edit-student');
+            Route::put('/student/{id}', [StaffAttendanceController::class, 'updateStudent'])->name('update-student');
+
+            // Edit Teacher Attendance
+            Route::get('/teacher/{id}/edit', [StaffAttendanceController::class, 'editTeacher'])->name('edit-teacher');
+            Route::put('/teacher/{id}', [StaffAttendanceController::class, 'updateTeacher'])->name('update-teacher');
+
+            // AJAX Endpoints
+            Route::get('/get-sessions', [StaffAttendanceController::class, 'getSessions'])->name('get-sessions');
+            Route::get('/session/{session}/summary', [StaffAttendanceController::class, 'getSessionSummary'])->name('session.summary');
         });
 
     });

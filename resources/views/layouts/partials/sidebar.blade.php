@@ -731,17 +731,51 @@
 @endif
 {{-- End: Enrollment Management --}}
 
-<!-- Operations -->
+
+{{-- Start: Attendance Management (Staff) --}}
+<!-- Attendance Management -->
 <div class="menu-dropdown">
-    <a href="#section27" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Operations
+    <a href="#staff_attendance_section" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Attendance Management
     </a>
-    <div class="collapse" id="section27">
-    <a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> Mark Attendance
-    </a>
+    <div class="collapse" id="staff_attendance_section">
+        @if(Route::has('staff.attendance.index'))
+        <a href="{{ route('staff.attendance.index') }}" class="menu-item {{ request()->routeIs('staff.attendance.index') ? 'active' : '' }}">
+            <i class="fas fa-tachometer-alt"></i> Attendance Dashboard
+        </a>
+        @endif
+
+        @if(Route::has('staff.attendance.student.mark'))
+        <a href="{{ route('staff.attendance.student.mark') }}" class="menu-item {{ request()->routeIs('staff.attendance.student.mark') ? 'active' : '' }}">
+            <i class="fas fa-user-check"></i> Mark Student Attendance
+        </a>
+        @endif
+
+        @if(Route::has('staff.attendance.student.calendar'))
+        <a href="{{ route('staff.attendance.student.calendar') }}" class="menu-item {{ request()->routeIs('staff.attendance.student.calendar') ? 'active' : '' }}">
+            <i class="fas fa-calendar-alt"></i> Student Calendar
+        </a>
+        @endif
+
+        @if(Route::has('staff.attendance.teacher.mark'))
+        <a href="{{ route('staff.attendance.teacher.mark') }}" class="menu-item {{ request()->routeIs('staff.attendance.teacher.mark') ? 'active' : '' }}">
+            <i class="fas fa-chalkboard-teacher"></i> Mark Teacher Attendance
+        </a>
+        @endif
+        @if(Route::has('staff.attendance.teacher.calendar'))
+        <a href="{{ route('staff.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('staff.attendance.teacher.calendar') ? 'active' : '' }}">
+            <i class="fas fa-calendar-check"></i> Teacher Calendar
+        </a>
+        @endif
+        @if(Route::has('staff.attendance.reports'))
+        <a href="{{ route('staff.attendance.reports') }}" class="menu-item {{ request()->routeIs('staff.attendance.reports') ? 'active' : '' }}">
+            <i class="fas fa-chart-bar"></i> Attendance Reports
+        </a>
+        @endif
     </div>
 </div>
+{{-- End: Attendance Management (Staff) --}}
+
 <!-- Financial -->
 <div class="menu-dropdown">
     <a href="#section28" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
