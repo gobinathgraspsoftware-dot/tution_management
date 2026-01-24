@@ -106,6 +106,57 @@
 </div>
 {{-- Inventory Management --}}
 
+{{-- Start: pos management --}}
+
+<!-- POS & Sales -->
+<div class="menu-dropdown">
+    <a href="#sectionPOS" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> POS & Sales
+    </a>
+    <div class="collapse" id="sectionPOS">
+        {{-- POS Terminal --}}
+        @if(Route::has('admin.pos.index'))
+        <a href="{{ route('admin.pos.index') }}" class="menu-item {{ request()->routeIs('admin.pos.index') ? 'active' : '' }}">
+            <i class="fas fa-cash-register me-2"></i> POS Terminal
+        </a>
+        @endif
+        {{-- POS Terminal --}}
+
+        {{-- POS Transactions --}}
+        @if(Route::has('admin.pos.transactions'))
+        <a href="{{ route('admin.pos.transactions') }}" class="menu-item {{ request()->routeIs('admin.pos.transactions*') ? 'active' : '' }}">
+            <i class="fas fa-receipt me-2"></i> POS Transactions
+        </a>
+        @endif
+        {{-- POS Transactions --}}
+
+        {{-- Daily Cash Reports --}}
+        @if(Route::has('admin.daily-cash-reports.index'))
+        <a href="{{ route('admin.daily-cash-reports.index') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.index') || request()->routeIs('admin.daily-cash-reports.show') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar me-2"></i> Daily Cash Reports
+        </a>
+        @endif
+        {{-- Daily Cash Reports --}}
+
+        {{-- Sales Summary --}}
+        @if(Route::has('admin.daily-cash-reports.summary'))
+        <a href="{{ route('admin.daily-cash-reports.summary') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.summary') ? 'active' : '' }}">
+            <i class="fas fa-chart-line me-2"></i> Sales Summary
+        </a>
+        @endif
+        {{-- Sales Summary --}}
+
+        {{-- Open/Close Drawer --}}
+        @if(Route::has('admin.daily-cash-reports.open-drawer'))
+        <a href="{{ route('admin.daily-cash-reports.open-drawer') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.open-drawer') ? 'active' : '' }}">
+            <i class="fas fa-cash-register me-2"></i> Open/Close Drawer
+        </a>
+        @endif
+        {{-- Open/Close Drawer --}}
+    </div>
+</div>
+{{-- End: pos management --}}
+
 {{-- Start: CLASS MANAGEMENT --}}
 @canany(['view-classes', 'create-classes', 'manage-class-schedule'])
 <!-- CLASS MANAGEMENT -->
@@ -918,7 +969,6 @@
 </div>
 {{-- End: Arrears Management (Staff - View Only) --}}
 
-
 <!-- Timetable (Keep separate or move to Other section) -->
 <div class="menu-dropdown">
     <a href="#sectionTimetable" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -953,6 +1003,37 @@
     </div>
 </div>
 
+<!-- POS -->
+<div class="menu-dropdown">
+    <a href="#sectionStaffPOS" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> POS
+    </a>
+    <div class="collapse" id="sectionStaffPOS">
+        {{-- POS Terminal --}}
+        @if(Route::has('staff.pos.index'))
+        <a href="{{ route('staff.pos.index') }}" class="menu-item {{ request()->routeIs('staff.pos.index') ? 'active' : '' }}">
+            <i class="fas fa-cash-register me-2"></i> POS Terminal
+        </a>
+        @endif
+        {{-- POS Terminal --}}
+
+        {{-- My Transactions --}}
+        @if(Route::has('staff.pos.my-transactions'))
+        <a href="{{ route('staff.pos.my-transactions') }}" class="menu-item {{ request()->routeIs('staff.pos.my-transactions*') ? 'active' : '' }}">
+            <i class="fas fa-receipt me-2"></i> My Transactions
+        </a>
+        @endif
+        {{-- My Transactions --}}
+
+        {{-- Open Drawer --}}
+        @if(Route::has('staff.pos.open-drawer'))
+        <a href="{{ route('staff.pos.open-drawer') }}" class="menu-item {{ request()->routeIs('staff.pos.open-drawer') ? 'active' : '' }}">
+            <i class="fas fa-cash-register me-2"></i> Open Drawer
+        </a>
+        @endif
+        {{-- Open Drawer --}}
+    </div>
+</div>
 <!-- Other -->
 <div class="menu-dropdown">
     <a href="#section29" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">

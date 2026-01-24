@@ -89,6 +89,9 @@ use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\Admin\InventoryCategoryController;
 use App\Http\Controllers\Admin\InventoryReportController;
 use App\Http\Controllers\Staff\InventoryController as StaffInventoryController;
+use App\Http\Controllers\Admin\PosController as AdminPosController;
+use App\Http\Controllers\Admin\DailyCashReportController;
+use App\Http\Controllers\Staff\PosController as StaffPosController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1125,6 +1128,39 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('inventory-reports/export-movement', [InventoryReportController::class, 'exportMovement'])->name('inventory.reports.export-movement');
         Route::get('inventory-reports/export-valuation', [InventoryReportController::class, 'exportValuation'])->name('inventory.reports.export-valuation');
 
+        // -------------------------------------------------------------------------
+        // POS Terminal & Transactions
+        // -------------------------------------------------------------------------
+        Route::prefix('pos')->name('pos.')->group(function () {
+            Route::get('/', [AdminPosController::class, 'index'])->name('index');
+            Route::post('/sale', [AdminPosController::class, 'processSale'])->name('sale');
+            Route::get('/products', [AdminPosController::class, 'getProducts'])->name('products');
+            Route::get('/transactions', [AdminPosController::class, 'transactions'])->name('transactions');
+            Route::get('/transactions/export', [AdminPosController::class, 'exportTransactions'])->name('transactions.export');
+            Route::get('/transactions/{transaction}', [AdminPosController::class, 'show'])->name('transactions.show');
+            Route::get('/transactions/{transaction}/receipt', [AdminPosController::class, 'receipt'])->name('transactions.receipt');
+            Route::get('/transactions/{transaction}/receipt-pdf', [AdminPosController::class, 'receiptPdf'])->name('transactions.receipt-pdf');
+            Route::post('/transactions/{transaction}/void', [AdminPosController::class, 'voidTransaction'])->name('transactions.void');
+            Route::post('/transactions/{transaction}/refund', [AdminPosController::class, 'refundTransaction'])->name('transactions.refund');
+            Route::post('/apply-discount', [AdminPosController::class, 'applyDiscount'])->name('apply-discount');
+        });
+
+        // -------------------------------------------------------------------------
+        // Daily Cash Reports
+        // -------------------------------------------------------------------------
+        Route::prefix('daily-cash-reports')->name('daily-cash-reports.')->group(function () {
+            Route::get('/', [DailyCashReportController::class, 'index'])->name('index');
+            Route::get('/summary', [DailyCashReportController::class, 'summary'])->name('summary');
+            Route::get('/export', [DailyCashReportController::class, 'export'])->name('export');
+            Route::get('/open-drawer', [DailyCashReportController::class, 'openDrawerForm'])->name('open-drawer');
+            Route::post('/open-drawer', [DailyCashReportController::class, 'openDrawer'])->name('open-drawer.store');
+            Route::get('/{report}', [DailyCashReportController::class, 'show'])->name('show');
+            Route::get('/{report}/close', [DailyCashReportController::class, 'closeForm'])->name('close');
+            Route::post('/{report}/close', [DailyCashReportController::class, 'close'])->name('close.store');
+            Route::get('/{report}/pdf', [DailyCashReportController::class, 'pdf'])->name('pdf');
+            Route::get('/{report}/download', [DailyCashReportController::class, 'download'])->name('download');
+        });
+
     });
 
     /*
@@ -1326,6 +1362,17 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('inventory/{inventory}/adjust-stock', [StaffInventoryController::class, 'adjustStock'])->name('inventory.adjust-stock');
         Route::post('inventory/{inventory}/process-adjustment', [StaffInventoryController::class, 'processAdjustment'])->name('inventory.process-adjustment');
         Route::post('inventory/{inventory}/quick-update', [StaffInventoryController::class, 'quickUpdate'])->name('inventory.quick-update');
+
+        Route::prefix('pos')->name('pos.')->group(function () {
+            Route::get('/', [StaffPosController::class, 'index'])->name('index');
+            Route::post('/sale', [StaffPosController::class, 'processSale'])->name('sale');
+            Route::get('/products', [StaffPosController::class, 'getProducts'])->name('products');
+            Route::get('/my-transactions', [StaffPosController::class, 'myTransactions'])->name('my-transactions');
+            Route::get('/my-transactions/{transaction}', [StaffPosController::class, 'show'])->name('my-transactions.show');
+            Route::get('/my-transactions/{transaction}/receipt', [StaffPosController::class, 'receipt'])->name('my-transactions.receipt');
+            Route::get('/open-drawer', [StaffPosController::class, 'openDrawerForm'])->name('open-drawer');
+            Route::post('/open-drawer', [StaffPosController::class, 'openDrawer'])->name('open-drawer.store');
+        });
 
     });
 
