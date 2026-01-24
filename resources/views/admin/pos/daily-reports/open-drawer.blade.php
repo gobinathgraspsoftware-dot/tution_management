@@ -48,7 +48,7 @@
                             </a>
                         </div>
                     @else
-                        <form action="{{ route('admin.pos.daily-reports.set-opening-cash') }}" method="POST" id="openDrawerForm">
+                        <form action="{{ route('admin.daily-cash-reports.open-drawer.store') }}" method="POST" id="openDrawerForm">
                             @csrf
 
                             <div class="text-center mb-4">

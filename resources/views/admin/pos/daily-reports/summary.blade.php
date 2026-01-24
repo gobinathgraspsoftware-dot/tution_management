@@ -11,12 +11,12 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.pos.daily-reports.index') }}">Daily Reports</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.daily-cash-reports.index') }}">Daily Reports</a></li>
                     <li class="breadcrumb-item active">Summary</li>
                 </ol>
             </nav>
         </div>
-        <a href="{{ route('admin.pos.daily-reports.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('admin.daily-cash-reports.index') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Back to Reports
         </a>
     </div>
@@ -24,7 +24,7 @@
     <!-- Period Filter -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <form action="{{ route('admin.pos.daily-reports.summary') }}" method="GET" class="row g-3 align-items-end">
+            <form action="{{ route('admin.daily-cash-reports.summary') }}" method="GET" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">Period</label>
                     <select name="period" class="form-select" id="periodSelect">
@@ -238,7 +238,7 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <a href="{{ route('admin.pos.daily-reports.show', $day->id) }}">
+                                            <a href="{{ route('admin.daily-cash-reports.show', $day->id) }}">
                                                 {{ $day->report_date->format('d M Y') }}
                                             </a>
                                             <br>

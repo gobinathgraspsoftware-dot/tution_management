@@ -107,7 +107,6 @@
 {{-- Inventory Management --}}
 
 {{-- Start: pos management --}}
-
 <!-- POS & Sales -->
 <div class="menu-dropdown">
     <a href="#sectionPOS" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">

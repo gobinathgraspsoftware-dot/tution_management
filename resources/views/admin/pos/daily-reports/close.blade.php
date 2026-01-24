@@ -11,12 +11,12 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.pos.daily-reports.index') }}">Daily Reports</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.daily-cash-reports.index') }}">Daily Reports</a></li>
                     <li class="breadcrumb-item active">Close Day</li>
                 </ol>
             </nav>
         </div>
-        <a href="{{ route('admin.pos.daily-reports.show', $report) }}" class="btn btn-outline-secondary">
+        <a href="{{ route('admin.daily-cash-reports.show', $report) }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Back to Report
         </a>
     </div>
@@ -98,7 +98,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('admin.pos.daily-reports.close-day', $report) }}" method="POST" id="closeForm">
+                    <form action="{{ route('admin.daily-cash-reports.close.store', $report) }}" method="POST" id="closeForm">
                         @csrf
 
                         <!-- Denomination Count (Optional) -->
@@ -208,7 +208,7 @@
 
                         <!-- Submit Buttons -->
                         <div class="d-flex justify-content-between">
-                            <a href="{{ route('admin.pos.daily-reports.show', $report) }}" class="btn btn-outline-secondary">
+                            <a href="{{ route('admin.daily-cash-reports.show', $report) }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times me-1"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>

@@ -54,7 +54,7 @@ class PosController extends Controller
                 'success' => true,
                 'message' => 'Transaction completed successfully!',
                 'transaction' => $transaction,
-                'receipt_url' => route('admin.pos.receipt', $transaction->id),
+                'receipt_url' => route('admin.pos.transactions.receipt', $transaction->id),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -139,7 +139,7 @@ class PosController extends Controller
     {
         $receiptData = $this->posService->generateReceiptData($transaction);
         
-        $pdf = Pdf::loadView('admin.pos.receipt-pdf', $receiptData);
+        $pdf = Pdf::loadView('admin.pos.transactions.receipt-pdf', $receiptData);
         $pdf->setPaper([0, 0, 226.77, 500], 'portrait'); // 80mm width
         
         return $pdf->download("receipt-{$transaction->transaction_number}.pdf");
@@ -152,7 +152,7 @@ class PosController extends Controller
     {
         $receiptData = $this->posService->generateReceiptData($transaction);
         
-        return view('admin.pos.receipt-print', $receiptData);
+        return view('admin.pos.receipt', $receiptData);
     }
 
     /**

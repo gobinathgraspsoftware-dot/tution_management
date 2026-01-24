@@ -17,10 +17,10 @@
             </nav>
         </div>
         <div>
-            <a href="{{ route('admin.pos.daily-reports.today') }}" class="btn btn-primary">
+            <a href="{{ route('admin.daily-cash-reports.index') }}" class="btn btn-primary">
                 <i class="fas fa-calendar-day me-1"></i> Today's Report
             </a>
-            <a href="{{ route('admin.pos.daily-reports.summary') }}" class="btn btn-outline-primary ms-2">
+            <a href="{{ route('admin.daily-cash-reports.summary') }}" class="btn btn-outline-primary ms-2">
                 <i class="fas fa-chart-bar me-1"></i> Monthly Summary
             </a>
         </div>
@@ -101,7 +101,7 @@
     <!-- Filters -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <form action="{{ route('admin.pos.daily-reports.index') }}" method="GET" class="row g-3">
+            <form action="{{ route('admin.daily-cash-reports.index') }}" method="GET" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Month</label>
                     <input type="month" name="month" class="form-control"
@@ -130,7 +130,7 @@
                     <button type="submit" class="btn btn-primary me-2">
                         <i class="fas fa-search me-1"></i> Filter
                     </button>
-                    <a href="{{ route('admin.pos.daily-reports.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.daily-cash-reports.index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-redo"></i>
                     </a>
                 </div>
@@ -143,7 +143,7 @@
         <div class="card-header bg-white py-3">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Cash Reports</h5>
-                <a href="{{ route('admin.pos.daily-reports.export', request()->all()) }}" class="btn btn-sm btn-outline-success">
+                <a href="{{ route('admin.daily-cash-reports.export', request()->all()) }}" class="btn btn-sm btn-outline-success">
                     <i class="fas fa-file-excel me-1"></i> Export
                 </a>
             </div>
@@ -218,17 +218,17 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('admin.pos.daily-reports.show', $report) }}"
+                                        <a href="{{ route('admin.daily-cash-reports.show', $report) }}"
                                            class="btn btn-outline-primary" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         @if($report->status == 'open' && $report->report_date->isToday())
-                                            <a href="{{ route('admin.pos.daily-reports.close-form', $report) }}"
+                                            <a href="{{ route('admin.daily-cash-reports.close', $report) }}"
                                                class="btn btn-outline-success" title="Close Day">
                                                 <i class="fas fa-lock"></i>
                                             </a>
                                         @endif
-                                        <a href="{{ route('admin.pos.daily-reports.download-pdf', $report) }}"
+                                        <a href="{{ route('admin.daily-cash-reports.download', $report) }}"
                                            class="btn btn-outline-secondary" title="Download PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>

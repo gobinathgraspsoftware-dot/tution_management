@@ -165,7 +165,7 @@
                         @forelse($transactions as $transaction)
                         <tr>
                             <td>
-                                <a href="{{ route('admin.pos.show', $transaction) }}" class="fw-semibold text-decoration-none">
+                                <a href="{{ route('admin.pos.transactions.show', $transaction) }}" class="fw-semibold text-decoration-none">
                                     {{ $transaction->transaction_number }}
                                 </a>
                             </td>
@@ -196,10 +196,10 @@
                             <td>{{ $transaction->cashier->name ?? 'N/A' }}</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.pos.show', $transaction) }}" class="btn btn-outline-primary" title="View">
+                                    <a href="{{ route('admin.pos.transactions.show', $transaction) }}" class="btn btn-outline-primary" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('admin.pos.receipt', $transaction) }}" class="btn btn-outline-secondary" title="Receipt" target="_blank">
+                                    <a href="{{ route('admin.pos.transactions.receipt', $transaction) }}" class="btn btn-outline-secondary" title="Receipt" target="_blank">
                                         <i class="fas fa-receipt"></i>
                                     </a>
                                     @if($transaction->isCompleted())

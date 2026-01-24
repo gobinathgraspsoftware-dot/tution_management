@@ -1132,33 +1132,91 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         // POS Terminal & Transactions
         // -------------------------------------------------------------------------
         Route::prefix('pos')->name('pos.')->group(function () {
-            Route::get('/', [AdminPosController::class, 'index'])->name('index');
-            Route::post('/sale', [AdminPosController::class, 'processSale'])->name('sale');
-            Route::get('/products', [AdminPosController::class, 'getProducts'])->name('products');
-            Route::get('/transactions', [AdminPosController::class, 'transactions'])->name('transactions');
-            Route::get('/transactions/export', [AdminPosController::class, 'exportTransactions'])->name('transactions.export');
-            Route::get('/transactions/{transaction}', [AdminPosController::class, 'show'])->name('transactions.show');
-            Route::get('/transactions/{transaction}/receipt', [AdminPosController::class, 'receipt'])->name('transactions.receipt');
-            Route::get('/transactions/{transaction}/receipt-pdf', [AdminPosController::class, 'receiptPdf'])->name('transactions.receipt-pdf');
-            Route::post('/transactions/{transaction}/void', [AdminPosController::class, 'voidTransaction'])->name('transactions.void');
-            Route::post('/transactions/{transaction}/refund', [AdminPosController::class, 'refundTransaction'])->name('transactions.refund');
-            Route::post('/apply-discount', [AdminPosController::class, 'applyDiscount'])->name('apply-discount');
+            // POS Terminal - requires 'access-pos' permission
+            Route::get('/', [AdminPosController::class, 'index'])
+                ->middleware('permission:access-pos')
+                ->name('index');
+
+            // Process Sale (AJAX) - requires 'process-pos-sale' permission
+            Route::post('/sale', [AdminPosController::class, 'processSale'])
+                ->middleware('permission:process-pos-sale')
+                ->name('sale');
+
+            // Get Products (AJAX)
+            Route::get('/products', [AdminPosController::class, 'getProducts'])
+                ->middleware('permission:access-pos')
+                ->name('products');
+
+            // Transactions - requires 'view-pos-transactions' permission
+            Route::get('/transactions', [AdminPosController::class, 'transactions'])
+                ->middleware('permission:view-pos-transactions')
+                ->name('transactions');
+            Route::get('/transactions/export', [AdminPosController::class, 'exportTransactions'])
+                ->middleware('permission:export-pos-transactions')
+                ->name('transactions.export');
+            Route::get('/transactions/{transaction}', [AdminPosController::class, 'show'])
+                ->middleware('permission:view-pos-transactions')
+                ->name('transactions.show');
+            Route::get('/transactions/{transaction}/receipt', [AdminPosController::class, 'receipt'])
+                ->middleware('permission:view-pos-transactions')
+                ->name('transactions.receipt');
+            Route::get('/transactions/{transaction}/receipt-pdf', [AdminPosController::class, 'receiptPdf'])
+                ->middleware('permission:view-pos-transactions')
+                ->name('transactions.receipt-pdf');
+
+            // Void & Refund - requires specific permissions
+            Route::post('/transactions/{transaction}/void', [AdminPosController::class, 'voidTransaction'])
+                ->middleware('permission:void-pos-transaction')
+                ->name('transactions.void');
+            Route::post('/transactions/{transaction}/refund', [AdminPosController::class, 'refundTransaction'])
+                ->middleware('permission:refund-pos-transaction')
+                ->name('transactions.refund');
+
+            // Apply Discount (AJAX)
+            Route::post('/apply-discount', [AdminPosController::class, 'applyDiscount'])
+                ->middleware('permission:apply-discounts')
+                ->name('apply-discount');
         });
 
         // -------------------------------------------------------------------------
         // Daily Cash Reports
         // -------------------------------------------------------------------------
         Route::prefix('daily-cash-reports')->name('daily-cash-reports.')->group(function () {
-            Route::get('/', [DailyCashReportController::class, 'index'])->name('index');
-            Route::get('/summary', [DailyCashReportController::class, 'summary'])->name('summary');
-            Route::get('/export', [DailyCashReportController::class, 'export'])->name('export');
-            Route::get('/open-drawer', [DailyCashReportController::class, 'openDrawerForm'])->name('open-drawer');
-            Route::post('/open-drawer', [DailyCashReportController::class, 'openDrawer'])->name('open-drawer.store');
-            Route::get('/{report}', [DailyCashReportController::class, 'show'])->name('show');
-            Route::get('/{report}/close', [DailyCashReportController::class, 'closeForm'])->name('close');
-            Route::post('/{report}/close', [DailyCashReportController::class, 'close'])->name('close.store');
-            Route::get('/{report}/pdf', [DailyCashReportController::class, 'pdf'])->name('pdf');
-            Route::get('/{report}/download', [DailyCashReportController::class, 'download'])->name('download');
+            // List & Summary - requires 'view-daily-cash-report' permission
+            Route::get('/', [DailyCashReportController::class, 'index'])
+                ->middleware('permission:view-daily-cash-report')
+                ->name('index');
+            Route::get('/summary', [DailyCashReportController::class, 'summary'])
+                ->middleware('permission:view-daily-cash-report')
+                ->name('summary');
+            Route::get('/export', [DailyCashReportController::class, 'export'])
+                ->middleware('permission:export-pos-transactions')
+                ->name('export');
+
+            // Open/Close Drawer - requires 'manage-cash-drawer' permission
+            Route::get('/open-drawer', [DailyCashReportController::class, 'openDrawer'])
+                ->middleware('permission:manage-cash-drawer')
+                ->name('open-drawer');
+            Route::post('/open-drawer', [DailyCashReportController::class, 'setOpeningCash'])
+                ->middleware('permission:manage-cash-drawer')
+                ->name('open-drawer.store');
+
+            // Individual Report
+            Route::get('/{report}', [DailyCashReportController::class, 'show'])
+                ->middleware('permission:view-daily-cash-report')
+                ->name('show');
+            Route::get('/{report}/close', [DailyCashReportController::class, 'closeForm'])
+                ->middleware('permission:close-daily-cash-report')
+                ->name('close');
+            Route::post('/{report}/close', [DailyCashReportController::class, 'close'])
+                ->middleware('permission:close-daily-cash-report')
+                ->name('close.store');
+            Route::get('/{report}/pdf', [DailyCashReportController::class, 'pdf'])
+                ->middleware('permission:view-daily-cash-report')
+                ->name('pdf');
+            Route::get('/{report}/download', [DailyCashReportController::class, 'download'])
+                ->middleware('permission:view-daily-cash-report')
+                ->name('download');
         });
 
     });
@@ -1364,15 +1422,35 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::post('inventory/{inventory}/quick-update', [StaffInventoryController::class, 'quickUpdate'])->name('inventory.quick-update');
 
         Route::prefix('pos')->name('pos.')->group(function () {
-            Route::get('/', [StaffPosController::class, 'index'])->name('index');
-            Route::post('/sale', [StaffPosController::class, 'processSale'])->name('sale');
-            Route::get('/products', [StaffPosController::class, 'getProducts'])->name('products');
-            Route::get('/my-transactions', [StaffPosController::class, 'myTransactions'])->name('my-transactions');
-            Route::get('/my-transactions/{transaction}', [StaffPosController::class, 'show'])->name('my-transactions.show');
-            Route::get('/my-transactions/{transaction}/receipt', [StaffPosController::class, 'receipt'])->name('my-transactions.receipt');
-            Route::get('/open-drawer', [StaffPosController::class, 'openDrawerForm'])->name('open-drawer');
-            Route::post('/open-drawer', [StaffPosController::class, 'openDrawer'])->name('open-drawer.store');
-        });
+        // POS Terminal - requires 'access-pos' permission
+        Route::get('/', [StaffPosController::class, 'index'])
+            ->middleware('permission:access-pos')
+            ->name('index');
+
+        // Process Sale (AJAX) - requires 'process-pos-sale' permission
+        Route::post('/sale', [StaffPosController::class, 'processSale'])
+            ->middleware('permission:process-pos-sale')
+            ->name('sale');
+
+        // Get Products (AJAX)
+        Route::get('/products', [StaffPosController::class, 'getProducts'])
+            ->middleware('permission:access-pos')
+            ->name('products');
+
+        // My Transactions (Staff can only view their own) - requires 'view-pos-transactions' permission
+        Route::get('/my-transactions', [StaffPosController::class, 'myTransactions'])
+            ->middleware('permission:view-pos-transactions')
+            ->name('my-transactions');
+        Route::get('/my-transactions/{transaction}', [StaffPosController::class, 'show'])
+            ->middleware('permission:view-pos-transactions')
+            ->name('my-transactions.show');
+        Route::get('/my-transactions/{transaction}/receipt', [StaffPosController::class, 'receipt'])
+            ->middleware('permission:view-pos-transactions')
+            ->name('my-transactions.receipt');
+
+        // Note: Staff cannot open drawer themselves
+        // They should contact admin if drawer is not open
+    });
 
     });
 

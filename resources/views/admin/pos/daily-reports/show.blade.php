@@ -11,21 +11,21 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.pos.daily-reports.index') }}">Daily Reports</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.daily-cash-reports.index') }}">Daily Reports</a></li>
                     <li class="breadcrumb-item active">{{ $report->report_date->format('d M Y') }}</li>
                 </ol>
             </nav>
         </div>
         <div>
             @if($report->status == 'open' && $report->report_date->isToday())
-                <a href="{{ route('admin.pos.daily-reports.close-form', $report) }}" class="btn btn-success">
+                <a href="{{ route('admin.daily-cash-reports.close', $report) }}" class="btn btn-success">
                     <i class="fas fa-lock me-1"></i> Close Day
                 </a>
             @endif
-            <a href="{{ route('admin.pos.daily-reports.download-pdf', $report) }}" class="btn btn-outline-primary ms-2">
+            <a href="{{ route('admin.daily-cash-reports.download', $report) }}" class="btn btn-outline-primary ms-2">
                 <i class="fas fa-file-pdf me-1"></i> Download PDF
             </a>
-            <a href="{{ route('admin.pos.daily-reports.index') }}" class="btn btn-outline-secondary ms-2">
+            <a href="{{ route('admin.daily-cash-reports.index') }}" class="btn btn-outline-secondary ms-2">
                 <i class="fas fa-arrow-left me-1"></i> Back
             </a>
         </div>
@@ -258,7 +258,7 @@
                                 @forelse($transactions as $transaction)
                                     <tr>
                                         <td>
-                                            <a href="{{ route('admin.pos.show', $transaction) }}" class="fw-bold text-decoration-none">
+                                            <a href="{{ route('admin.pos.transactions.show', $transaction) }}" class="fw-bold text-decoration-none">
                                                 {{ $transaction->transaction_number }}
                                             </a>
                                         </td>
@@ -294,7 +294,7 @@
                                             @endswitch
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('admin.pos.show', $transaction) }}"
+                                            <a href="{{ route('admin.pos.transactions.show', $transaction) }}"
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>

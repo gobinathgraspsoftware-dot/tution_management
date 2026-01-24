@@ -155,13 +155,13 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('admin.pos.receipt', $transaction) }}" class="btn btn-outline-primary" target="_blank">
+                        <a href="{{ route('admin.pos.transactions.receipt', $transaction) }}" class="btn btn-outline-primary" target="_blank">
                             <i class="fas fa-receipt me-2"></i> View Receipt
                         </a>
-                        <a href="{{ route('admin.pos.print', $transaction) }}" class="btn btn-outline-secondary" target="_blank">
+                        <a href="{{ route('admin.pos.transactions.receipt', $transaction) }}" class="btn btn-outline-secondary" target="_blank">
                             <i class="fas fa-print me-2"></i> Print Receipt
                         </a>
-                        <a href="{{ route('admin.pos.download', $transaction) }}" class="btn btn-outline-info">
+                        <a href="{{ route('admin.pos.transactions.receipt-pdf', $transaction) }}" class="btn btn-outline-info">
                             <i class="fas fa-download me-2"></i> Download PDF
                         </a>
 
@@ -369,7 +369,7 @@ function voidTransaction() {
     }
 
     $.ajax({
-        url: '{{ route("admin.pos.void", $transaction) }}',
+        url: '{{ route("admin.pos.transactions.void", $transaction) }}',
         method: 'POST',
         data: {
             reason: reason,
@@ -458,7 +458,7 @@ function processRefund() {
     }
 
     $.ajax({
-        url: '{{ route("admin.pos.refund", $transaction) }}',
+        url: '{{ route("admin.pos.transactions.refund", $transaction) }}',
         method: 'POST',
         data: {
             items: items,
