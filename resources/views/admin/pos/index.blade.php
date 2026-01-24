@@ -1,8 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'POS Terminal')
+@section('page-title', 'POS Terminal')
 
-@section('styles')
+@push('styles')
 <style>
     /* Drawer Not Open Overlay */
     .drawer-not-open-overlay {
@@ -172,8 +173,8 @@
         flex: 1;
         overflow-y: auto;
         padding: 15px;
-        min-height: 150px;
-        max-height: 220px;
+        min-height: 100px;
+        max-height: 300px;
     }
 
     .cart-item {
@@ -205,7 +206,7 @@
     .summary-row.total { font-size: 20px; font-weight: 700; color: #333; padding-top: 12px; border-top: 2px solid #dee2e6; margin-top: 10px; }
 
     /* Payment Section */
-    .payment-section { padding: 20px; border-top: 1px solid #eee; }
+    .payment-section { padding: 20px; border-top: 1px solid #eee; max-height: 350px; overflow-y: auto; }
     .payment-methods { display: flex; gap: 10px; margin-bottom: 15px; }
     .payment-method { flex: 1; padding: 15px; border: 2px solid #e9ecef; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
     .payment-method:hover { border-color: #0d6efd; }
@@ -237,11 +238,11 @@
     .calculator-widget .calc-buttons button.clear { background: #dc3545; color: #fff; }
 
     /* Stats Bar */
-    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-    .stat-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); }
-    .stat-card .stat-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 12px; }
-    .stat-card .stat-value { font-size: 22px; font-weight: 700; color: #333; }
-    .stat-card .stat-label { font-size: 13px; color: #6c757d; margin-top: 3px; }
+    .pos-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+    .pos-stat-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); }
+    .pos-stat-card .stat-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 12px; }
+    .pos-stat-card .stat-value { font-size: 22px; font-weight: 700; color: #333; }
+    .pos-stat-card .stat-label { font-size: 13px; color: #6c757d; margin-top: 3px; }
 
     /* Category Filter */
     .category-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -253,176 +254,166 @@
     .success-modal .modal-body { padding: 50px; text-align: center; }
     .success-modal .success-icon { width: 90px; height: 90px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; }
     .success-modal .success-icon i { font-size: 45px; color: #28a745; }
+
+    /* Scrollbar Styling */
+    .cart-items::-webkit-scrollbar,
+    .payment-section::-webkit-scrollbar { width: 6px; }
+    .cart-items::-webkit-scrollbar-track,
+    .payment-section::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+    .cart-items::-webkit-scrollbar-thumb,
+    .payment-section::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+    .cart-items::-webkit-scrollbar-thumb:hover,
+    .payment-section::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
 </style>
-@endsection
+@endpush
 
 @section('content')
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">POS Terminal</h1>
+@if($drawerOpen)
+<!-- Stats Bar -->
+<div class="pos-stats-bar">
+    <div class="pos-stat-card">
+        <div class="stat-icon" style="background: #dcfce7; color: #28a745;"><i class="fas fa-dollar-sign"></i></div>
+        <div class="stat-value">RM {{ number_format($todayStats['total_sales'] ?? 0, 2) }}</div>
+        <div class="stat-label">Today's Sales</div>
+    </div>
+    <div class="pos-stat-card">
+        <div class="stat-icon" style="background: #dbeafe; color: #2196f3;"><i class="fas fa-shopping-cart"></i></div>
+        <div class="stat-value">{{ $todayStats['total_transactions'] ?? 0 }}</div>
+        <div class="stat-label">Transactions</div>
+    </div>
+    <div class="pos-stat-card">
+        <div class="stat-icon" style="background: #fef3c7; color: #f59e0b;"><i class="fas fa-money-bill-wave"></i></div>
+        <div class="stat-value">RM {{ number_format($todayStats['cash_sales'] ?? 0, 2) }}</div>
+        <div class="stat-label">Cash Sales</div>
+    </div>
+    <div class="pos-stat-card">
+        <div class="stat-icon" style="background: #f3e8ff; color: #9333ea;"><i class="fas fa-qrcode"></i></div>
+        <div class="stat-value">RM {{ number_format($todayStats['qr_sales'] ?? 0, 2) }}</div>
+        <div class="stat-label">QR Sales</div>
+    </div>
+</div>
+
+<!-- POS Container -->
+<div class="pos-container">
+    <!-- Products Section -->
+    <div class="products-section">
+        <div class="products-header">
+            <div class="row align-items-center g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" id="searchProduct" placeholder="Search products...">
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="category-tabs">
+                        <button class="category-tab active" data-category="">All Items</button>
+                        @foreach($categories as $category)
+                        <button class="category-tab" data-category="{{ $category->id }}">{{ $category->name }}</button>
+                        @endforeach
+                    </div>
+                </div>
             </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-end">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item active">POS Terminal</li>
-                </ol>
+        </div>
+
+        <div class="products-grid" id="productsGrid">
+            @forelse($items as $item)
+            <div class="product-card {{ $item->current_stock <= 0 ? 'out-of-stock' : '' }}"
+                 data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-price="{{ $item->selling_price }}"
+                 data-stock="{{ $item->current_stock }}" data-category="{{ $item->category_id }}" onclick="addToCart(this)">
+                <div class="product-icon"><i class="fas fa-box"></i></div>
+                <div class="product-name">{{ $item->name }}</div>
+                <div class="product-price">RM {{ number_format($item->selling_price, 2) }}</div>
+                <div class="product-stock">Stock: {{ $item->current_stock }}</div>
             </div>
+            @empty
+            <div class="text-center py-5" style="grid-column: span 5;">
+                <i class="fas fa-box-open fa-3x text-muted mb-3 d-block"></i>
+                <p class="text-muted">No products available</p>
+            </div>
+            @endforelse
+        </div>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="cart-section">
+        <div class="cart-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-shopping-cart me-2"></i>Current Sale</h5>
+                <button class="btn btn-sm btn-outline-light" onclick="clearCart()"><i class="fas fa-trash me-1"></i> Clear</button>
+            </div>
+        </div>
+
+        <div class="cart-items" id="cartItems">
+            <div class="cart-empty">
+                <i class="fas fa-shopping-basket d-block"></i>
+                <p class="mb-1">Cart is empty</p>
+                <small>Click on products to add them</small>
+            </div>
+        </div>
+
+        <div class="cart-summary">
+            <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+            <div class="summary-row"><span>Discount</span><span id="discount">RM 0.00</span></div>
+            <div class="summary-row total"><span>Total</span><span id="grandTotal">RM 0.00</span></div>
+        </div>
+
+        <div class="payment-section" id="paymentSection" style="display: none;">
+            <div class="payment-methods">
+                <div class="payment-method active" data-method="cash" onclick="selectPaymentMethod('cash')">
+                    <i class="fas fa-money-bill-wave text-success"></i><span>Cash</span>
+                </div>
+                <div class="payment-method" data-method="qr" onclick="selectPaymentMethod('qr')">
+                    <i class="fas fa-qrcode text-primary"></i><span>QR Pay</span>
+                </div>
+            </div>
+
+            <div id="cashPayment">
+                <div class="mb-2">
+                    <input type="number" class="form-control form-control-lg" id="amountReceived" placeholder="Amount Received" step="0.01" oninput="calculateChange()">
+                </div>
+                <div class="quick-cash">
+                    <button type="button" onclick="setQuickCash(10)">RM10</button>
+                    <button type="button" onclick="setQuickCash(20)">RM20</button>
+                    <button type="button" onclick="setQuickCash(50)">RM50</button>
+                    <button type="button" onclick="setQuickCash(100)">RM100</button>
+                </div>
+                <div class="change-display" id="changeDisplay">
+                    <label>Change</label>
+                    <div class="amount" id="changeAmount">RM 0.00</div>
+                </div>
+            </div>
+
+            <div id="qrPayment" style="display: none;">
+                <div class="mb-3">
+                    <input type="text" class="form-control form-control-lg" id="qrReference" placeholder="QR Reference Number">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <input type="text" class="form-control" id="saleNotes" placeholder="Notes (optional)">
+            </div>
+
+            <button class="btn btn-success btn-complete-sale" onclick="completeSale()" id="btnCompleteSale">
+                <i class="fas fa-check-circle me-2"></i> Complete Sale
+            </button>
         </div>
     </div>
 </div>
 
-<section class="content">
-    <div class="container-fluid">
-        @if($drawerOpen)
-        <!-- Stats Bar -->
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #dcfce7; color: #28a745;"><i class="fas fa-dollar-sign"></i></div>
-                <div class="stat-value">RM {{ number_format($todayStats['total_sales'] ?? 0, 2) }}</div>
-                <div class="stat-label">Today's Sales</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #dbeafe; color: #2196f3;"><i class="fas fa-shopping-cart"></i></div>
-                <div class="stat-value">{{ $todayStats['total_transactions'] ?? 0 }}</div>
-                <div class="stat-label">Transactions</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #fef3c7; color: #f59e0b;"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="stat-value">RM {{ number_format($todayStats['cash_sales'] ?? 0, 2) }}</div>
-                <div class="stat-label">Cash Sales</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #f3e8ff; color: #9333ea;"><i class="fas fa-qrcode"></i></div>
-                <div class="stat-value">RM {{ number_format($todayStats['qr_sales'] ?? 0, 2) }}</div>
-                <div class="stat-label">QR Sales</div>
-            </div>
-        </div>
-
-        <!-- POS Container -->
-        <div class="pos-container">
-            <!-- Products Section -->
-            <div class="products-section">
-                <div class="products-header">
-                    <div class="row align-items-center g-3">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0" id="searchProduct" placeholder="Search products...">
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="category-tabs">
-                                <button class="category-tab active" data-category="">All Items</button>
-                                @foreach($categories as $category)
-                                <button class="category-tab" data-category="{{ $category->id }}">{{ $category->name }}</button>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="products-grid" id="productsGrid">
-                    @forelse($products as $product)
-                    <div class="product-card {{ $product->stock_quantity <= 0 ? 'out-of-stock' : '' }}"
-                         data-id="{{ $product->id }}" data-name="{{ $product->name }}" data-price="{{ $product->selling_price }}"
-                         data-stock="{{ $product->stock_quantity }}" data-category="{{ $product->category_id }}" onclick="addToCart(this)">
-                        <div class="product-icon"><i class="fas fa-box"></i></div>
-                        <div class="product-name">{{ $product->name }}</div>
-                        <div class="product-price">RM {{ number_format($product->selling_price, 2) }}</div>
-                        <div class="product-stock">Stock: {{ $product->stock_quantity }}</div>
-                    </div>
-                    @empty
-                    <div class="text-center py-5" style="grid-column: span 5;">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3 d-block"></i>
-                        <p class="text-muted">No products available</p>
-                    </div>
-                    @endforelse
-                </div>
-            </div>
-
-            <!-- Cart Section -->
-            <div class="cart-section">
-                <div class="cart-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-shopping-cart me-2"></i>Current Sale</h5>
-                        <button class="btn btn-sm btn-outline-light" onclick="clearCart()"><i class="fas fa-trash me-1"></i> Clear</button>
-                    </div>
-                </div>
-
-                <div class="cart-items" id="cartItems">
-                    <div class="cart-empty">
-                        <i class="fas fa-shopping-basket d-block"></i>
-                        <p class="mb-1">Cart is empty</p>
-                        <small>Click on products to add them</small>
-                    </div>
-                </div>
-
-                <div class="cart-summary">
-                    <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-                    <div class="summary-row"><span>Discount</span><span id="discount">RM 0.00</span></div>
-                    <div class="summary-row total"><span>Total</span><span id="grandTotal">RM 0.00</span></div>
-                </div>
-
-                <div class="payment-section">
-                    <div class="payment-methods">
-                        <div class="payment-method active" data-method="cash" onclick="selectPaymentMethod('cash')">
-                            <i class="fas fa-money-bill-wave text-success"></i><span>Cash</span>
-                        </div>
-                        <div class="payment-method" data-method="qr" onclick="selectPaymentMethod('qr')">
-                            <i class="fas fa-qrcode text-primary"></i><span>QR Pay</span>
-                        </div>
-                    </div>
-
-                    <div id="cashPayment">
-                        <div class="mb-2">
-                            <input type="number" class="form-control form-control-lg" id="amountReceived" placeholder="Amount Received" step="0.01" oninput="calculateChange()">
-                        </div>
-                        <div class="quick-cash">
-                            <button type="button" onclick="setQuickCash(10)">RM10</button>
-                            <button type="button" onclick="setQuickCash(20)">RM20</button>
-                            <button type="button" onclick="setQuickCash(50)">RM50</button>
-                            <button type="button" onclick="setQuickCash(100)">RM100</button>
-                        </div>
-                        <div class="change-display" id="changeDisplay">
-                            <label>Change</label>
-                            <div class="amount" id="changeAmount">RM 0.00</div>
-                        </div>
-                    </div>
-
-                    <div id="qrPayment" style="display: none;">
-                        <div class="mb-3">
-                            <input type="text" class="form-control form-control-lg" id="qrReference" placeholder="QR Reference Number">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="saleNotes" placeholder="Notes (optional)">
-                    </div>
-
-                    <button class="btn btn-success btn-complete-sale" onclick="completeSale()" id="btnCompleteSale">
-                        <i class="fas fa-check-circle me-2"></i> Complete Sale
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Calculator Toggle -->
-        <button class="calculator-toggle" onclick="toggleCalculator()" title="Calculator"><i class="fas fa-calculator"></i></button>
-        <div class="calculator-widget" id="calculatorWidget">
-            <input type="text" id="calcDisplay" value="0" readonly>
-            <div class="calc-buttons">
-                <button onclick="calcInput('7')">7</button><button onclick="calcInput('8')">8</button><button onclick="calcInput('9')">9</button><button class="operator" onclick="calcInput('/')">÷</button>
-                <button onclick="calcInput('4')">4</button><button onclick="calcInput('5')">5</button><button onclick="calcInput('6')">6</button><button class="operator" onclick="calcInput('*')">×</button>
-                <button onclick="calcInput('1')">1</button><button onclick="calcInput('2')">2</button><button onclick="calcInput('3')">3</button><button class="operator" onclick="calcInput('-')">-</button>
-                <button onclick="calcInput('0')">0</button><button onclick="calcInput('.')">.</button><button class="clear" onclick="calcClear()">C</button><button class="operator" onclick="calcInput('+')">+</button>
-                <button class="equals" onclick="calcEquals()">=</button>
-            </div>
-        </div>
-        @endif
+<!-- Calculator Toggle -->
+<button class="calculator-toggle" onclick="toggleCalculator()" title="Calculator"><i class="fas fa-calculator"></i></button>
+<div class="calculator-widget" id="calculatorWidget">
+    <input type="text" id="calcDisplay" value="0" readonly>
+    <div class="calc-buttons">
+        <button onclick="calcInput('7')">7</button><button onclick="calcInput('8')">8</button><button onclick="calcInput('9')">9</button><button class="operator" onclick="calcInput('/')">÷</button>
+        <button onclick="calcInput('4')">4</button><button onclick="calcInput('5')">5</button><button onclick="calcInput('6')">6</button><button class="operator" onclick="calcInput('*')">×</button>
+        <button onclick="calcInput('1')">1</button><button onclick="calcInput('2')">2</button><button onclick="calcInput('3')">3</button><button class="operator" onclick="calcInput('-')">-</button>
+        <button onclick="calcInput('0')">0</button><button onclick="calcInput('.')">.</button><button class="clear" onclick="calcClear()">C</button><button class="operator" onclick="calcInput('+')">+</button>
+        <button class="equals" onclick="calcEquals()">=</button>
     </div>
-</section>
+</div>
+@endif
 
 <!-- Success Modal -->
 <div class="modal fade success-modal" id="successModal" tabindex="-1">
@@ -457,7 +448,8 @@
 @endif
 @endsection
 
-@section('scripts')
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @if($drawerOpen)
 <script>
 let cart = [];
@@ -478,8 +470,11 @@ function addToCart(el) {
 
 function updateCartDisplay() {
     const cartEl = document.getElementById('cartItems');
+    const paymentSection = document.getElementById('paymentSection');
+
     if (cart.length === 0) {
         cartEl.innerHTML = '<div class="cart-empty"><i class="fas fa-shopping-basket d-block"></i><p class="mb-1">Cart is empty</p><small>Click on products to add them</small></div>';
+        paymentSection.style.display = 'none';
     } else {
         cartEl.innerHTML = cart.map((item, i) => `
             <div class="cart-item">
@@ -489,6 +484,7 @@ function updateCartDisplay() {
                 <div class="cart-item-remove" onclick="removeItem(${i})"><i class="fas fa-times"></i></div>
             </div>
         `).join('');
+        paymentSection.style.display = 'block';
     }
     updateTotals();
 }
@@ -606,4 +602,4 @@ function calcEquals() { try { const r = eval(calcExpr); document.getElementById(
 document.addEventListener('DOMContentLoaded', function() { updateCartDisplay(); });
 </script>
 @endif
-@endsection
+@endpush

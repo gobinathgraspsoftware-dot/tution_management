@@ -22,18 +22,18 @@ class PosService
     {
         $prefix = 'POS';
         $date = now()->format('Ymd');
-        
+
         $lastTransaction = PosTransaction::whereDate('transaction_date', today())
             ->orderBy('id', 'desc')
             ->first();
-        
+
         if ($lastTransaction) {
             $lastNumber = (int) substr($lastTransaction->transaction_number, -4);
             $nextNumber = $lastNumber + 1;
         } else {
             $nextNumber = 1;
         }
-        
+
         return $prefix . $date . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
@@ -45,18 +45,18 @@ class PosService
         $query = Inventory::with('category')
             ->active()
             ->where('current_stock', '>', 0);
-        
+
         if ($categoryId) {
             $query->where('category_id', $categoryId);
         }
-        
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('sku', 'like', "%{$search}%");
             });
         }
-        
+
         return $query->orderBy('name')->get();
     }
 
@@ -73,17 +73,17 @@ class PosService
                     throw new \Exception("Insufficient stock for {$inventory->name}. Available: {$inventory->current_stock}");
                 }
             }
-            
+
             // Calculate totals
             $subtotal = 0;
             foreach ($data['items'] as $item) {
                 $subtotal += $item['unit_price'] * $item['quantity'];
             }
-            
+
             $discount = $data['discount'] ?? 0;
             $tax = $data['tax'] ?? 0;
             $totalAmount = $subtotal - $discount + $tax;
-            
+
             // Create transaction
             $transaction = PosTransaction::create([
                 'transaction_number' => $this->generateTransactionNumber(),
@@ -100,7 +100,7 @@ class PosService
                 'cashier_id' => Auth::id(),
                 'notes' => $data['notes'] ?? null,
             ]);
-            
+
             // Create transaction items and update inventory
             foreach ($data['items'] as $item) {
                 PosTransactionItem::create([
@@ -110,12 +110,12 @@ class PosService
                     'unit_price' => $item['unit_price'],
                     'total_price' => $item['unit_price'] * $item['quantity'],
                 ]);
-                
+
                 // Update inventory stock
                 $inventory = Inventory::find($item['inventory_id']);
                 $previousStock = $inventory->current_stock;
                 $inventory->decrement('current_stock', $item['quantity']);
-                
+
                 // Log inventory change
                 InventoryLog::create([
                     'inventory_id' => $item['inventory_id'],
@@ -129,10 +129,10 @@ class PosService
                     'user_id' => Auth::id(),
                 ]);
             }
-            
+
             // Update daily cash report
             $this->updateDailyCashReport($transaction);
-            
+
             return $transaction->load('items.inventory', 'cashier');
         });
     }
@@ -153,13 +153,13 @@ class PosService
                 'status' => 'open',
             ]
         );
-        
+
         if ($transaction->payment_method === 'cash') {
             $report->increment('total_cash_sales', $transaction->total_amount);
         } else {
             $report->increment('total_qr_sales', $transaction->total_amount);
         }
-        
+
         $report->increment('total_transactions');
         $report->expected_closing = $report->opening_cash + $report->total_cash_sales;
         $report->save();
@@ -173,14 +173,14 @@ class PosService
         if (!$transaction->isCompleted()) {
             throw new \Exception('Only completed transactions can be voided.');
         }
-        
+
         return DB::transaction(function () use ($transaction, $reason) {
             // Restore inventory
             foreach ($transaction->items as $item) {
                 $inventory = $item->inventory;
                 $previousStock = $inventory->current_stock;
                 $inventory->increment('current_stock', $item->quantity);
-                
+
                 InventoryLog::create([
                     'inventory_id' => $item->inventory_id,
                     'type' => 'void',
@@ -193,7 +193,7 @@ class PosService
                     'user_id' => Auth::id(),
                 ]);
             }
-            
+
             // Update daily cash report
             $report = DailyCashReport::where('report_date', $transaction->transaction_date->toDateString())->first();
             if ($report && $report->status === 'open') {
@@ -206,12 +206,12 @@ class PosService
                 $report->expected_closing = $report->opening_cash + $report->total_cash_sales;
                 $report->save();
             }
-            
+
             $transaction->update([
                 'status' => 'voided',
                 'notes' => ($transaction->notes ? $transaction->notes . "\n" : '') . "VOIDED: {$reason}",
             ]);
-            
+
             return $transaction->fresh(['items.inventory', 'cashier']);
         });
     }
@@ -224,26 +224,26 @@ class PosService
         if (!$transaction->isCompleted()) {
             throw new \Exception('Only completed transactions can be refunded.');
         }
-        
+
         return DB::transaction(function () use ($transaction, $refundItems, $reason) {
             $refundTotal = 0;
-            
+
             foreach ($refundItems as $refundItem) {
                 $transactionItem = PosTransactionItem::findOrFail($refundItem['item_id']);
-                
+
                 if ($transactionItem->transaction_id !== $transaction->id) {
                     throw new \Exception('Invalid item for this transaction.');
                 }
-                
+
                 $refundQty = min($refundItem['quantity'], $transactionItem->quantity);
                 $refundAmount = $refundQty * $transactionItem->unit_price;
                 $refundTotal += $refundAmount;
-                
+
                 // Restore inventory
                 $inventory = $transactionItem->inventory;
                 $previousStock = $inventory->current_stock;
                 $inventory->increment('current_stock', $refundQty);
-                
+
                 InventoryLog::create([
                     'inventory_id' => $transactionItem->inventory_id,
                     'type' => 'refund',
@@ -256,7 +256,7 @@ class PosService
                     'user_id' => Auth::id(),
                 ]);
             }
-            
+
             // Update daily cash report if same day
             $report = DailyCashReport::where('report_date', $transaction->transaction_date->toDateString())->first();
             if ($report && $report->status === 'open') {
@@ -268,12 +268,12 @@ class PosService
                 $report->expected_closing = $report->opening_cash + $report->total_cash_sales;
                 $report->save();
             }
-            
+
             $transaction->update([
                 'status' => 'refunded',
                 'notes' => ($transaction->notes ? $transaction->notes . "\n" : '') . "REFUNDED (RM{$refundTotal}): {$reason}",
             ]);
-            
+
             return $transaction->fresh(['items.inventory', 'cashier']);
         });
     }
@@ -284,7 +284,7 @@ class PosService
     public function getTodayStatistics(): array
     {
         $transactions = PosTransaction::today()->completed()->get();
-        
+
         return [
             'total_sales' => $transactions->sum('total_amount'),
             'total_transactions' => $transactions->count(),
@@ -312,18 +312,20 @@ class PosService
         $report = DailyCashReport::firstOrCreate(
             ['report_date' => today()],
             [
+                'opening_cash' => 0,
                 'total_cash_sales' => 0,
                 'total_qr_sales' => 0,
                 'total_transactions' => 0,
+                'expected_closing' => 0,
                 'status' => 'open',
             ]
         );
-        
+
         $report->update([
             'opening_cash' => $amount,
             'expected_closing' => $amount + $report->total_cash_sales,
         ]);
-        
+
         return $report->fresh();
     }
 
@@ -333,18 +335,18 @@ class PosService
     public function closeDay(float $actualCash, ?string $notes = null): DailyCashReport
     {
         $report = $this->getTodayCashReport();
-        
+
         if (!$report) {
             throw new \Exception('No report found for today.');
         }
-        
+
         if ($report->status === 'closed') {
             throw new \Exception('Today\'s report is already closed.');
         }
-        
+
         $expectedClosing = $report->opening_cash + $report->total_cash_sales;
         $variance = $actualCash - $expectedClosing;
-        
+
         $report->update([
             'actual_closing' => $actualCash,
             'expected_closing' => $expectedClosing,
@@ -353,7 +355,7 @@ class PosService
             'closed_by' => Auth::id(),
             'status' => 'closed',
         ]);
-        
+
         return $report->fresh(['closedBy']);
     }
 
@@ -363,7 +365,7 @@ class PosService
     public function getSalesByCategory($date = null): array
     {
         $date = $date ?? today();
-        
+
         $sales = PosTransactionItem::whereHas('transaction', function ($query) use ($date) {
             $query->whereDate('transaction_date', $date)->completed();
         })
@@ -378,7 +380,7 @@ class PosService
                 'total' => $items->sum('total_price'),
             ];
         });
-        
+
         return $sales->toArray();
     }
 
@@ -400,7 +402,7 @@ class PosService
             ->orderByDesc('total_qty')
             ->limit($limit)
             ->get();
-        
+
         return $query->map(function ($item) {
             $inventory = Inventory::find($item->inventory_id);
             return [
@@ -420,7 +422,7 @@ class PosService
         $companyAddress = Setting::where('key', 'company_address')->value('value') ?? '';
         $companyPhone = Setting::where('key', 'company_phone')->value('value') ?? '';
         $companyEmail = Setting::where('key', 'company_email')->value('value') ?? '';
-        
+
         return [
             'company' => [
                 'name' => $companyName,
@@ -439,15 +441,15 @@ class PosService
     public function getDailyReports($startDate = null, $endDate = null, $status = null)
     {
         $query = DailyCashReport::with('closedBy');
-        
+
         if ($startDate && $endDate) {
             $query->whereBetween('report_date', [$startDate, $endDate]);
         }
-        
+
         if ($status) {
             $query->where('status', $status);
         }
-        
+
         return $query->orderByDesc('report_date')->get();
     }
 
@@ -458,11 +460,11 @@ class PosService
     {
         $year = $year ?? now()->year;
         $month = $month ?? now()->month;
-        
+
         $reports = DailyCashReport::whereYear('report_date', $year)
             ->whereMonth('report_date', $month)
             ->get();
-        
+
         return [
             'total_cash_sales' => $reports->sum('total_cash_sales'),
             'total_qr_sales' => $reports->sum('total_qr_sales'),
