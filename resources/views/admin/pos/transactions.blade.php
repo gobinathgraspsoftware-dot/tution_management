@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'POS Transactions')
+@section('page-title', 'POS Transactions')
 
 @section('content')
 <div class="container-fluid">
@@ -138,7 +139,7 @@
     <!-- Export Button -->
     <div class="d-flex justify-content-end mb-3">
         @can('export-pos-transactions')
-        <a href="{{ route('admin.pos.export', request()->query()) }}" class="btn btn-success">
+        <a href="{{ route('admin.pos.transactions.export', request()->query()) }}" class="btn btn-success">
             <i class="fas fa-file-excel me-1"></i> Export Excel
         </a>
         @endcan
@@ -261,7 +262,7 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 let voidTransactionId = null;
 
@@ -275,12 +276,12 @@ function voidTransaction() {
     const reason = document.getElementById('voidReason').value.trim();
 
     if (!reason) {
-        toastr.error('Please enter a reason for voiding');
+        alert('Please enter a reason for voiding');
         return;
     }
 
     $.ajax({
-        url: '/admin/pos/' + voidTransactionId + '/void',
+        url: '/admin/pos/transactions/' + voidTransactionId + '/void',
         method: 'POST',
         data: {
             reason: reason,
@@ -288,14 +289,14 @@ function voidTransaction() {
         },
         success: function(response) {
             if (response.success) {
-                toastr.success('Transaction voided successfully');
-                setTimeout(() => location.reload(), 1000);
+                alert('Transaction voided successfully');
+                location.reload();
             }
         },
         error: function(xhr) {
-            toastr.error(xhr.responseJSON?.message || 'An error occurred');
+            alert(xhr.responseJSON?.message || 'An error occurred');
         }
     });
 }
 </script>
-@endsection
+@endpush
