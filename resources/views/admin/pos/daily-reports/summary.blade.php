@@ -1,13 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Cash Reports Summary')
+@section('title', 'Sales Summary')
+@section('page-title', 'Sales Summary')
 
 @section('content')
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1">Cash Reports Summary</h1>
+            <h1 class="h3 mb-1">Sales Summary</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
@@ -26,25 +27,24 @@
         <div class="card-body">
             <form action="{{ route('admin.daily-cash-reports.summary') }}" method="GET" class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label">Period</label>
-                    <select name="period" class="form-select" id="periodSelect">
-                        <option value="this_month" {{ request('period', 'this_month') == 'this_month' ? 'selected' : '' }}>This Month</option>
-                        <option value="last_month" {{ request('period') == 'last_month' ? 'selected' : '' }}>Last Month</option>
-                        <option value="this_year" {{ request('period') == 'this_year' ? 'selected' : '' }}>This Year</option>
-                        <option value="custom" {{ request('period') == 'custom' ? 'selected' : '' }}>Custom Range</option>
+                    <label class="form-label">Year</label>
+                    <select name="year" class="form-select">
+                        @for($y = now()->year; $y >= now()->year - 3; $y--)
+                        <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
                     </select>
                 </div>
-                <div class="col-md-3 custom-dates" style="{{ request('period') == 'custom' ? '' : 'display:none;' }}">
-                    <label class="form-label">From Date</label>
-                    <input type="date" name="from_date" class="form-control" value="{{ request('from_date') }}">
-                </div>
-                <div class="col-md-3 custom-dates" style="{{ request('period') == 'custom' ? '' : 'display:none;' }}">
-                    <label class="form-label">To Date</label>
-                    <input type="date" name="to_date" class="form-control" value="{{ request('to_date') }}">
+                <div class="col-md-3">
+                    <label class="form-label">Month</label>
+                    <select name="month" class="form-select">
+                        @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
+                        @endfor
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-chart-bar me-1"></i> Generate Summary
+                        <i class="fas fa-filter me-1"></i> Filter
                     </button>
                 </div>
             </form>
@@ -54,8 +54,8 @@
     <!-- Summary Statistics -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
-                <div class="card-body">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
                             <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
@@ -69,8 +69,8 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-success text-white">
-                <div class="card-body">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="card-body text-white">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
                             <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
@@ -84,8 +84,8 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-info text-white">
-                <div class="card-body">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body text-white">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
                             <i class="fas fa-chart-line fa-2x opacity-75"></i>
@@ -99,14 +99,14 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-warning text-dark">
-                <div class="card-body">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body text-white">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
                             <i class="fas fa-receipt fa-2x opacity-75"></i>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="text-dark-50 mb-1">Avg Transaction</h6>
+                            <h6 class="text-white-50 mb-1">Avg Transaction</h6>
                             <h3 class="mb-0">RM {{ number_format($summary['avg_transaction'] ?? 0, 2) }}</h3>
                         </div>
                     </div>
@@ -115,80 +115,89 @@
         </div>
     </div>
 
-    <div class="row">
-        <!-- Daily Sales Chart -->
-        <div class="col-lg-8 mb-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-chart-area text-primary me-2"></i>Daily Sales Trend</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="dailySalesChart" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-
+    <div class="row g-4">
         <!-- Payment Methods Breakdown -->
-        <div class="col-lg-4 mb-4">
+        <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-chart-pie text-success me-2"></i>Payment Methods</h5>
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0"><i class="fas fa-wallet text-primary me-2"></i>Payment Methods</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="paymentMethodsChart" height="250"></canvas>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span><i class="fas fa-circle text-success me-2"></i>Cash</span>
-                            <strong>RM {{ number_format($summary['cash_total'] ?? 0, 2) }}</strong>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="p-3 bg-success bg-opacity-10 rounded">
+                                <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
+                                <h4 class="text-success mb-1">RM {{ number_format($summary['cash_total'] ?? 0, 2) }}</h4>
+                                <small class="text-muted">Cash Sales</small>
+                            </div>
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <span><i class="fas fa-circle text-primary me-2"></i>QR Payment</span>
-                            <strong>RM {{ number_format($summary['qr_total'] ?? 0, 2) }}</strong>
+                        <div class="col-6">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded">
+                                <i class="fas fa-qrcode fa-2x text-primary mb-2"></i>
+                                <h4 class="text-primary mb-1">RM {{ number_format($summary['qr_total'] ?? 0, 2) }}</h4>
+                                <small class="text-muted">QR Sales</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    @php
+                        $total = ($summary['cash_total'] ?? 0) + ($summary['qr_total'] ?? 0);
+                        $cashPercent = $total > 0 ? (($summary['cash_total'] ?? 0) / $total) * 100 : 0;
+                        $qrPercent = $total > 0 ? (($summary['qr_total'] ?? 0) / $total) * 100 : 0;
+                    @endphp
+
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Cash ({{ number_format($cashPercent, 1) }}%)</span>
+                            <span>QR ({{ number_format($qrPercent, 1) }}%)</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" style="width: {{ $cashPercent }}%"></div>
+                            <div class="progress-bar bg-primary" style="width: {{ $qrPercent }}%"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="row">
-        <!-- Cash Variance Summary -->
-        <div class="col-lg-6 mb-4">
+        <!-- Variance Summary -->
+        <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-balance-scale text-warning me-2"></i>Cash Variance Summary</h5>
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0"><i class="fas fa-balance-scale text-primary me-2"></i>Cash Variance</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center mb-4">
+                    <div class="row text-center mb-3">
                         <div class="col-4">
-                            <div class="p-3 bg-success bg-opacity-10 rounded">
+                            <div class="p-2">
                                 <h3 class="text-success mb-1">{{ $summary['balanced_days'] ?? 0 }}</h3>
-                                <small class="text-muted">Balanced Days</small>
+                                <small class="text-muted">Balanced</small>
                             </div>
                         </div>
                         <div class="col-4">
-                            <div class="p-3 bg-info bg-opacity-10 rounded">
+                            <div class="p-2">
                                 <h3 class="text-info mb-1">{{ $summary['over_days'] ?? 0 }}</h3>
-                                <small class="text-muted">Over Days</small>
+                                <small class="text-muted">Over</small>
                             </div>
                         </div>
                         <div class="col-4">
-                            <div class="p-3 bg-danger bg-opacity-10 rounded">
+                            <div class="p-2">
                                 <h3 class="text-danger mb-1">{{ $summary['short_days'] ?? 0 }}</h3>
-                                <small class="text-muted">Short Days</small>
+                                <small class="text-muted">Short</small>
                             </div>
                         </div>
                     </div>
-                    <table class="table table-sm">
+
+                    <table class="table table-sm mb-0">
                         <tr>
-                            <td class="text-muted">Total Over Amount</td>
+                            <td>Total Over</td>
                             <td class="text-end text-info">+ RM {{ number_format($summary['total_over'] ?? 0, 2) }}</td>
                         </tr>
                         <tr>
-                            <td class="text-muted">Total Short Amount</td>
+                            <td>Total Short</td>
                             <td class="text-end text-danger">- RM {{ number_format($summary['total_short'] ?? 0, 2) }}</td>
                         </tr>
-                        <tr class="border-top">
+                        <tr class="table-light">
                             <td><strong>Net Variance</strong></td>
                             <td class="text-end">
                                 @php
@@ -205,56 +214,117 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Top Performing Days -->
-        <div class="col-lg-6 mb-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
+    <!-- Top Performing Days -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
                     <h5 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i>Top Performing Days</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="bg-light">
+                            <thead class="table-light">
                                 <tr>
                                     <th>#</th>
                                     <th>Date</th>
                                     <th class="text-end">Sales</th>
-                                    <th class="text-center">Transactions</th>
+                                    <th class="text-center">Trans.</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($topDays ?? [] as $index => $day)
-                                    <tr>
-                                        <td>
-                                            @if($index == 0)
-                                                <i class="fas fa-medal text-warning"></i>
-                                            @elseif($index == 1)
-                                                <i class="fas fa-medal text-secondary"></i>
-                                            @elseif($index == 2)
-                                                <i class="fas fa-medal" style="color: #cd7f32;"></i>
-                                            @else
-                                                {{ $index + 1 }}
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('admin.daily-cash-reports.show', $day->id) }}">
-                                                {{ $day->report_date->format('d M Y') }}
-                                            </a>
-                                            <br>
-                                            <small class="text-muted">{{ $day->report_date->format('l') }}</small>
-                                        </td>
-                                        <td class="text-end">
-                                            <strong>RM {{ number_format($day->total_sales, 2) }}</strong>
-                                        </td>
-                                        <td class="text-center">{{ $day->total_transactions }}</td>
-                                    </tr>
+                                <tr>
+                                    <td>
+                                        @if($index == 0)
+                                            <span class="badge bg-warning">🥇</span>
+                                        @elseif($index == 1)
+                                            <span class="badge bg-secondary">🥈</span>
+                                        @elseif($index == 2)
+                                            <span class="badge bg-danger">🥉</span>
+                                        @else
+                                            {{ $index + 1 }}
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('admin.daily-cash-reports.show', $day->id) }}" class="text-decoration-none">
+                                            {{ $day->report_date->format('d M Y') }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ $day->report_date->format('l') }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>RM {{ number_format($day->total_sales, 2) }}</strong>
+                                    </td>
+                                    <td class="text-center">{{ $day->total_transactions }}</td>
+                                </tr>
                                 @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center py-3 text-muted">
-                                            No data available
-                                        </td>
-                                    </tr>
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>
+                                        No data available for this period
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Reports List -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt text-primary me-2"></i>Daily Reports</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-end">Sales</th>
+                                    <th class="text-end">Variance</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($reports ?? [] as $report)
+                                <tr>
+                                    <td>
+                                        <a href="{{ route('admin.daily-cash-reports.show', $report->id) }}" class="text-decoration-none">
+                                            {{ $report->report_date->format('d M') }}
+                                        </a>
+                                    </td>
+                                    <td class="text-end">RM {{ number_format($report->total_cash_sales + $report->total_qr_sales, 2) }}</td>
+                                    <td class="text-end">
+                                        @if($report->variance > 0)
+                                            <span class="text-info">+{{ number_format($report->variance, 2) }}</span>
+                                        @elseif($report->variance < 0)
+                                            <span class="text-danger">{{ number_format($report->variance, 2) }}</span>
+                                        @else
+                                            <span class="text-success">0.00</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($report->status == 'closed')
+                                            <span class="badge bg-success">Closed</span>
+                                        @else
+                                            <span class="badge bg-warning">Open</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>
+                                        No reports for this period
+                                    </td>
+                                </tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -263,141 +333,13 @@
             </div>
         </div>
     </div>
-
-    <!-- Day of Week Analysis -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3">
-            <h5 class="mb-0"><i class="fas fa-calendar-week text-info me-2"></i>Sales by Day of Week</h5>
-        </div>
-        <div class="card-body">
-            <canvas id="dayOfWeekChart" height="100"></canvas>
-        </div>
-    </div>
 </div>
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 $(document).ready(function() {
-    // Toggle custom date fields
-    $('#periodSelect').change(function() {
-        if ($(this).val() === 'custom') {
-            $('.custom-dates').show();
-        } else {
-            $('.custom-dates').hide();
-        }
-    });
-
-    // Daily Sales Chart
-    const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
-    new Chart(dailySalesCtx, {
-        type: 'line',
-        data: {
-            labels: {!! json_encode($chartData['dates'] ?? []) !!},
-            datasets: [{
-                label: 'Sales (RM)',
-                data: {!! json_encode($chartData['sales'] ?? []) !!},
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                fill: true,
-                tension: 0.3
-            }, {
-                label: 'Transactions',
-                data: {!! json_encode($chartData['transactions'] ?? []) !!},
-                borderColor: '#198754',
-                backgroundColor: 'transparent',
-                yAxisID: 'y1',
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Sales (RM)'
-                    }
-                },
-                y1: {
-                    beginAtZero: true,
-                    position: 'right',
-                    grid: {
-                        drawOnChartArea: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Transactions'
-                    }
-                }
-            }
-        }
-    });
-
-    // Payment Methods Chart
-    const paymentCtx = document.getElementById('paymentMethodsChart').getContext('2d');
-    new Chart(paymentCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Cash', 'QR Payment'],
-            datasets: [{
-                data: [{{ $summary['cash_total'] ?? 0 }}, {{ $summary['qr_total'] ?? 0 }}],
-                backgroundColor: ['#198754', '#0d6efd'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-    // Day of Week Chart
-    const dayOfWeekCtx = document.getElementById('dayOfWeekChart').getContext('2d');
-    new Chart(dayOfWeekCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            datasets: [{
-                label: 'Average Sales (RM)',
-                data: {!! json_encode($dayOfWeekData ?? [0,0,0,0,0,0,0]) !!},
-                backgroundColor: [
-                    '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0', '#6f42c1'
-                ],
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Average Sales (RM)'
-                    }
-                }
-            }
-        }
-    });
+    // Nothing complex - just basic page functionality
 });
 </script>
 @endpush

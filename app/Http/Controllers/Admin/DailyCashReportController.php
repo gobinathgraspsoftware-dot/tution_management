@@ -236,8 +236,6 @@ class DailyCashReportController extends Controller
         $year = $request->get('year', now()->year);
         $month = $request->get('month', now()->month);
 
-        $monthlySummary = $this->posService->getMonthlySummary($year, $month);
-
         // Get all reports for the month
         $reports = DailyCashReport::whereYear('report_date', $year)
             ->whereMonth('report_date', $month)
@@ -245,19 +243,81 @@ class DailyCashReportController extends Controller
             ->orderBy('report_date')
             ->get();
 
-        // Get yearly data for comparison
+        // Calculate summary statistics
+        $totalCash = $reports->sum('total_cash_sales');
+        $totalQr = $reports->sum('total_qr_sales');
+        $totalRevenue = $totalCash + $totalQr;
+        $totalTransactions = $reports->sum('total_transactions');
+        $workingDays = $reports->count();
+
+        // Calculate variance stats
+        $balancedDays = $reports->where('variance', 0)->count();
+        $overDays = $reports->where('variance', '>', 0)->count();
+        $shortDays = $reports->where('variance', '<', 0)->count();
+        $totalOver = $reports->where('variance', '>', 0)->sum('variance');
+        $totalShort = abs($reports->where('variance', '<', 0)->sum('variance'));
+
+        $summary = [
+            'total_revenue' => $totalRevenue,
+            'total_transactions' => $totalTransactions,
+            'avg_daily_sales' => $workingDays > 0 ? $totalRevenue / $workingDays : 0,
+            'avg_transaction' => $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0,
+            'cash_total' => $totalCash,
+            'qr_total' => $totalQr,
+            'working_days' => $workingDays,
+            'balanced_days' => $balancedDays,
+            'over_days' => $overDays,
+            'short_days' => $shortDays,
+            'total_over' => $totalOver,
+            'total_short' => $totalShort,
+        ];
+
+        // Prepare chart data
+        $chartData = [
+            'dates' => $reports->pluck('report_date')->map(fn($d) => $d->format('d M'))->toArray(),
+            'sales' => $reports->map(fn($r) => $r->total_cash_sales + $r->total_qr_sales)->toArray(),
+            'transactions' => $reports->pluck('total_transactions')->toArray(),
+        ];
+
+        // Top performing days (add total_sales attribute for view)
+        $topDays = $reports->map(function($report) {
+            $report->total_sales = $report->total_cash_sales + $report->total_qr_sales;
+            return $report;
+        })->sortByDesc('total_sales')->take(5)->values();
+
+        // Day of week sales data (Sun=0 to Sat=6)
+        $dayOfWeekData = [0, 0, 0, 0, 0, 0, 0];
+        foreach ($reports as $report) {
+            $dayOfWeek = $report->report_date->dayOfWeek;
+            $dayOfWeekData[$dayOfWeek] += $report->total_cash_sales + $report->total_qr_sales;
+        }
+
+        // Get yearly data for comparison (simplified to avoid performance issues)
         $yearlyData = [];
         for ($m = 1; $m <= 12; $m++) {
-            $monthData = $this->posService->getMonthlySummary($year, $m);
-            $yearlyData[$m] = $monthData;
+            $monthReports = DailyCashReport::whereYear('report_date', $year)
+                ->whereMonth('report_date', $m)
+                ->get();
+
+            $monthCash = $monthReports->sum('total_cash_sales');
+            $monthQr = $monthReports->sum('total_qr_sales');
+
+            $yearlyData[$m] = [
+                'total_sales' => $monthCash + $monthQr,
+                'total_transactions' => $monthReports->sum('total_transactions'),
+                'working_days' => $monthReports->count(),
+            ];
         }
 
         return view('admin.pos.daily-reports.summary', compact(
             'year',
             'month',
-            'monthlySummary',
+            'summary',
             'reports',
-            'yearlyData'
+            'yearlyData',
+            'chartData',
+            'topDays',
+            'dayOfWeekData'
         ));
     }
 }
