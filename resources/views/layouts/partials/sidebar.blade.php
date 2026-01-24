@@ -66,6 +66,46 @@
 </div>
 {{-- End: Academic Management  --}}
 
+
+{{-- Inventory Management --}}
+<div class="menu-dropdown">
+    <a href="#sectionInventory" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Inventory Management
+    </a>
+    <div class="collapse" id="sectionInventory">
+        @if(Route::has('admin.inventory.index'))
+        <a href="{{ route('admin.inventory.index') }}" class="menu-item {{ request()->routeIs('admin.inventory.index') || request()->routeIs('admin.inventory.show') ? 'active' : '' }}">
+            <i class="fas fa-boxes me-2"></i> All Items
+        </a>
+        @endif
+
+        @if(Route::has('admin.inventory.create'))
+        <a href="{{ route('admin.inventory.create') }}" class="menu-item {{ request()->routeIs('admin.inventory.create') ? 'active' : '' }}">
+            <i class="fas fa-plus me-2"></i> Add Item
+        </a>
+        @endif
+
+        @if(Route::has('admin.inventory-categories.index'))
+        <a href="{{ route('admin.inventory-categories.index') }}" class="menu-item {{ request()->routeIs('admin.inventory-categories.*') ? 'active' : '' }}">
+            <i class="fas fa-tags me-2"></i> Categories
+        </a>
+        @endif
+
+        @if(Route::has('admin.inventory.low-stock'))
+        <a href="{{ route('admin.inventory.low-stock') }}" class="menu-item {{ request()->routeIs('admin.inventory.low-stock') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-triangle me-2"></i> Low Stock Alerts
+        </a>
+        @endif
+
+        @if(Route::has('admin.inventory.reports'))
+        <a href="{{ route('admin.inventory.reports') }}" class="menu-item {{ request()->routeIs('admin.inventory.reports*') ? 'active' : '' }}">
+            <i class="fas fa-chart-bar me-2"></i> Reports
+        </a>
+        @endif
+    </div>
+</div>
+{{-- Inventory Management --}}
+
 {{-- Start: CLASS MANAGEMENT --}}
 @canany(['view-classes', 'create-classes', 'manage-class-schedule'])
 <!-- CLASS MANAGEMENT -->
@@ -922,6 +962,13 @@
         <a href="#" class="menu-item">
             <i class="fas fa-shopping-cart"></i> Cafeteria POS
         </a>
+        {{-- Inventory --}}
+        @if(Route::has('staff.inventory.index'))
+        <a href="{{ route('staff.inventory.index') }}" class="menu-item {{ request()->routeIs('staff.inventory.*') ? 'active' : '' }}">
+            <i class="fas fa-boxes me-2"></i> Inventory
+        </a>
+        @endif
+        {{-- Inventory --}}
     </div>
 </div>
 <!-- Account -->

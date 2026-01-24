@@ -85,6 +85,10 @@ use App\Http\Controllers\Staff\AttendanceController as StaffAttendanceController
 use App\Http\Controllers\Staff\SeminarController as StaffSeminarController;
 use App\Http\Controllers\Staff\ArrearsController as StaffArrearsController;
 use App\Http\Controllers\Staff\AnnouncementController as StaffAnnouncementController;
+use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
+use App\Http\Controllers\Admin\InventoryCategoryController;
+use App\Http\Controllers\Admin\InventoryReportController;
+use App\Http\Controllers\Staff\InventoryController as StaffInventoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1093,6 +1097,34 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         });
 
+        // Inventory Categories
+        Route::resource('inventory-categories', InventoryCategoryController::class)->except(['show']);
+        Route::patch('inventory-categories/{category}/toggle-status', [InventoryCategoryController::class, 'toggleStatus'])->name('inventory-categories.toggle-status');
+        Route::get('inventory-categories/get-categories', [InventoryCategoryController::class, 'getCategories'])->name('inventory-categories.get');
+
+        // Inventory Items
+        Route::get('inventory/low-stock', [AdminInventoryController::class, 'lowStock'])->name('inventory.low-stock');
+        Route::get('inventory/bulk-adjust', [AdminInventoryController::class, 'bulkAdjust'])->name('inventory.bulk-adjust');
+        Route::post('inventory/bulk-adjust', [AdminInventoryController::class, 'bulkAdjust'])->name('inventory.bulk-adjust.store');
+        Route::get('inventory/export', [AdminInventoryController::class, 'export'])->name('inventory.export');
+        Route::get('inventory/get-items', [AdminInventoryController::class, 'getItems'])->name('inventory.get-items');
+        Route::resource('inventory', AdminInventoryController::class);
+
+        // Stock Management
+        Route::get('inventory/{inventory}/adjust-stock', [AdminInventoryController::class, 'adjustStock'])->name('inventory.adjust-stock');
+        Route::post('inventory/{inventory}/process-adjustment', [AdminInventoryController::class, 'processAdjustment'])->name('inventory.process-adjustment');
+        Route::get('inventory/{inventory}/history', [AdminInventoryController::class, 'stockHistory'])->name('inventory.stock-history');
+        Route::patch('inventory/{inventory}/toggle-status', [AdminInventoryController::class, 'toggleStatus'])->name('inventory.toggle-status');
+
+        // Inventory Reports
+        Route::get('inventory-reports', [InventoryReportController::class, 'index'])->name('inventory.reports');
+        Route::get('inventory-reports/movement', [InventoryReportController::class, 'movement'])->name('inventory.reports.movement');
+        Route::get('inventory-reports/valuation', [InventoryReportController::class, 'valuation'])->name('inventory.reports.valuation');
+        Route::get('inventory-reports/stock-levels', [InventoryReportController::class, 'stockLevels'])->name('inventory.reports.stock-levels');
+        Route::get('inventory-reports/category-performance', [InventoryReportController::class, 'categoryPerformance'])->name('inventory.reports.category-performance');
+        Route::get('inventory-reports/export-movement', [InventoryReportController::class, 'exportMovement'])->name('inventory.reports.export-movement');
+        Route::get('inventory-reports/export-valuation', [InventoryReportController::class, 'exportValuation'])->name('inventory.reports.export-valuation');
+
     });
 
     /*
@@ -1286,6 +1318,14 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/{announcement}/mark-read', [StaffAnnouncementController::class, 'markAsRead'])->name('mark-read');
             Route::get('/{announcement}/attachment/{index}', [StaffAnnouncementController::class, 'downloadAttachment'])->name('download-attachment');
         });
+
+        // Inventory View & Stock Adjustment
+        Route::get('inventory', [StaffInventoryController::class, 'index'])->name('inventory.index');
+        Route::get('inventory/search', [StaffInventoryController::class, 'search'])->name('inventory.search');
+        Route::get('inventory/{inventory}', [StaffInventoryController::class, 'getItem'])->name('inventory.get-item');
+        Route::get('inventory/{inventory}/adjust-stock', [StaffInventoryController::class, 'adjustStock'])->name('inventory.adjust-stock');
+        Route::post('inventory/{inventory}/process-adjustment', [StaffInventoryController::class, 'processAdjustment'])->name('inventory.process-adjustment');
+        Route::post('inventory/{inventory}/quick-update', [StaffInventoryController::class, 'quickUpdate'])->name('inventory.quick-update');
 
     });
 
