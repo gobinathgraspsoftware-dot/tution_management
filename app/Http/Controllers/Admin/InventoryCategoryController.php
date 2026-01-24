@@ -58,18 +58,18 @@ class InventoryCategoryController extends Controller
     /**
      * Show the form for editing the specified category.
      */
-    public function edit(InventoryCategory $category)
+    public function edit(InventoryCategory $inventoryCategory)
     {
-        return view('admin.inventory.categories.edit', compact('category'));
+        return view('admin.inventory.categories.edit', compact('inventoryCategory'));
     }
 
     /**
      * Update the specified category.
      */
-    public function update(InventoryCategoryRequest $request, InventoryCategory $category)
+    public function update(InventoryCategoryRequest $request, InventoryCategory $inventoryCategory)
     {
         try {
-            $category->update($request->validated());
+            $inventoryCategory->update($request->validated());
 
             return redirect()
                 ->route('admin.inventory-categories.index')
@@ -84,15 +84,15 @@ class InventoryCategoryController extends Controller
     /**
      * Remove the specified category.
      */
-    public function destroy(InventoryCategory $category)
+    public function destroy(InventoryCategory $inventoryCategory)
     {
         // Check if category has items
-        if ($category->inventoryItems()->exists()) {
+        if ($inventoryCategory->inventoryItems()->exists()) {
             return back()->with('error', 'Cannot delete category with existing items. Please move or delete items first.');
         }
 
         try {
-            $category->delete();
+            $inventoryCategory->delete();
 
             return redirect()
                 ->route('admin.inventory-categories.index')
@@ -105,10 +105,10 @@ class InventoryCategoryController extends Controller
     /**
      * Toggle category status
      */
-    public function toggleStatus(InventoryCategory $category)
+    public function toggleStatus(InventoryCategory $inventoryCategory)
     {
-        $category->status = $category->status === 'active' ? 'inactive' : 'active';
-        $category->save();
+        $inventoryCategory->status = $inventoryCategory->status === 'active' ? 'inactive' : 'active';
+        $inventoryCategory->save();
 
         return back()->with('success', 'Category status updated successfully.');
     }

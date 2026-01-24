@@ -104,10 +104,10 @@
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
                                     @can('edit-inventory-categories')
-                                    <a href="{{ route('admin.inventory-categories.edit', $category) }}" class="btn btn-outline-primary" title="Edit">
+                                    <a href="{{ route('admin.inventory-categories.edit', $category->id) }}" class="btn btn-outline-primary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form action="{{ route('admin.inventory-categories.toggle-status', $category) }}" method="POST" class="d-inline">
+                                    <form action="{{ route('admin.inventory-categories.toggle-status', $category->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('PATCH')
                                         <button type="submit" class="btn btn-outline-{{ $category->status == 'active' ? 'warning' : 'success' }}" title="{{ $category->status == 'active' ? 'Deactivate' : 'Activate' }}">

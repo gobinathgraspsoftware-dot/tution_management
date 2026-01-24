@@ -10,7 +10,7 @@
         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{{ route('admin.inventory.index') }}">Inventory</a></li>
         <li class="breadcrumb-item"><a href="{{ route('admin.inventory-categories.index') }}">Categories</a></li>
-        <li class="breadcrumb-item active">Edit: {{ $category->name }}</li>
+        <li class="breadcrumb-item active">Edit: {{ $inventoryCategory->name }}</li>
     </ol>
 </nav>
 @endsection
@@ -22,17 +22,17 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-edit me-2"></i>Edit: {{ $category->name }}
+                        <i class="fas fa-edit me-2"></i>Edit: {{ $inventoryCategory->name }}
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('admin.inventory-categories.update', $category) }}" method="POST">
+                    <form action="{{ route('admin.inventory-categories.update', $inventoryCategory) }}" method="POST">
                         @csrf
                         @method('PUT')
 
                         <div class="mb-3">
                             <label class="form-label">Category Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $category->name) }}" required>
+                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $inventoryCategory->name) }}" required>
                             @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -40,7 +40,7 @@
 
                         <div class="mb-3">
                             <label class="form-label">Description</label>
-                            <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="3">{{ old('description', $category->description) }}</textarea>
+                            <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="3">{{ old('description', $inventoryCategory->description) }}</textarea>
                             @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -49,8 +49,8 @@
                         <div class="mb-4">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select @error('status') is-invalid @enderror">
-                                <option value="active" {{ old('status', $category->status) == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status', $category->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                <option value="active" {{ old('status', $inventoryCategory->status) == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status', $inventoryCategory->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>
                             @error('status')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -59,7 +59,7 @@
 
                         <div class="alert alert-info mb-4">
                             <i class="fas fa-info-circle me-1"></i>
-                            This category has <strong>{{ $category->inventoryItems->count() }}</strong> items assigned.
+                            This category has <strong>{{ $inventoryCategory->inventoryItems->count() }}</strong> items assigned.
                         </div>
 
                         <div class="d-flex justify-content-between">

@@ -1099,7 +1099,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Inventory Categories
         Route::resource('inventory-categories', InventoryCategoryController::class)->except(['show']);
-        Route::patch('inventory-categories/{category}/toggle-status', [InventoryCategoryController::class, 'toggleStatus'])->name('inventory-categories.toggle-status');
+        Route::patch('inventory-categories/{inventory_category}/toggle-status', [InventoryCategoryController::class, 'toggleStatus'])->name('inventory-categories.toggle-status');
         Route::get('inventory-categories/get-categories', [InventoryCategoryController::class, 'getCategories'])->name('inventory-categories.get');
 
         // Inventory Items
