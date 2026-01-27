@@ -22,25 +22,28 @@ class PosController extends Controller
 
     /**
      * Display POS interface
+     * 
+     * FIX: Removed redirect when drawer is closed.
+     * Now passes $drawerOpen to view so the view can handle the UI state.
+     * This provides better UX - staff can see the POS interface with a 
+     * clear message about drawer status instead of being redirected.
      */
     public function index()
     {
-        // Check if drawer is open
-        if (!$this->posService->isDrawerOpen()) {
-            return redirect()->route('staff.dashboard')
-                ->with('warning', 'Cash drawer is not open. Please contact admin to open the drawer first.');
-        }
-        
         $categories = InventoryCategory::where('status', 'active')->orderBy('name')->get();
         $items = $this->posService->getAvailableItems();
         $todayStats = $this->getStaffTodayStats();
         $cashReport = $this->posService->getTodayCashReport();
         
+        // FIX: Pass drawerOpen status to view instead of redirecting
+        $drawerOpen = $this->posService->isDrawerOpen();
+        
         return view('staff.pos.index', compact(
             'categories',
             'items',
             'todayStats',
-            'cashReport'
+            'cashReport',
+            'drawerOpen'
         ));
     }
 
@@ -64,14 +67,17 @@ class PosController extends Controller
 
     /**
      * Process a sale
+     * 
+     * NOTE: Keep the drawer check here - this is correct behavior.
+     * We should NOT allow processing sales if drawer is closed.
      */
     public function processSale(PosTransactionRequest $request)
     {
-        // Check if drawer is open
+        // Check if drawer is open - this check is still needed for security
         if (!$this->posService->isDrawerOpen()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cash drawer is not open. Please contact admin.',
+                'message' => 'Cash drawer is not open. Please contact admin to open the drawer first.',
             ], 422);
         }
 
@@ -82,7 +88,7 @@ class PosController extends Controller
                 'success' => true,
                 'message' => 'Transaction completed successfully!',
                 'transaction' => $transaction,
-                'receipt_url' => route('staff.pos.receipt', $transaction->id),
+                'receipt_url' => route('staff.pos.my-transactions.receipt', $transaction->id),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -221,6 +227,19 @@ class PosController extends Controller
         return response()->json([
             'success' => true,
             'stats' => $this->getStaffTodayStats(),
+        ]);
+    }
+    
+    /**
+     * AJAX: Check drawer status
+     * New endpoint for frontend to check drawer status
+     */
+    public function checkDrawerStatus()
+    {
+        return response()->json([
+            'success' => true,
+            'drawer_open' => $this->posService->isDrawerOpen(),
+            'cash_report' => $this->posService->getTodayCashReport(),
         ]);
     }
 }
