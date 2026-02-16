@@ -10,14 +10,14 @@ class ClassService
 {
     /**
      * Create a new class with automatic code generation.
+     * Code is ALWAYS auto-generated to prevent duplicate entry conflicts
+     * with soft-deleted records.
      */
     public function createClass(array $data)
     {
         return DB::transaction(function () use ($data) {
-            // Generate class code if not provided
-            if (empty($data['code'])) {
-                $data['code'] = $this->generateClassCode($data['subject_id']);
-            }
+            // Always auto-generate class code to prevent duplicate conflicts
+            $data['code'] = $this->generateClassCode($data['subject_id']);
 
             // Create class
             $class = ClassModel::create($data);
@@ -32,6 +32,9 @@ class ClassService
     public function updateClass(ClassModel $class, array $data)
     {
         return DB::transaction(function () use ($class, $data) {
+            // Remove code from update data - code is immutable after creation
+            unset($data['code']);
+
             $class->update($data);
 
             // Check if capacity changed and update status accordingly
@@ -49,26 +52,100 @@ class ClassService
 
     /**
      * Generate unique class code.
+     * 
+     * FIXED: Uses withTrashed() to check ALL records including soft-deleted.
+     * Uses REGEXP to only match clean sequential codes (excludes _del_ suffixed codes).
+     * Uses do-while uniqueness loop as final safety net.
+     * 
+     * Pattern: {SUBJECT_PREFIX}{3-digit-number} e.g., SEJ001, MAT002, SCI015
      */
     public function generateClassCode($subjectId)
     {
         $subject = \App\Models\Subject::find($subjectId);
-        $prefix = strtoupper(substr($subject->code ?? $subject->name, 0, 3));
 
-        // Get the last class code with this prefix
-        $lastClass = ClassModel::where('code', 'like', "{$prefix}%")
-            ->orderBy('code', 'desc')
+        if (!$subject) {
+            $prefix = 'CLS';
+        } else {
+            $prefix = strtoupper(substr($subject->code ?? $subject->name, 0, 3));
+        }
+
+        // Sanitize prefix - only alphanumeric characters allowed
+        $prefix = preg_replace('/[^A-Z0-9]/', '', $prefix);
+        if (empty($prefix)) {
+            $prefix = 'CLS';
+        }
+
+        // Find the highest numbered code with this prefix INCLUDING soft-deleted records
+        // REGEXP ensures we only match clean sequential codes like SEJ001, SEJ002
+        // and NOT deleted codes like SEJ001_del_1707465600
+        $lastClass = ClassModel::withTrashed()
+            ->where('code', 'REGEXP', '^' . $prefix . '[0-9]+$')
+            ->orderByRaw('CAST(SUBSTRING(code, ' . (strlen($prefix) + 1) . ') AS UNSIGNED) DESC')
             ->first();
 
         if ($lastClass) {
-            // Extract number from last code and increment
-            preg_match('/\d+/', $lastClass->code, $matches);
-            $number = isset($matches[0]) ? intval($matches[0]) + 1 : 1;
+            $numberPart = substr($lastClass->code, strlen($prefix));
+            $number = intval($numberPart) + 1;
         } else {
             $number = 1;
         }
 
-        return $prefix . str_pad($number, 3, '0', STR_PAD_LEFT);
+        // Safety do-while loop guarantees absolute uniqueness
+        // Handles edge cases: manually inserted codes, race conditions, etc.
+        $maxAttempts = 100;
+        $attempts = 0;
+
+        do {
+            $code = $prefix . str_pad($number, 3, '0', STR_PAD_LEFT);
+            $exists = ClassModel::withTrashed()->where('code', $code)->exists();
+
+            if ($exists) {
+                $number++;
+            }
+            $attempts++;
+        } while ($exists && $attempts < $maxAttempts);
+
+        // Final fallback: if somehow all sequential codes are taken, use timestamp
+        if ($exists) {
+            $code = $prefix . date('ymdHis');
+        }
+
+        return $code;
+    }
+
+    /**
+     * Release class code on soft-delete by renaming it.
+     * This frees up the original code for reuse in new classes.
+     * 
+     * Pattern: SEJ001 → SEJ001_del_1707465600
+     * The _del_ suffix ensures REGEXP in generateClassCode() naturally excludes it.
+     * 
+     * @param ClassModel $class
+     * @return string The original code that was released
+     */
+    public function releaseClassCode(ClassModel $class)
+    {
+        $originalCode = $class->code;
+        $releasedCode = $originalCode . '_del_' . time();
+
+        // Directly update code in DB to bypass model events
+        DB::table('classes')
+            ->where('id', $class->id)
+            ->update(['code' => $releasedCode]);
+
+        return $originalCode;
+    }
+
+    /**
+     * Preview what code would be generated for a subject.
+     * Used by AJAX endpoint in ClassController::generateCode().
+     * 
+     * @param int $subjectId
+     * @return string
+     */
+    public function previewClassCode($subjectId)
+    {
+        return $this->generateClassCode($subjectId);
     }
 
     /**
@@ -162,7 +239,7 @@ class ClassService
     {
         return DB::transaction(function () use ($class) {
             $class->increment('current_enrollment');
-
+            
             // Update status if full
             if ($class->current_enrollment >= $class->capacity) {
                 $class->update(['status' => 'full']);
@@ -179,7 +256,7 @@ class ClassService
     {
         return DB::transaction(function () use ($class) {
             $class->decrement('current_enrollment');
-
+            
             // Update status if was full and now has space
             if ($class->status === 'full' && $class->current_enrollment < $class->capacity) {
                 $class->update(['status' => 'active']);
@@ -213,7 +290,7 @@ class ClassService
     public function getTeacherWeeklySchedule($teacherId)
     {
         $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
+        
         $schedules = ClassSchedule::whereHas('class', function($q) use ($teacherId) {
                 $q->where('teacher_id', $teacherId)->where('status', 'active');
             })

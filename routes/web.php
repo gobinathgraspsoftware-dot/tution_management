@@ -494,6 +494,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         // SHOW ROUTE - MUST COME AFTER /create AND /{class}/edit!
         Route::get('/classes/{class}', [ClassController::class, 'show'])->middleware('permission:view-classes')->name('classes.show');
         Route::delete('/classes/{class}', [ClassController::class, 'destroy'])->middleware('permission:delete-classes')->name('classes.destroy');
+        Route::get('/classes/generate-code', [ClassController::class, 'generateCode'])->middleware('permission:create-classes')->name('classes.generate-code');
+
 
         // Schedule routes
         Route::prefix('classes/{class}/schedule')->name('classes.schedule.')->middleware('permission:manage-class-schedule')->group(function () {

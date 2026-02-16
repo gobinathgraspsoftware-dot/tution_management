@@ -108,13 +108,13 @@ class ClassController extends Controller
                 'action' => 'create',
                 'model_type' => 'ClassModel',
                 'model_id' => $class->id,
-                'description' => "Created class: {$class->name} with price RM " . number_format($class->price, 2),
+                'description' => "Created class: {$class->name} (Code: {$class->code}) with price RM " . number_format($class->price, 2),
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
 
             return redirect()->route('admin.classes.index')
-                ->with('success', 'Class created successfully!');
+                ->with('success', "Class created successfully! Auto-generated code: {$class->code}");
         } catch (\Exception $e) {
             return back()->withInput()
                 ->with('error', 'Failed to create class: ' . $e->getMessage());
@@ -191,7 +191,12 @@ class ClassController extends Controller
     }
 
     /**
-     * Remove the specified class.
+     * Remove the specified class (soft-delete).
+     * 
+     * FIXED: Before soft-deleting, the class code is released by renaming it
+     * (e.g., SEJ001 → SEJ001_del_1707465600). This prevents the
+     * "Duplicate entry for key 'classes_code_unique'" error when a new class
+     * is created with the same subject prefix.
      */
     public function destroy(ClassModel $class)
     {
@@ -202,6 +207,13 @@ class ClassController extends Controller
             }
 
             $className = $class->name;
+            $classCode = $class->code;
+
+            // Release the class code BEFORE soft-deleting
+            // This frees up the code for reuse by new classes
+            $this->classService->releaseClassCode($class);
+
+            // Now soft-delete the class
             $class->delete();
 
             ActivityLog::create([
@@ -209,7 +221,7 @@ class ClassController extends Controller
                 'action' => 'delete',
                 'model_type' => 'ClassModel',
                 'model_id' => $class->id,
-                'description' => "Deleted class: {$className}",
+                'description' => "Deleted class: {$className} (Code: {$classCode})",
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
@@ -243,6 +255,34 @@ class ClassController extends Controller
             return back()->with('success', "Class status changed to {$newStatus}!");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to change status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * AJAX: Preview auto-generated class code based on selected subject.
+     * Called from the create form when subject dropdown changes.
+     * Returns JSON with the next available code.
+     */
+    public function generateCode(Request $request)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        try {
+            $code = $this->classService->previewClassCode($request->subject_id);
+            $subject = Subject::find($request->subject_id);
+
+            return response()->json([
+                'success' => true,
+                'code' => $code,
+                'subject_name' => $subject->name ?? '',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate code preview.',
+            ], 500);
         }
     }
 
