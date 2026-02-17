@@ -1,150 +1,178 @@
 @extends('layouts.app')
 
-@section('title', 'Browse Classes')
-
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-search"></i> Browse Available Classes
-        </h1>
-        <div>
-            <a href="{{ route('student.enrollments.browse-packages') }}" class="btn btn-info">
-                <i class="fas fa-box"></i> Browse Packages
-            </a>
-            <a href="{{ route('student.enrollments.my-enrollments') }}" class="btn btn-primary">
-                <i class="fas fa-list"></i> My Enrollments
-            </a>
-        </div>
-    </div>
-
-    <!-- Filters Card -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Filter Classes</h6>
-        </div>
-        <div class="card-body">
-            <form method="GET" action="{{ route('student.enrollments.browse-classes') }}">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label for="subject_id">Subject</label>
-                        <select class="form-control" id="subject_id" name="subject_id">
-                            <option value="">All Subjects</option>
-                            @foreach($subjects as $subject)
-                                <option value="{{ $subject->id }}" {{ request('subject_id') == $subject->id ? 'selected' : '' }}>
-                                    {{ $subject->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="day">Day of Week</label>
-                        <select class="form-control" id="day" name="day">
-                            <option value="">All Days</option>
-                            <option value="Monday" {{ request('day') == 'Monday' ? 'selected' : '' }}>Monday</option>
-                            <option value="Tuesday" {{ request('day') == 'Tuesday' ? 'selected' : '' }}>Tuesday</option>
-                            <option value="Wednesday" {{ request('day') == 'Wednesday' ? 'selected' : '' }}>Wednesday</option>
-                            <option value="Thursday" {{ request('day') == 'Thursday' ? 'selected' : '' }}>Thursday</option>
-                            <option value="Friday" {{ request('day') == 'Friday' ? 'selected' : '' }}>Friday</option>
-                            <option value="Saturday" {{ request('day') == 'Saturday' ? 'selected' : '' }}>Saturday</option>
-                            <option value="Sunday" {{ request('day') == 'Sunday' ? 'selected' : '' }}>Sunday</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="teacher_id">Teacher</label>
-                        <select class="form-control" id="teacher_id" name="teacher_id">
-                            <option value="">All Teachers</option>
-                            @foreach($teachers as $teacher)
-                                <option value="{{ $teacher->id }}" {{ request('teacher_id') == $teacher->id ? 'selected' : '' }}>
-                                    {{ $teacher->user->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label>&nbsp;</label>
-                        <div>
-                            <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-search"></i> Apply Filters
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Classes Grid -->
     <div class="row">
-        @forelse($classes as $class)
-        <div class="col-lg-6 col-xl-4 mb-4">
-            <div class="card shadow h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">{{ $class->name }}</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <span class="badge badge-info">{{ $class->subject->name }}</span>
-                    </div>
-
-                    <div class="mb-2">
-                        <strong><i class="fas fa-chalkboard-teacher"></i> Teacher:</strong>
-                        {{ $class->teacher->user->name }}
-                    </div>
-
-                    @if($class->description)
-                    <div class="mb-2">
-                        <strong><i class="fas fa-info-circle"></i> Description:</strong>
-                        <p class="small mb-0">{{ Str::limit($class->description, 100) }}</p>
-                    </div>
-                    @endif
-
-                    <div class="mb-2">
-                        <strong><i class="fas fa-calendar-alt"></i> Schedule:</strong>
-                        @if($class->schedules->isNotEmpty())
-                            @foreach($class->schedules as $schedule)
-                                <div class="small">
-                                    {{ $schedule->day_of_week }}:
-                                    {{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} -
-                                    {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="small text-muted">Schedule to be announced</div>
-                        @endif
-                    </div>
-
-                    <div class="mb-3">
-                        <strong><i class="fas fa-money-bill-wave"></i> Monthly Fee:</strong>
-                        <span class="h5 text-success mb-0">RM {{ number_format($class->monthly_fee, 2) }}</span>
-                    </div>
-
-                    @if($class->max_students)
-                    <div class="mb-2">
-                        <strong><i class="fas fa-users"></i> Capacity:</strong>
-                        {{ $class->enrollments()->active()->count() }} / {{ $class->max_students }} students
-                        <div class="progress" style="height: 5px;">
-                            <div class="progress-bar bg-success" role="progressbar"
-                                 style="width: {{ ($class->enrollments()->active()->count() / $class->max_students) * 100 }}%">
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-                <div class="card-footer">
-                    <a href="{{ route('student.enrollments.enroll-class', $class) }}" class="btn btn-primary btn-block">
-                        <i class="fas fa-user-plus"></i> Enroll Now
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <h4 class="mb-0">Browse Available Classes</h4>
+                <div class="page-title-right">
+                    <a href="{{ route('student.enrollments.my-enrollments') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to My Enrollments
                     </a>
                 </div>
             </div>
         </div>
-        @empty
+    </div>
+
+    {{-- Filters --}}
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> No classes available at the moment. Please check back later or browse our packages.
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ route('student.enrollments.browse-classes') }}">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Subject</label>
+                                <select name="subject_id" class="form-select">
+                                    <option value="">All Subjects</option>
+                                    @foreach($subjects as $subject)
+                                        <option value="{{ $subject->id }}" {{ request('subject_id') == $subject->id ? 'selected' : '' }}>
+                                            {{ $subject->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Day of Week</label>
+                                <select name="day" class="form-select">
+                                    <option value="">All Days</option>
+                                    <option value="monday" {{ request('day') == 'monday' ? 'selected' : '' }}>Monday</option>
+                                    <option value="tuesday" {{ request('day') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
+                                    <option value="wednesday" {{ request('day') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
+                                    <option value="thursday" {{ request('day') == 'thursday' ? 'selected' : '' }}>Thursday</option>
+                                    <option value="friday" {{ request('day') == 'friday' ? 'selected' : '' }}>Friday</option>
+                                    <option value="saturday" {{ request('day') == 'saturday' ? 'selected' : '' }}>Saturday</option>
+                                    <option value="sunday" {{ request('day') == 'sunday' ? 'selected' : '' }}>Sunday</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Teacher</label>
+                                <select name="teacher_id" class="form-select">
+                                    <option value="">All Teachers</option>
+                                    @foreach($teachers as $teacher)
+                                        <option value="{{ $teacher->id }}" {{ request('teacher_id') == $teacher->id ? 'selected' : '' }}>
+                                            {{ $teacher->user->name ?? 'N/A' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-1"></i> Apply Filters
+                                </button>
+                                <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
+    </div>
+
+    {{-- Classes Grid --}}
+    <div class="row">
+        @forelse($classes as $class)
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">{{ $class->name }}</h5>
+                                @if($class->subject)
+                                    <span class="badge bg-soft-primary text-primary">
+                                        {{ $class->subject->name }}
+                                    </span>
+                                @endif
+                            </div>
+                            <span class="badge bg-soft-info text-info">
+                                {{ ucfirst($class->type) }}
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-chalkboard-teacher text-muted me-2"></i>
+                                <span>{{ $class->teacher->user->name ?? 'N/A' }}</span>
+                            </div>
+
+                            @if($class->schedules->isNotEmpty())
+                                <div class="mb-2">
+                                    <i class="fas fa-clock text-muted me-2"></i>
+                                    <small>
+                                        @foreach($class->schedules->take(2) as $schedule)
+                                            {{ ucfirst($schedule->day_of_week) }}: {{ date('g:i A', strtotime($schedule->start_time)) }}
+                                            @if(!$loop->last), @endif
+                                        @endforeach
+                                        @if($class->schedules->count() > 2)
+                                            <br><span class="ms-4">+{{ $class->schedules->count() - 2 }} more</span>
+                                        @endif
+                                    </small>
+                                </div>
+                            @endif
+
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-users text-muted me-2"></i>
+                                <span>{{ $class->current_enrollment }}/{{ $class->capacity }} students</span>
+                            </div>
+                        </div>
+
+                        @php
+                            $availableSeats = $class->capacity - $class->current_enrollment;
+                            $capacityPercent = ($class->current_enrollment / $class->capacity) * 100;
+                            $progressColor = $capacityPercent >= 90 ? 'danger' : ($capacityPercent >= 70 ? 'warning' : 'success');
+                        @endphp
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Capacity</small>
+                                <small class="text-muted">{{ $availableSeats }} seats available</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-{{ $progressColor }}"
+                                     role="progressbar"
+                                     style="width: {{ $capacityPercent }}%;"
+                                     aria-valuenow="{{ $capacityPercent }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-0 text-primary">RM {{ number_format($class->monthly_fee, 2) }}</h4>
+                                <small class="text-muted">per month</small>
+                            </div>
+                            <a href="{{ route('student.enrollments.enroll-class', $class) }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Enroll
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="avatar-lg mx-auto mb-4">
+                            <div class="avatar-title bg-soft-warning text-warning rounded-circle fs-1">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                        <h5>No Classes Found</h5>
+                        <p class="text-muted mb-4">No available classes match your search criteria. Try adjusting your filters or browse our packages instead.</p>
+                        <a href="{{ route('student.enrollments.browse-packages') }}" class="btn btn-success">
+                            <i class="fas fa-box me-1"></i> Browse Packages
+                        </a>
+                    </div>
+                </div>
+            </div>
         @endforelse
     </div>
 </div>

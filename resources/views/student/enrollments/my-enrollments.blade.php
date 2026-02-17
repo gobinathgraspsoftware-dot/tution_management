@@ -1,84 +1,91 @@
 @extends('layouts.app')
 
-@section('title', 'My Enrollments')
-
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-user-graduate"></i> My Enrollments
-        </h1>
-        <div>
-            <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-info">
-                <i class="fas fa-search"></i> Browse Classes
-            </a>
-            <a href="{{ route('student.enrollments.browse-packages') }}" class="btn btn-success">
-                <i class="fas fa-box"></i> Browse Packages
-            </a>
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <h4 class="mb-0">My Enrollments</h4>
+                <div class="page-title-right">
+                    <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-warning me-2">
+                        <i class="fas fa-plus me-1"></i> Enroll in Class
+                    </a>
+                    <a href="{{ route('student.enrollments.browse-packages') }}" class="btn btn-success">
+                        <i class="fas fa-box me-1"></i> Browse Packages
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
+    {{-- Statistics Cards --}}
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+        <div class="col-md-3">
+            <div class="card">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Enrollments</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total'] }}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar-sm rounded-circle bg-primary bg-soft d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="fas fa-book-reader text-primary fs-4"></i>
+                            </div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-book fa-2x text-gray-300"></i>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small">Total Enrollments</p>
+                            <h4 class="mb-0">{{ $stats['total_enrollments'] ?? 0 }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
+        <div class="col-md-3">
+            <div class="card">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Classes</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['active'] }}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar-sm rounded-circle bg-success bg-soft d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="fas fa-check-circle text-success fs-4"></i>
+                            </div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small">Active Classes</p>
+                            <h4 class="mb-0">{{ $stats['active_enrollments'] ?? 0 }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+        <div class="col-md-3">
+            <div class="card">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Expiring Soon</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expiring_soon'] }}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar-sm rounded-circle bg-warning bg-soft d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="fas fa-clock text-warning fs-4"></i>
+                            </div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small">Pending</p>
+                            <h4 class="mb-0">{{ $stats['pending_enrollments'] ?? 0 }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
+        <div class="col-md-3">
+            <div class="card">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Expired</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expired'] }}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar-sm rounded-circle bg-info bg-soft d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="fas fa-dollar-sign text-info fs-4"></i>
+                            </div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small">Monthly Fee</p>
+                            <h4 class="mb-0">RM {{ number_format($stats['total_monthly_fee'] ?? 0, 2) }}</h4>
                         </div>
                     </div>
                 </div>
@@ -86,124 +93,196 @@
         </div>
     </div>
 
-    <!-- Enrollments List -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">My Active Enrollments</h6>
-        </div>
-        <div class="card-body">
-            @forelse($enrollments as $enrollment)
-            <div class="card mb-3 border-left-primary">
+    {{-- Enrollments List --}}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h5 class="text-primary">
-                                @if($enrollment->package)
-                                    <span class="badge badge-info">Package</span> {{ $enrollment->package->name }}
-                                @else
-                                    {{ $enrollment->class->name }}
-                                @endif
-                            </h5>
-
-                            @if($enrollment->class)
-                            <div class="mb-2">
-                                <strong>Subject:</strong> {{ $enrollment->class->subject->name }}<br>
-                                <strong>Teacher:</strong> {{ $enrollment->class->teacher->user->name }}
-                            </div>
-
-                            <div class="mb-2">
-                                <strong><i class="fas fa-calendar-alt"></i> Schedule:</strong>
-                                @if($enrollment->class->schedules->isNotEmpty())
-                                    @foreach($enrollment->class->schedules as $schedule)
-                                        <span class="badge badge-secondary">
-                                            {{ $schedule->day_of_week }}:
-                                            {{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }}
-                                        </span>
-                                    @endforeach
-                                @endif
-                            </div>
-                            @endif
-
-                            <div class="mb-2">
-                                <strong>Duration:</strong>
-                                {{ $enrollment->start_date->format('d M Y') }} -
-                                @if($enrollment->end_date)
-                                    {{ $enrollment->end_date->format('d M Y') }}
-                                @else
-                                    Ongoing
-                                @endif
-                            </div>
-
-                            <div class="mb-2">
-                                <strong>Monthly Fee:</strong>
-                                <span class="text-success font-weight-bold">RM {{ number_format($enrollment->monthly_fee, 2) }}</span>
-                                <br>
-                                <small class="text-muted">Payment due on day {{ $enrollment->payment_cycle_day }} of each month</small>
-                            </div>
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
+                    @endif
 
-                        <div class="col-md-4 text-right">
-                            <!-- Status Badge -->
-                            @if($enrollment->status == 'active')
-                                <span class="badge badge-success badge-pill mb-2">Active</span>
-                            @elseif($enrollment->status == 'suspended')
-                                <span class="badge badge-warning badge-pill mb-2">Suspended</span>
-                            @elseif($enrollment->status == 'expired')
-                                <span class="badge badge-danger badge-pill mb-2">Expired</span>
-                            @elseif($enrollment->status == 'trial')
-                                <span class="badge badge-info badge-pill mb-2">Trial</span>
-                            @endif
+                    @if(session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
 
-                            <!-- Days Remaining -->
-                            @if($enrollment->end_date && $enrollment->status == 'active')
-                                <div class="mb-3">
-                                    @if($enrollment->days_remaining > 30)
-                                        <div class="text-success">
-                                            <i class="fas fa-clock"></i> {{ $enrollment->days_remaining }} days left
-                                        </div>
-                                    @elseif($enrollment->days_remaining > 0)
-                                        <div class="text-warning">
-                                            <i class="fas fa-exclamation-triangle"></i> {{ $enrollment->days_remaining }} days left
-                                        </div>
-                                    @else
-                                        <div class="text-danger">
-                                            <i class="fas fa-times-circle"></i> Expired
-                                        </div>
-                                    @endif
+                    @if($enrollments->isEmpty())
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <div class="avatar-lg mx-auto rounded-circle bg-primary bg-soft d-flex align-items-center justify-content-center" style="width: 5rem; height: 5rem;">
+                                    <i class="fas fa-book-open text-primary" style="font-size: 2.5rem;"></i>
                                 </div>
-                            @endif
-
-                            <!-- Action Buttons -->
-                            <div class="btn-group-vertical" role="group">
-                                <a href="{{ route('student.enrollments.show', $enrollment) }}"
-                                   class="btn btn-sm btn-primary mb-1">
-                                    <i class="fas fa-eye"></i> View Details
-                                </a>
-                                @if($enrollment->class_id && Route::has('student.materials.index'))
-                                <a href="{{ route('student.materials.index', ['class_id' => $enrollment->class_id]) }}"
-                                   class="btn btn-sm btn-info mb-1">
-                                    <i class="fas fa-book"></i> Materials
-                                </a>
-                                @endif
-                                @if(Route::has('student.invoices.index'))
-                                <a href="{{ route('student.invoices.index') }}"
-                                   class="btn btn-sm btn-success mb-1">
-                                    <i class="fas fa-file-invoice"></i> Payments
-                                </a>
-                                @endif
                             </div>
+                            <h5>No Enrollments Yet</h5>
+                            <p class="text-muted mb-4">You haven't enrolled in any classes yet. Browse available classes or packages to get started!</p>
+                            <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i> Browse Classes
+                            </a>
+                            <a href="{{ route('student.enrollments.browse-packages') }}" class="btn btn-success">
+                                <i class="fas fa-box me-1"></i> Browse Packages
+                            </a>
                         </div>
-                    </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Class / Package</th>
+                                        <th>Subject</th>
+                                        <th>Teacher</th>
+                                        <th>Schedule</th>
+                                        <th>Monthly Fee</th>
+                                        <th>Status</th>
+                                        <th>Enrolled Date</th>
+                                        <th class="text-center" style="width: 100px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($enrollments as $enrollment)
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ $enrollment->class->name ?? 'N/A' }}</strong>
+                                                    @if($enrollment->package)
+                                                        <br><small class="text-muted">
+                                                            <i class="fas fa-box me-1"></i>{{ $enrollment->package->name }}
+                                                        </small>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if($enrollment->class && $enrollment->class->subject)
+                                                    <span class="badge bg-primary bg-soft text-primary">
+                                                        {{ $enrollment->class->subject->name }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($enrollment->class && $enrollment->class->teacher)
+                                                    {{ $enrollment->class->teacher->user->name ?? 'N/A' }}
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($enrollment->class && $enrollment->class->schedules->isNotEmpty())
+                                                    @foreach($enrollment->class->schedules->take(2) as $schedule)
+                                                        <small>{{ ucfirst($schedule->day_of_week) }}: {{ date('g:i A', strtotime($schedule->start_time)) }}</small>
+                                                        @if(!$loop->last)<br>@endif
+                                                    @endforeach
+                                                    @if($enrollment->class->schedules->count() > 2)
+                                                        <br><small class="text-muted">+{{ $enrollment->class->schedules->count() - 2 }} more</small>
+                                                    @endif
+                                                @else
+                                                    <span class="text-muted">No schedule</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <strong>RM {{ number_format($enrollment->monthly_fee, 2) }}</strong>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $statusColors = [
+                                                        'active' => 'success',
+                                                        'pending' => 'warning',
+                                                        'suspended' => 'danger',
+                                                        'cancelled' => 'secondary',
+                                                        'completed' => 'info',
+                                                    ];
+                                                    $color = $statusColors[$enrollment->status] ?? 'secondary';
+                                                @endphp
+                                                <span class="badge bg-{{ $color }}">
+                                                    {{ ucfirst($enrollment->status) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ $enrollment->created_at->format('d M Y') }}</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{{ route('student.enrollments.show', $enrollment) }}"
+                                                   class="btn btn-sm btn-primary"
+                                                   data-bs-toggle="tooltip"
+                                                   title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
-            @empty
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> You are not enrolled in any classes yet.
-                <a href="{{ route('student.enrollments.browse-classes') }}" class="alert-link">Browse available classes</a>
-                or <a href="{{ route('student.enrollments.browse-packages') }}" class="alert-link">check out our packages</a>!
-            </div>
-            @endforelse
         </div>
     </div>
 </div>
+
+@push('styles')
+<style>
+    /* Fix for soft background colors if not defined in your CSS */
+    .bg-soft {
+        background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+    }
+    .bg-primary.bg-soft {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    .bg-success.bg-soft {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    .bg-warning.bg-soft {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+    .bg-info.bg-soft {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+
+    /* Ensure icons are centered */
+    .avatar-sm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Table improvements */
+    .table th {
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Action button styling */
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    /* Badge styling */
+    .badge {
+        padding: 0.35em 0.65em;
+        font-weight: 500;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+@endpush
 @endsection

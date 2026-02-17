@@ -1,214 +1,227 @@
 @extends('layouts.app')
 
-@section('title', 'Enroll in Class')
-
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-user-plus"></i> Enroll in Class
-        </h1>
-        <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Classes
-        </a>
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <h4 class="mb-0">Enroll in Class</h4>
+                <div class="page-title-right">
+                    <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Browse
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row">
-        <!-- Class Details -->
+        {{-- Class Details --}}
         <div class="col-lg-8">
-            <div class="card shadow mb-4 border-primary">
-                <div class="card-header bg-gradient-primary text-white">
-                    <h4 class="mb-0">{{ $class->name }}</h4>
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0 text-white">Class Information</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-primary">Class Information</h6>
-                            <p class="mb-2">
-                                <strong><i class="fas fa-book"></i> Subject:</strong><br>
-                                {{ $class->subject->name }}
-                            </p>
-                            <p class="mb-2">
-                                <strong><i class="fas fa-chalkboard-teacher"></i> Teacher:</strong><br>
-                                {{ $class->teacher->user->name }}
-                            </p>
-                            @if($class->description)
-                            <p class="mb-2">
-                                <strong><i class="fas fa-info-circle"></i> Description:</strong><br>
-                                {{ $class->description }}
-                            </p>
-                            @endif
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Class Name</label>
+                            <h5>{{ $class->name }}</h5>
                         </div>
-
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-primary">Schedule</h6>
-                            @if($class->schedules->isNotEmpty())
-                                @foreach($class->schedules as $schedule)
-                                <div class="mb-2 p-2 border-left border-primary">
-                                    <strong>{{ $schedule->day_of_week }}</strong><br>
-                                    {{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} -
-                                    {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}
-                                    @if($schedule->venue)
-                                        <br><small class="text-muted">{{ $schedule->venue }}</small>
-                                    @endif
-                                </div>
-                                @endforeach
-                            @else
-                                <p class="text-muted">Schedule to be announced</p>
-                            @endif
+                        <div class="col-md-6">
+                            <label class="text-muted small">Subject</label>
+                            <h5>
+                                @if($class->subject)
+                                    <span class="badge bg-soft-primary text-primary fs-6">
+                                        {{ $class->subject->name }}
+                                    </span>
+                                @endif
+                            </h5>
                         </div>
                     </div>
 
-                    <hr>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Teacher</label>
+                            <h5>{{ $class->teacher->user->name ?? 'N/A' }}</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Class Type</label>
+                            <h5>
+                                <span class="badge bg-soft-info text-info">
+                                    {{ ucfirst($class->type) }}
+                                </span>
+                            </h5>
+                        </div>
+                    </div>
+
+                    @if($class->description)
+                        <div class="mb-3">
+                            <label class="text-muted small">Description</label>
+                            <p>{{ $class->description }}</p>
+                        </div>
+                    @endif
+
+                    @if($class->schedules && $class->schedules->isNotEmpty())
+                        <div class="mb-3">
+                            <label class="text-muted small mb-2">Class Schedule</label>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Day</th>
+                                            <th>Time</th>
+                                            <th>Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($class->schedules as $schedule)
+                                            <tr>
+                                                <td>{{ ucfirst($schedule->day_of_week) }}</td>
+                                                <td>
+                                                    {{ date('g:i A', strtotime($schedule->start_time)) }} -
+                                                    {{ date('g:i A', strtotime($schedule->end_time)) }}
+                                                </td>
+                                                <td>
+                                                    @php
+                                                        $start = \Carbon\Carbon::parse($schedule->start_time);
+                                                        $end = \Carbon\Carbon::parse($schedule->end_time);
+                                                        $duration = $start->diffInMinutes($end);
+                                                    @endphp
+                                                    {{ $duration }} minutes
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="pricing-box p-4 bg-light rounded text-center">
-                                <h6 class="text-muted">Monthly Fee</h6>
-                                <div class="h2 text-success mb-0">
-                                    RM {{ number_format($class->monthly_fee, 2) }}
-                                </div>
-                                <small class="text-muted">per month</small>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-soft-primary rounded text-center">
+                                <i class="fas fa-users fs-3 text-primary mb-2"></i>
+                                <p class="mb-0 small text-muted">Class Capacity</p>
+                                <h5 class="mb-0">{{ $class->current_enrollment }}/{{ $class->capacity }}</h5>
                             </div>
                         </div>
-
-                        @if($class->max_students)
-                        <div class="col-md-6">
-                            <div class="p-4 bg-light rounded">
-                                <h6 class="text-muted">Class Capacity</h6>
-                                <p class="mb-2">
-                                    <strong>{{ $class->enrollments()->active()->count() }}</strong> /
-                                    <strong>{{ $class->max_students }}</strong> students enrolled
-                                </p>
-                                <div class="progress" style="height: 10px;">
-                                    <div class="progress-bar bg-success" role="progressbar"
-                                         style="width: {{ ($class->enrollments()->active()->count() / $class->max_students) * 100 }}%">
-                                    </div>
-                                </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-soft-success rounded text-center">
+                                <i class="fas fa-chair fs-3 text-success mb-2"></i>
+                                <p class="mb-0 small text-muted">Available Seats</p>
+                                <h5 class="mb-0">{{ $class->capacity - $class->current_enrollment }}</h5>
                             </div>
                         </div>
-                        @endif
+                        <div class="col-md-4">
+                            <div class="p-3 bg-soft-info rounded text-center">
+                                <i class="fas fa-dollar-sign fs-3 text-info mb-2"></i>
+                                <p class="mb-0 small text-muted">Monthly Fee</p>
+                                <h5 class="mb-0">RM {{ number_format($class->monthly_fee, 2) }}</h5>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Enrollment Form -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Complete Your Enrollment</h6>
+        {{-- Enrollment Form --}}
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Enrollment Details</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('student.enrollments.enroll-class.store', $class) }}">
+                    @if(session('error'))
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                        </div>
+                    @endif
+
+                    <form action="{{ route('student.enrollments.enroll-class.store', $class) }}" method="POST">
                         @csrf
 
-                        <div class="form-group">
-                            <label for="start_date">Start Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control @error('start_date') is-invalid @enderror"
-                                   id="start_date" name="start_date"
-                                   value="{{ old('start_date', date('Y-m-d')) }}"
-                                   min="{{ date('Y-m-d') }}" required>
+                        <div class="mb-3">
+                            <label class="form-label">Student Name</label>
+                            <input type="text" class="form-control" value="{{ auth()->user()->name }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label required">Start Date</label>
+                            <input type="date"
+                                   name="start_date"
+                                   class="form-control @error('start_date') is-invalid @enderror"
+                                   value="{{ old('start_date', now()->addDays(1)->format('Y-m-d')) }}"
+                                   min="{{ now()->format('Y-m-d') }}"
+                                   required>
                             @error('start_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Select the date when you want to start attending this class</small>
+                            <small class="form-text text-muted">Choose when you want to start this class</small>
                         </div>
 
-                        <div class="form-group">
-                            <label for="payment_cycle_day">Payment Cycle Day <span class="text-danger">*</span></label>
-                            <select class="form-control @error('payment_cycle_day') is-invalid @enderror"
-                                    id="payment_cycle_day" name="payment_cycle_day" required>
-                                <option value="">Select Day...</option>
+                        <div class="mb-3">
+                            <label class="form-label required">Payment Cycle Day</label>
+                            <select name="payment_cycle_day" class="form-select @error('payment_cycle_day') is-invalid @enderror" required>
+                                <option value="">Select day of month</option>
                                 @for($i = 1; $i <= 28; $i++)
-                                    <option value="{{ $i }}" {{ old('payment_cycle_day', 15) == $i ? 'selected' : '' }}>
-                                        Day {{ $i }} of each month
+                                    <option value="{{ $i }}" {{ old('payment_cycle_day', 5) == $i ? 'selected' : '' }}>
+                                        {{ $i }}{{ $i == 1 ? 'st' : ($i == 2 ? 'nd' : ($i == 3 ? 'rd' : 'th')) }} of each month
                                     </option>
                                 @endfor
                             </select>
                             @error('payment_cycle_day')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Choose the day of each month when your payment is due</small>
+                            <small class="form-text text-muted">Choose your preferred monthly payment date</small>
                         </div>
 
                         <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle"></i> What happens next?</h6>
-                            <ul class="mb-0 small">
-                                <li>An invoice will be automatically generated for your first payment</li>
-                                <li>You will receive confirmation via email and WhatsApp</li>
-                                <li>You will get access to class materials immediately</li>
-                                <li>Monthly invoices will be generated on your payment cycle day</li>
-                            </ul>
+                            <h6 class="alert-heading">Payment Summary</h6>
+                            <hr>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Monthly Fee:</span>
+                                <strong>RM {{ number_format($class->monthly_fee, 2) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Total Due Today:</span>
+                                <strong class="text-primary">RM {{ number_format($class->monthly_fee, 2) }}</strong>
+                            </div>
                         </div>
 
-                        <div class="custom-control custom-checkbox mb-3">
-                            <input type="checkbox" class="custom-control-input" id="terms" required>
-                            <label class="custom-control-label" for="terms">
-                                I agree to the <a href="#" target="_blank">terms and conditions</a> and confirm
-                                that I will make payments on time
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="agree" required>
+                            <label class="form-check-label" for="agree">
+                                I agree to the terms and conditions and understand the payment schedule
                             </label>
                         </div>
 
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary btn-lg btn-block">
-                                <i class="fas fa-check"></i> Confirm Enrollment
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-1"></i> Confirm Enrollment
                             </button>
-                            <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-secondary btn-block">
-                                Cancel
+                            <a href="{{ route('student.enrollments.browse-classes') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i> Cancel
                             </a>
                         </div>
                     </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Info Sidebar -->
-        <div class="col-lg-4">
-            <!-- Fee Breakdown -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Fee Breakdown</h6>
+            {{-- Important Notes --}}
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Important Notes
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Monthly Tuition:</span>
-                        <strong>RM {{ number_format($class->monthly_fee, 2) }}</strong>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between">
-                        <strong>Total Monthly:</strong>
-                        <strong class="text-success">RM {{ number_format($class->monthly_fee, 2) }}</strong>
-                    </div>
-                    <small class="text-muted d-block mt-2">
-                        * First invoice may be pro-rated based on your start date
-                    </small>
-                </div>
-            </div>
-
-            <!-- Benefits -->
-            <div class="card shadow mb-4 border-left-success">
-                <div class="card-body">
-                    <h6 class="text-success"><i class="fas fa-check-circle"></i> Enrollment Benefits</h6>
-                    <ul class="small mb-0">
-                        <li>Access to all class materials</li>
-                        <li>Direct communication with teacher</li>
-                        <li>Progress tracking & reports</li>
-                        <li>Attendance monitoring</li>
-                        <li>Online payment options</li>
-                        <li>WhatsApp notifications</li>
+                    <ul class="mb-0 small">
+                        <li class="mb-2">Payment will be automatically generated on your selected payment cycle day</li>
+                        <li class="mb-2">You will receive WhatsApp reminders before payment due dates</li>
+                        <li class="mb-2">Regular attendance is required to maintain enrollment</li>
+                        <li>Contact admin if you need to change your payment schedule</li>
                     </ul>
-                </div>
-            </div>
-
-            <!-- Help -->
-            <div class="card shadow mb-4">
-                <div class="card-body">
-                    <h6 class="text-primary"><i class="fas fa-question-circle"></i> Need Help?</h6>
-                    <p class="small mb-2">If you have any questions about enrolling in this class, please contact us:</p>
-                    <p class="small mb-0">
-                        <strong>Email:</strong> support@arenamatriks.com<br>
-                        <strong>Phone:</strong> 03-7972 3663
-                    </p>
                 </div>
             </div>
         </div>
