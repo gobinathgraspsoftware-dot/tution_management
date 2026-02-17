@@ -1621,20 +1621,13 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Enrollment Routes
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
-            // Static routes FIRST (before any wildcard routes)
             Route::get('/my-enrollments', [StudentEnrollmentController::class, 'myEnrollments'])->name('my-enrollments');
             Route::get('/browse-classes', [StudentEnrollmentController::class, 'browseClasses'])->name('browse-classes');
             Route::get('/browse-packages', [StudentEnrollmentController::class, 'browsePackages'])->name('browse-packages');
-
-            // Class enrollment routes
             Route::get('/enroll-class/{class}', [StudentEnrollmentController::class, 'enrollClass'])->name('enroll-class');
             Route::post('/enroll-class/{class}', [StudentEnrollmentController::class, 'storeClassEnrollment'])->name('enroll-class.store');
-
-            // Package enrollment routes
             Route::get('/enroll-package/{package}', [StudentEnrollmentController::class, 'enrollPackage'])->name('enroll-package');
             Route::post('/enroll-package/{package}', [StudentEnrollmentController::class, 'storePackageEnrollment'])->name('enroll-package.store');
-
-            // Wildcard route LAST (this will catch /enrollments/11, /enrollments/23, etc.)
             Route::get('/{enrollment}', [StudentEnrollmentController::class, 'show'])->name('show');
         });
 
