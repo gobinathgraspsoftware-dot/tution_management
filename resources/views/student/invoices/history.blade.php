@@ -1,169 +1,183 @@
 @extends('layouts.app')
 
-@section('title', 'Invoice History')
-@section('page-title', 'Invoice History')
+@section('title', 'Payment History')
 
 @section('content')
-<div class="page-header">
-    <h1>
-        <i class="fas fa-history me-2"></i> Invoice History
-    </h1>
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('student.dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('student.invoices.index') }}">Invoices</a></li>
-            <li class="breadcrumb-item active">History</li>
-        </ol>
-    </nav>
-</div>
-
-{{-- Summary Card --}}
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card border-0 bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon bg-white bg-opacity-25 me-3" style="width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-check-circle fa-lg text-white"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-white-50">Total Paid Invoices</h6>
-                        <h3 class="mb-0">{{ $invoices->total() }}</h3>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Payment History</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('student.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('student.invoices.index') }}">Invoices</a></li>
+                    <li class="breadcrumb-item active">History</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{{ route('student.invoices.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Invoices
+            </a>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <div class="card-body text-white">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon bg-white bg-opacity-25 me-3" style="width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-money-bill-wave fa-lg text-white"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-white-50">Total Amount Paid</h6>
-                        <h3 class="mb-0">RM {{ number_format($invoices->sum('paid_amount'), 2) }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-0 bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon bg-white bg-opacity-25 me-3" style="width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-file-invoice fa-lg text-white"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-white-50">This Page</h6>
-                        <h3 class="mb-0">{{ $invoices->count() }} Invoice(s)</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-{{-- Paid Invoices Table --}}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-check-double me-2 text-success"></i>Paid Invoices</h5>
-        <a href="{{ route('student.invoices.index') }}" class="btn btn-sm btn-outline-primary">
-            <i class="fas fa-arrow-left me-1"></i> Back to All Invoices
-        </a>
-    </div>
-    <div class="card-body">
-        @if($invoices->isEmpty())
-            <div class="text-center py-5">
-                <i class="fas fa-file-invoice fa-4x text-muted mb-3"></i>
-                <h5 class="text-muted">No Paid Invoices Found</h5>
-                <p class="text-muted">Your paid invoice history will appear here once payments are completed.</p>
-                <a href="{{ route('student.invoices.index') }}" class="btn btn-primary">
-                    <i class="fas fa-file-invoice me-1"></i> View All Invoices
-                </a>
-            </div>
-        @else
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Invoice #</th>
-                            <th>Package / Description</th>
-                            <th>Invoice Date</th>
-                            <th class="text-end">Total Amount</th>
-                            <th class="text-end">Paid Amount</th>
-                            <th>Paid Date</th>
-                            <th>Payment Method</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($invoices as $invoice)
-                        <tr>
-                            <td>
-                                <span class="fw-bold text-primary">{{ $invoice->invoice_number }}</span>
-                            </td>
-                            <td>
-                                @if($invoice->enrollment && $invoice->enrollment->package)
-                                    <span>{{ $invoice->enrollment->package->name }}</span>
-                                @elseif($invoice->description)
-                                    <span>{{ Str::limit($invoice->description, 40) }}</span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                {{ $invoice->created_at->format('d M Y') }}
-                            </td>
-                            <td class="text-end fw-bold">
-                                RM {{ number_format($invoice->total_amount, 2) }}
-                            </td>
-                            <td class="text-end text-success fw-bold">
-                                RM {{ number_format($invoice->paid_amount, 2) }}
-                            </td>
-                            <td>
-                                {{ $invoice->updated_at->format('d M Y') }}
-                            </td>
-                            <td>
-                                @if($invoice->payments && $invoice->payments->isNotEmpty())
-                                    @php
-                                        $lastPayment = $invoice->payments->sortByDesc('created_at')->first();
-                                    @endphp
-                                    <span class="badge bg-light text-dark">
-                                        <i class="fas fa-{{ $lastPayment->payment_method === 'online' ? 'globe' : ($lastPayment->payment_method === 'cash' ? 'money-bill' : 'qrcode') }} me-1"></i>
-                                        {{ ucfirst($lastPayment->payment_method ?? 'N/A') }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <a href="{{ route('student.invoices.show', $invoice->id) }}" class="btn btn-sm btn-outline-primary" title="View Invoice">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                @if(Route::has('student.payments.receipt') && $invoice->payments && $invoice->payments->isNotEmpty())
-                                    @php $lastPayment = $invoice->payments->sortByDesc('created_at')->first(); @endphp
-                                    <a href="{{ route('student.payments.receipt', $lastPayment->id) }}" class="btn btn-sm btn-outline-success" title="View Receipt" target="_blank">
-                                        <i class="fas fa-receipt"></i>
-                                    </a>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- Pagination --}}
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="text-muted small">
-                    Showing {{ $invoices->firstItem() }} to {{ $invoices->lastItem() }} of {{ $invoices->total() }} paid invoices
+    <!-- Paid Invoices -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-check-circle me-2 text-success"></i>Paid Invoices</h5>
+            <span class="badge bg-success">{{ $invoices->total() }} invoices</span>
+        </div>
+        <div class="card-body p-0">
+            @if($invoices->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Package</th>
+                                <th>Paid Date</th>
+                                <th class="text-end">Amount</th>
+                                <th>Payments</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($invoices as $invoice)
+                                <tr>
+                                    <td>
+                                        <a href="{{ route('student.invoices.show', $invoice) }}" class="fw-bold text-decoration-none">
+                                            {{ $invoice->invoice_number }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ $invoice->type_label ?? ucfirst($invoice->type) }}</small>
+                                    </td>
+                                    <td>
+                                        @if($invoice->enrollment && $invoice->enrollment->package)
+                                            {{ $invoice->enrollment->package->name }}
+                                            @if($invoice->billing_period)
+                                                <br><small class="text-muted">{{ $invoice->billing_period }}</small>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        {{ $invoice->updated_at->format('d M Y') }}
+                                        <br>
+                                        <small class="text-muted">{{ $invoice->updated_at->format('h:i A') }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">RM {{ number_format($invoice->total_amount, 2) }}</strong>
+                                        <br>
+                                        <small class="text-muted">Paid: RM {{ number_format($invoice->paid_amount, 2) }}</small>
+                                    </td>
+                                    <td>
+                                        @if($invoice->payments && $invoice->payments->count() > 0)
+                                            <span class="badge bg-info">{{ $invoice->payments->count() }} payment(s)</span>
+                                            <br>
+                                            @foreach($invoice->payments->take(2) as $payment)
+                                                <small class="text-muted d-block">
+                                                    {{ $payment->payment_date->format('d M Y') }} - RM {{ number_format($payment->amount, 2) }}
+                                                </small>
+                                            @endforeach
+                                            @if($invoice->payments->count() > 2)
+                                                <small class="text-muted">+{{ $invoice->payments->count() - 2 }} more</small>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ route('student.invoices.show', $invoice) }}" 
+                                               class="btn btn-outline-primary" 
+                                               title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @if($invoice->payments && $invoice->payments->count() > 0)
+                                                @php $firstPayment = $invoice->payments->first(); @endphp
+                                                @if(Route::has('student.payments.receipt'))
+                                                    <a href="{{ route('student.payments.receipt', $firstPayment) }}" 
+                                                       class="btn btn-outline-success" 
+                                                       title="View Receipt"
+                                                       target="_blank">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </a>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
+                                <td class="text-end">
+                                    <strong class="text-success fs-5">
+                                        RM {{ number_format($invoices->sum('total_amount'), 2) }}
+                                    </strong>
+                                </td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                    <h5>No Payment History</h5>
+                    <p class="text-muted mb-0">You don't have any paid invoices yet.</p>
+                </div>
+            @endif
+        </div>
+        @if($invoices->hasPages())
+            <div class="card-footer bg-white">
                 {{ $invoices->links() }}
             </div>
         @endif
     </div>
+
+    <!-- Summary Information -->
+    @if($invoices->count() > 0)
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm bg-light">
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Payment Summary</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="mb-2"><small class="text-muted">Total Invoices Paid:</small></p>
+                                <h4 class="text-success">{{ $invoices->total() }}</h4>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-2"><small class="text-muted">Total Amount Paid:</small></p>
+                                <h4 class="text-success">RM {{ number_format($invoices->sum('total_amount'), 2) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm bg-light">
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="fas fa-link me-2"></i>Quick Links</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{{ route('student.invoices.index') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-list me-2"></i> View All Invoices
+                            </a>
+                            @if(Route::has('student.payments.index'))
+                                <a href="{{ route('student.payments.index') }}" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-money-bill-wave me-2"></i> View Payments
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

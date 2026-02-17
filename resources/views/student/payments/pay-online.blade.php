@@ -1,508 +1,357 @@
 @extends('layouts.app')
 
 @section('title', 'Pay Online')
-@section('page-title', 'Online Payment')
-
-@push('styles')
-<style>
-    .payment-card {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        overflow: hidden;
-        margin-bottom: 25px;
-    }
-
-    .payment-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-        padding: 25px;
-    }
-
-    .payment-header h4 {
-        margin: 0;
-        font-weight: 600;
-    }
-
-    .invoice-badge {
-        background: rgba(255,255,255,0.2);
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        display: inline-block;
-        margin-top: 10px;
-    }
-
-    .payment-body {
-        padding: 25px;
-    }
-
-    .amount-display {
-        text-align: center;
-        padding: 30px;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 12px;
-        margin-bottom: 25px;
-    }
-
-    .amount-display .label {
-        color: #6c757d;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .amount-display .amount {
-        font-size: 42px;
-        font-weight: 700;
-        color: #495057;
-        margin: 10px 0;
-    }
-
-    .amount-display .amount .currency {
-        font-size: 20px;
-        font-weight: 400;
-        color: #6c757d;
-    }
-
-    .invoice-details {
-        margin-bottom: 25px;
-    }
-
-    .invoice-details .detail-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 12px 0;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .invoice-details .detail-item:last-child {
-        border-bottom: none;
-    }
-
-    .invoice-details .detail-label {
-        color: #6c757d;
-    }
-
-    .invoice-details .detail-value {
-        font-weight: 500;
-    }
-
-    .gateway-selection {
-        margin-bottom: 25px;
-    }
-
-    .gateway-option {
-        border: 2px solid #e9ecef;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 15px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .gateway-option:hover {
-        border-color: #667eea;
-        background: #f8f9fa;
-    }
-
-    .gateway-option.selected {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.05);
-    }
-
-    .gateway-option input {
-        position: absolute;
-        opacity: 0;
-    }
-
-    .gateway-info {
-        display: flex;
-        align-items: center;
-    }
-
-    .gateway-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 15px;
-        font-size: 24px;
-    }
-
-    .gateway-icon.toyyibpay { background: #e8eaf6; color: #1a237e; }
-    .gateway-icon.senangpay { background: #e0f7fa; color: #00838f; }
-    .gateway-icon.billplz { background: #fff3e0; color: #e65100; }
-
-    .gateway-details h6 {
-        margin: 0;
-        font-weight: 600;
-    }
-
-    .gateway-details small {
-        color: #6c757d;
-    }
-
-    .gateway-fee {
-        text-align: right;
-    }
-
-    .gateway-fee .fee-label {
-        font-size: 12px;
-        color: #6c757d;
-    }
-
-    .gateway-fee .fee-amount {
-        font-weight: 600;
-        color: #667eea;
-    }
-
-    .btn-pay-now {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        color: #fff;
-        padding: 15px 30px;
-        font-size: 16px;
-        font-weight: 600;
-        border-radius: 10px;
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-
-    .btn-pay-now:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        color: #fff;
-    }
-
-    .btn-pay-now:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .secure-note {
-        text-align: center;
-        margin-top: 20px;
-        color: #6c757d;
-        font-size: 14px;
-    }
-
-    .secure-note i {
-        color: #28a745;
-        margin-right: 5px;
-    }
-
-    .payment-history {
-        margin-top: 30px;
-    }
-
-    .payment-history-item {
-        background: #fff;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 10px;
-        border: 1px solid #e9ecef;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .unpaid-invoices .invoice-item {
-        background: #fff;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 15px;
-        border-left: 4px solid #ffc107;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .unpaid-invoices .invoice-item:hover {
-        border-left-color: #667eea;
-        transform: translateX(5px);
-    }
-
-    .unpaid-invoices .invoice-item.overdue {
-        border-left-color: #dc3545;
-    }
-</style>
-@endpush
 
 @section('content')
-<div class="page-header d-flex justify-content-between align-items-center">
-    <div>
-        <h1 class="h3 mb-0">
-            <i class="fas fa-credit-card me-2"></i> Online Payment
-        </h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ route('student.dashboard') }}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('student.invoices.index') }}">Invoices</a></li>
-                <li class="breadcrumb-item active">Pay Online</li>
-            </ol>
-        </nav>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Pay Online</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('student.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('student.payments.index') }}">Payments</a></li>
+                    <li class="breadcrumb-item active">Pay Online</li>
+                </ol>
+            </nav>
+        </div>
     </div>
-</div>
 
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show">
-        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
+    @if(!$gatewaysAvailable)
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Online Payment Unavailable:</strong> No payment gateway is currently configured. 
+            Please contact the office for alternative payment methods.
+        </div>
+    @endif
 
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
-<div class="row">
-    <!-- Main Payment Section -->
-    <div class="col-lg-8">
-        @if(isset($invoice))
-            <!-- Single Invoice Payment -->
-            <div class="payment-card">
-                <div class="payment-header">
-                    <h4><i class="fas fa-file-invoice me-2"></i> Invoice Payment</h4>
-                    <div class="invoice-badge">
-                        <i class="fas fa-hashtag me-1"></i> {{ $invoice->invoice_number }}
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Total Outstanding</h6>
+                            <h3 class="mb-0">RM {{ number_format($summary['total_outstanding'], 2) }}</h3>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
                     </div>
-                </div>
-                <div class="payment-body">
-                    <!-- Amount Display -->
-                    <div class="amount-display">
-                        <div class="label">Amount to Pay</div>
-                        <div class="amount">
-                            <span class="currency">RM</span> {{ number_format($invoice->balance, 2) }}
-                        </div>
-                        @if($invoice->isOverdue())
-                            <span class="badge bg-danger">
-                                <i class="fas fa-exclamation-triangle me-1"></i> Overdue by {{ $invoice->days_overdue }} days
-                            </span>
-                        @elseif($invoice->due_date)
-                            <span class="badge bg-warning text-dark">
-                                Due: {{ $invoice->due_date->format('d M Y') }}
-                            </span>
-                        @endif
-                    </div>
-
-                    <!-- Invoice Details -->
-                    <div class="invoice-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Invoice Type</span>
-                            <span class="detail-value">{{ $invoice->type_label }}</span>
-                        </div>
-                        @if($invoice->billing_period_start && $invoice->billing_period_end)
-                        <div class="detail-item">
-                            <span class="detail-label">Billing Period</span>
-                            <span class="detail-value">{{ $invoice->billing_period }}</span>
-                        </div>
-                        @endif
-                        <div class="detail-item">
-                            <span class="detail-label">Subtotal</span>
-                            <span class="detail-value">RM {{ number_format($invoice->subtotal, 2) }}</span>
-                        </div>
-                        @if($invoice->online_fee > 0)
-                        <div class="detail-item">
-                            <span class="detail-label">Online Fee</span>
-                            <span class="detail-value">RM {{ number_format($invoice->online_fee, 2) }}</span>
-                        </div>
-                        @endif
-                        @if($invoice->discount > 0)
-                        <div class="detail-item text-success">
-                            <span class="detail-label">Discount</span>
-                            <span class="detail-value">- RM {{ number_format($invoice->discount, 2) }}</span>
-                        </div>
-                        @endif
-                        @if($invoice->paid_amount > 0)
-                        <div class="detail-item text-info">
-                            <span class="detail-label">Already Paid</span>
-                            <span class="detail-value">- RM {{ number_format($invoice->paid_amount, 2) }}</span>
-                        </div>
-                        @endif
-                    </div>
-
-                    <!-- Gateway Selection -->
-                    @if(!empty($gateways))
-                        <h6 class="mb-3"><i class="fas fa-wallet me-2"></i> Select Payment Method</h6>
-                        <div class="gateway-selection">
-                            @foreach($gateways as $gateway)
-                                <label class="gateway-option {{ $gateway['value'] === $defaultGateway ? 'selected' : '' }}">
-                                    <input type="radio" name="selected_gateway" value="{{ $gateway['value'] }}"
-                                           {{ $gateway['value'] === $defaultGateway ? 'checked' : '' }}>
-                                    <div class="gateway-info">
-                                        <div class="gateway-icon {{ $gateway['value'] }}">
-                                            @switch($gateway['value'])
-                                                @case('toyyibpay')
-                                                    <i class="fas fa-credit-card"></i>
-                                                    @break
-                                                @case('senangpay')
-                                                    <i class="fas fa-wallet"></i>
-                                                    @break
-                                                @case('billplz')
-                                                    <i class="fas fa-money-check"></i>
-                                                    @break
-                                            @endswitch
-                                        </div>
-                                        <div class="gateway-details">
-                                            <h6>{{ $gateway['label'] }}</h6>
-                                            <small>
-                                                @switch($gateway['value'])
-                                                    @case('toyyibpay')
-                                                        FPX, Credit/Debit Card
-                                                        @break
-                                                    @case('senangpay')
-                                                        FPX Online Banking
-                                                        @break
-                                                    @case('billplz')
-                                                        FPX, E-Wallet
-                                                        @break
-                                                @endswitch
-                                            </small>
-                                        </div>
-                                    </div>
-                                    @if(isset($gatewayFees[$gateway['value']]))
-                                        <div class="gateway-fee">
-                                            <div class="fee-label">Total with fee</div>
-                                            <div class="fee-amount">RM {{ number_format($gatewayFees[$gateway['value']]['total'], 2) }}</div>
-                                        </div>
-                                    @endif
-                                </label>
-                            @endforeach
-                        </div>
-
-                        <!-- Pay Button -->
-                        <a href="{{ route('payment.checkout', $invoice) }}" class="btn btn-pay-now">
-                            <i class="fas fa-lock me-2"></i> Proceed to Payment
-                        </a>
-
-                        <div class="secure-note">
-                            <i class="fas fa-shield-alt"></i> Secured by trusted payment gateways
-                        </div>
-                    @else
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            No payment gateway is currently available. Please contact the admin or try cash payment.
-                        </div>
-                    @endif
                 </div>
             </div>
-        @else
-            <!-- Unpaid Invoices List -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i> Select Invoice to Pay</h5>
-                </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark">
                 <div class="card-body">
-                    @if(isset($unpaidInvoices) && $unpaidInvoices->isNotEmpty())
-                        <div class="unpaid-invoices">
-                            @foreach($unpaidInvoices as $inv)
-                                <a href="{{ route('student.payments.pay-online', ['invoice' => $inv->id]) }}"
-                                   class="invoice-item d-block text-decoration-none {{ $inv->isOverdue() ? 'overdue' : '' }}">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1 text-dark">{{ $inv->invoice_number }}</h6>
-                                            <small class="text-muted">
-                                                {{ $inv->type_label }} |
-                                                Due: {{ $inv->due_date ? $inv->due_date->format('d M Y') : 'N/A' }}
-                                            </small>
-                                        </div>
-                                        <div class="text-end">
-                                            <h5 class="mb-0 {{ $inv->isOverdue() ? 'text-danger' : 'text-primary' }}">
-                                                RM {{ number_format($inv->balance, 2) }}
-                                            </h5>
-                                            @if($inv->isOverdue())
-                                                <span class="badge bg-danger">Overdue</span>
-                                            @else
-                                                <span class="badge bg-warning text-dark">{{ ucfirst($inv->status) }}</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </a>
-                            @endforeach
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Overdue</h6>
+                            <h3 class="mb-0">RM {{ number_format($summary['total_overdue'], 2) }}</h3>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Pending Invoices</h6>
+                            <h3 class="mb-0">{{ $summary['invoices_count'] }}</h3>
+                        </div>
+                        <i class="fas fa-file-invoice fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Overdue Count</h6>
+                            <h3 class="mb-0">{{ $summary['overdue_count'] }}</h3>
+                        </div>
+                        <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Unpaid Invoices -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Select Invoice to Pay</h5>
+                    <span class="badge bg-warning text-dark">{{ $unpaidInvoices->count() }} unpaid</span>
+                </div>
+                <div class="card-body p-0">
+                    @if($unpaidInvoices->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Package</th>
+                                        <th>Due Date</th>
+                                        <th class="text-end">Amount Due</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($unpaidInvoices as $invoice)
+                                        <tr class="{{ $invoice->status === 'overdue' ? 'table-danger' : '' }}">
+                                            <td>
+                                                <strong>{{ $invoice->invoice_number }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ $invoice->type_label ?? ucfirst($invoice->type) }}</small>
+                                            </td>
+                                            <td>
+                                                @if($invoice->enrollment && $invoice->enrollment->package)
+                                                    {{ $invoice->enrollment->package->name }}
+                                                    @if($invoice->billing_period)
+                                                        <br><small class="text-muted">{{ $invoice->billing_period }}</small>
+                                                    @endif
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                {{ $invoice->due_date ? $invoice->due_date->format('d M Y') : '-' }}
+                                                @if($invoice->due_date && $invoice->due_date->isPast())
+                                                    <br><small class="text-danger">
+                                                        <i class="fas fa-exclamation-triangle"></i> Overdue
+                                                    </small>
+                                                @endif
+                                            </td>
+                                            <td class="text-end">
+                                                <strong class="text-danger fs-5">RM {{ number_format($invoice->balance, 2) }}</strong>
+                                                <br>
+                                                <small class="text-muted">Total: RM {{ number_format($invoice->total_amount, 2) }}</small>
+                                            </td>
+                                            <td>
+                                                @switch($invoice->status)
+                                                    @case('pending')
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        @break
+                                                    @case('partial')
+                                                        <span class="badge bg-info">Partially Paid</span>
+                                                        @break
+                                                    @case('overdue')
+                                                        <span class="badge bg-danger">Overdue</span>
+                                                        @break
+                                                    @default
+                                                        <span class="badge bg-secondary">{{ ucfirst($invoice->status) }}</span>
+                                                @endswitch
+                                            </td>
+                                            <td class="text-center">
+                                                @if($gatewaysAvailable)
+                                                    <a href="{{ route('student.payments.pay-online', $invoice) }}" 
+                                                       class="btn btn-success btn-sm">
+                                                        <i class="fas fa-credit-card me-1"></i> Pay Now
+                                                    </a>
+                                                @else
+                                                    <button class="btn btn-secondary btn-sm" disabled>
+                                                        <i class="fas fa-ban me-1"></i> Unavailable
+                                                    </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="3" class="text-end"><strong>Total Outstanding:</strong></td>
+                                        <td class="text-end">
+                                            <strong class="text-danger fs-5">RM {{ number_format($unpaidInvoices->sum('balance'), 2) }}</strong>
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
-                            <h5>All Paid Up!</h5>
-                            <p class="text-muted">You don't have any pending invoices to pay.</p>
+                            <h4>All Clear!</h4>
+                            <p class="text-muted mb-0">You don't have any outstanding invoices. All payments are up to date!</p>
                         </div>
                     @endif
                 </div>
             </div>
-        @endif
-    </div>
 
-    <!-- Sidebar -->
-    <div class="col-lg-4">
-        <!-- Payment Info Card -->
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i> Payment Information</h6>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0">
-                    <li class="mb-3">
-                        <i class="fas fa-check text-success me-2"></i>
-                        <small>Payments are processed securely through trusted payment gateways.</small>
-                    </li>
-                    <li class="mb-3">
-                        <i class="fas fa-check text-success me-2"></i>
-                        <small>You will receive a confirmation email upon successful payment.</small>
-                    </li>
-                    <li class="mb-3">
-                        <i class="fas fa-check text-success me-2"></i>
-                        <small>Gateway fees may apply depending on the payment method.</small>
-                    </li>
-                    <li>
-                        <i class="fas fa-check text-success me-2"></i>
-                        <small>For issues, contact our support team.</small>
-                    </li>
-                </ul>
-            </div>
+            <!-- Recent Transactions -->
+            @if($recentTransactions && $recentTransactions->count() > 0)
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Online Transactions</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Invoice</th>
+                                        <th>Gateway</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($recentTransactions as $transaction)
+                                        <tr>
+                                            <td>
+                                                {{ $transaction->created_at->format('d M Y') }}
+                                                <br>
+                                                <small class="text-muted">{{ $transaction->created_at->format('h:i A') }}</small>
+                                            </td>
+                                            <td>
+                                                @if($transaction->invoice)
+                                                    {{ $transaction->invoice->invoice_number }}
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <small>{{ $transaction->gatewayConfig->gateway_name ?? ucfirst($transaction->gateway) }}</small>
+                                            </td>
+                                            <td class="text-end">RM {{ number_format($transaction->amount, 2) }}</td>
+                                            <td>
+                                                @switch($transaction->status)
+                                                    @case('success')
+                                                        <span class="badge bg-success">Success</span>
+                                                        @break
+                                                    @case('pending')
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        @break
+                                                    @case('failed')
+                                                        <span class="badge bg-danger">Failed</span>
+                                                        @break
+                                                    @default
+                                                        <span class="badge bg-secondary">{{ ucfirst($transaction->status) }}</span>
+                                                @endswitch
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
-        <!-- Contact Support -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-headset me-2"></i> Need Help?</h6>
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Payment Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Online Payment Information</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">How to Pay Online:</h6>
+                    <ol class="mb-3">
+                        <li class="mb-2">Select an invoice from the list</li>
+                        <li class="mb-2">Click "Pay Now" button</li>
+                        <li class="mb-2">Choose your payment gateway</li>
+                        <li class="mb-2">Complete payment on the gateway page</li>
+                        <li class="mb-2">You'll be redirected back after payment</li>
+                        <li class="mb-2">Receipt will be sent to your email</li>
+                    </ol>
+
+                    @if($gatewaysAvailable)
+                        <div class="alert alert-info mb-0">
+                            <small>
+                                <i class="fas fa-lock me-1"></i>
+                                <strong>Secure Payment:</strong> All transactions are encrypted and processed securely.
+                            </small>
+                        </div>
+                    @endif
+                </div>
             </div>
-            <div class="card-body">
-                <p class="small text-muted mb-3">
-                    If you have any questions about payments, feel free to contact us.
-                </p>
-                <div class="d-grid gap-2">
-                    <a href="mailto:support@arenamatriks.edu.my" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-envelope me-2"></i> Email Support
-                    </a>
-                    <a href="https://wa.me/60123456789" target="_blank" class="btn btn-outline-success btn-sm">
-                        <i class="fab fa-whatsapp me-2"></i> WhatsApp
-                    </a>
+
+            <!-- Available Payment Gateways -->
+            @if($gatewaysAvailable)
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Available Payment Methods</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Online Banking (FPX)</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Credit/Debit Card</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>E-Wallet</span>
+                            </div>
+                        </div>
+                        <hr>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Online payment fee: <strong>RM 1.30</strong> will be added to your payment.
+                        </small>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Alternative Payment Methods -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Other Payment Methods</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <i class="fas fa-university text-primary me-2"></i>
+                        <strong>Bank Transfer</strong>
+                        <br>
+                        <small class="text-muted">Visit the office for bank details</small>
+                    </div>
+                    <div class="list-group-item">
+                        <i class="fas fa-money-bill-wave text-success me-2"></i>
+                        <strong>Cash Payment</strong>
+                        <br>
+                        <small class="text-muted">Pay directly at our office</small>
+                    </div>
+                    <div class="list-group-item">
+                        <i class="fas fa-qrcode text-info me-2"></i>
+                        <strong>QR Payment</strong>
+                        <br>
+                        <small class="text-muted">Scan and pay via your banking app</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Support -->
+            <div class="card shadow-sm mt-4 bg-light">
+                <div class="card-body text-center">
+                    <h6 class="mb-3">Need Help?</h6>
+                    <p class="small text-muted mb-3">
+                        If you experience any issues with online payment, please contact our office.
+                    </p>
+                    <div class="d-grid gap-2">
+                        <a href="tel:+60379723663" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-phone me-1"></i> Call Office
+                        </a>
+                        <a href="mailto:info@arenamatriks.com" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-envelope me-1"></i> Email Support
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-$(document).ready(function() {
-    // Gateway selection
-    $('.gateway-option').on('click', function() {
-        $('.gateway-option').removeClass('selected');
-        $(this).addClass('selected');
-        $(this).find('input[type="radio"]').prop('checked', true);
-    });
-});
-</script>
-@endpush

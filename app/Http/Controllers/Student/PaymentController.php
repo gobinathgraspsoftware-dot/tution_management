@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Services\PaymentService;
 use App\Services\ReceiptService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
@@ -51,6 +52,8 @@ class PaymentController extends Controller
         $payments = $query->orderBy('payment_date', 'desc')->paginate(15);
 
         // Payment summary
+        // FIX: 'balance' is an accessor (computed), NOT a real DB column
+        // Must use DB::raw('total_amount - paid_amount') for query-level aggregation
         $summary = [
             'total_paid' => Payment::where('student_id', $student->id)
                 ->where('status', 'completed')
@@ -62,7 +65,7 @@ class PaymentController extends Controller
                 ->sum('amount'),
             'pending_amount' => Invoice::where('student_id', $student->id)
                 ->unpaid()
-                ->sum('balance'),
+                ->sum(DB::raw('total_amount - paid_amount')),
         ];
 
         $paymentStatuses = PaymentService::getPaymentStatuses();
@@ -103,21 +106,27 @@ class PaymentController extends Controller
             return redirect()->back()->with('error', 'Student profile not found.');
         }
 
-        // Get date range
-        $dateFrom = $request->filled('date_from')
-            ? Carbon::parse($request->date_from)
+        // Get date range - default to last 6 months
+        $dateFrom = $request->filled('date_from') 
+            ? Carbon::parse($request->date_from) 
             : Carbon::now()->subMonths(6);
-        $dateTo = $request->filled('date_to')
-            ? Carbon::parse($request->date_to)
+        $dateTo = $request->filled('date_to') 
+            ? Carbon::parse($request->date_to) 
             : Carbon::now();
 
-        $payments = Payment::with(['invoice'])
+        $query = Payment::with(['invoice.enrollment.package'])
             ->where('student_id', $student->id)
-            ->whereBetween('payment_date', [$dateFrom, $dateTo])
-            ->orderBy('payment_date', 'desc')
-            ->paginate(20);
+            ->where('status', 'completed')
+            ->whereBetween('payment_date', [$dateFrom, $dateTo]);
 
-        // Summary by month
+        // Filter by payment method
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
+        }
+
+        $payments = $query->orderBy('payment_date', 'desc')->paginate(15);
+
+        // Calculate monthly summary
         $monthlySummary = Payment::where('student_id', $student->id)
             ->where('status', 'completed')
             ->whereBetween('payment_date', [$dateFrom, $dateTo])
@@ -136,7 +145,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * View receipt.
+     * View receipt for a payment.
      */
     public function receipt(Payment $payment)
     {
@@ -147,12 +156,14 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized access to this payment.');
         }
 
-        $data = $this->receiptService->generateReceiptData($payment);
-        return view('admin.payments.receipt', $data);
+        $payment->load(['invoice.enrollment.package', 'invoice.student.user']);
+        $receiptData = $this->receiptService->getReceiptForPreview($payment);
+
+        return view('student.payments.receipt', compact('payment', 'receiptData'));
     }
 
     /**
-     * Download receipt.
+     * Download receipt PDF.
      */
     public function downloadReceipt(Payment $payment)
     {
@@ -177,12 +188,15 @@ class PaymentController extends Controller
             return redirect()->back()->with('error', 'Student profile not found.');
         }
 
+        // Fetch invoices FIRST, then use accessor on the collection
+        // Do NOT use ->sum('balance') in a query — 'balance' is an accessor
         $unpaidInvoices = Invoice::with(['enrollment.package'])
             ->where('student_id', $student->id)
             ->unpaid()
             ->orderBy('due_date')
             ->get();
 
+        // Now .sum('balance') works because it's called on a Collection (uses accessor)
         $summary = [
             'total_outstanding' => $unpaidInvoices->sum('balance'),
             'total_overdue' => $unpaidInvoices->where('status', 'overdue')->sum('balance'),

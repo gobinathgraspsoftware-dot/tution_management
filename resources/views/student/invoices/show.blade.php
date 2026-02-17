@@ -1,401 +1,324 @@
 @extends('layouts.app')
 
 @section('title', 'Invoice Details')
-@section('page-title', 'Invoice Details')
-
-@push('styles')
-<style>
-    .invoice-card {
-        border-radius: 15px;
-        overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    .invoice-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 30px;
-    }
-    .invoice-body {
-        padding: 30px;
-    }
-    .status-badge {
-        font-size: 1rem;
-        padding: 10px 20px;
-        border-radius: 30px;
-    }
-    .status-paid { background: #28a745; }
-    .status-pending { background: #ffc107; color: #333; }
-    .status-overdue { background: #dc3545; }
-    .status-partial { background: #17a2b8; }
-    .detail-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid #eee;
-    }
-    .detail-row:last-child {
-        border-bottom: none;
-    }
-    .total-row {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 10px;
-        margin-top: 15px;
-    }
-    .payment-timeline {
-        position: relative;
-        padding-left: 30px;
-    }
-    .payment-timeline::before {
-        content: '';
-        position: absolute;
-        left: 10px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: #28a745;
-    }
-    .payment-timeline-item {
-        position: relative;
-        padding-bottom: 20px;
-    }
-    .payment-timeline-item::before {
-        content: '';
-        position: absolute;
-        left: -24px;
-        top: 5px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #28a745;
-        border: 2px solid white;
-    }
-    .info-alert {
-        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-        border-radius: 10px;
-        padding: 20px;
-        margin-top: 20px;
-    }
-</style>
-@endpush
 
 @section('content')
-<div class="page-header d-flex justify-content-between align-items-center">
-    <div>
-        <h1>
-            <i class="fas fa-file-invoice-dollar me-2"></i> Invoice #{{ $invoice->invoice_number }}
-        </h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ route('student.dashboard') }}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('student.invoices.index') }}">Invoices</a></li>
-                <li class="breadcrumb-item active">{{ $invoice->invoice_number }}</li>
-            </ol>
-        </nav>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Invoice Details</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('student.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('student.invoices.index') }}">Invoices</a></li>
+                    <li class="breadcrumb-item active">{{ $invoice->invoice_number }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            @if($invoice->balance > 0 && Route::has('student.payments.pay-online'))
+                <a href="{{ route('student.payments.pay-online', $invoice) }}" class="btn btn-success">
+                    <i class="fas fa-credit-card me-1"></i> Pay Now
+                </a>
+            @endif
+            <a href="{{ route('student.invoices.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
     </div>
-    <a href="{{ route('student.invoices.index') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i> Back to Invoices
-    </a>
-</div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <!-- Main Invoice Card -->
-        <div class="invoice-card">
-            <div class="invoice-header">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h2 class="mb-1">INVOICE</h2>
-                        <h4 class="mb-0 opacity-75">{{ $invoice->invoice_number }}</h4>
-                    </div>
-                    <div class="col-md-4 text-md-end">
-                        @php
-                            $isOverdue = $invoice->isOverdue();
-                            $statusText = $isOverdue ? 'Overdue' : ucfirst($invoice->status);
-                            $statusClass = $isOverdue ? 'overdue' : $invoice->status;
-                        @endphp
-                        <span class="status-badge status-{{ $statusClass }}">
-                            {{ $statusText }}
-                        </span>
-                    </div>
+    <div class="row">
+        <!-- Invoice Information -->
+        <div class="col-lg-8">
+            <!-- Invoice Header Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Invoice Information</h5>
+                    @switch($invoice->status)
+                        @case('paid')
+                            <span class="badge bg-success fs-6">Paid</span>
+                            @break
+                        @case('pending')
+                            <span class="badge bg-warning text-dark fs-6">Pending</span>
+                            @break
+                        @case('partial')
+                            <span class="badge bg-info fs-6">Partially Paid</span>
+                            @break
+                        @case('overdue')
+                            <span class="badge bg-danger fs-6">Overdue</span>
+                            @break
+                    @endswitch
                 </div>
-            </div>
-
-            <div class="invoice-body">
-                <!-- Invoice Info -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h6 class="text-muted text-uppercase mb-2">Invoice Details</h6>
-                        <p class="mb-1"><strong>Issue Date:</strong> {{ $invoice->created_at->format('d M Y') }}</p>
-                        <p class="mb-1">
-                            <strong>Due Date:</strong>
-                            <span class="{{ $isOverdue ? 'text-danger fw-bold' : '' }}">
-                                {{ $invoice->due_date->format('d M Y') }}
-                            </span>
-                            @if($isOverdue)
-                                <br><small class="text-danger">({{ $invoice->due_date->diffInDays(now()) }} days overdue)</small>
-                            @endif
-                        </p>
-                        <p class="mb-0"><strong>Type:</strong> {{ ucfirst($invoice->type) }} Fee</p>
-                    </div>
-                    <div class="col-md-6">
-                        @if($invoice->billing_period_start && $invoice->billing_period_end)
-                        <h6 class="text-muted text-uppercase mb-2">Billing Period</h6>
-                        <p class="mb-0">
-                            {{ $invoice->billing_period_start->format('d M Y') }} -
-                            {{ $invoice->billing_period_end->format('d M Y') }}
-                        </p>
-                        @endif
-                    </div>
-                </div>
-
-                <hr>
-
-                <!-- Package Info -->
-                @if($invoice->enrollment)
-                <div class="mb-4">
-                    <h6 class="text-muted text-uppercase mb-3">Package / Course</h6>
-                    <div class="bg-light p-3 rounded">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h5 class="mb-0">{{ $invoice->enrollment->package->name ?? 'N/A' }}</h5>
-                                @if($invoice->enrollment->class)
-                                    <small class="text-muted">
-                                        <i class="fas fa-chalkboard me-1"></i>
-                                        {{ $invoice->enrollment->class->name }}
-                                    </small>
-                                @endif
-                            </div>
-                            <div class="col-md-4 text-end">
-                                <span class="badge bg-info fs-6">
-                                    {{ $invoice->enrollment->package->type ?? 'Standard' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                <!-- Amount Breakdown -->
-                <h6 class="text-muted text-uppercase mb-3">Amount Breakdown</h6>
-
-                <div class="detail-row">
-                    <span>{{ ucfirst($invoice->type) }} Fee</span>
-                    <strong>RM {{ number_format($invoice->subtotal, 2) }}</strong>
-                </div>
-
-                @if($invoice->online_fee > 0)
-                <div class="detail-row">
-                    <span>Online Processing Fee</span>
-                    <span>RM {{ number_format($invoice->online_fee, 2) }}</span>
-                </div>
-                @endif
-
-                @if($invoice->discount > 0)
-                <div class="detail-row text-success">
-                    <span>
-                        Discount
-                        @if($invoice->discount_reason)
-                            <small class="text-muted">({{ $invoice->discount_reason }})</small>
-                        @endif
-                    </span>
-                    <span>- RM {{ number_format($invoice->discount, 2) }}</span>
-                </div>
-                @endif
-
-                @if($invoice->tax > 0)
-                <div class="detail-row">
-                    <span>Tax</span>
-                    <span>RM {{ number_format($invoice->tax, 2) }}</span>
-                </div>
-                @endif
-
-                <!-- Total -->
-                <div class="total-row">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h5 class="mb-0">Total Amount</h5>
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <h3 class="mb-0">RM {{ number_format($invoice->total_amount, 2) }}</h3>
-                        </div>
-                    </div>
-
-                    @if($invoice->paid_amount > 0)
-                    <hr class="my-3">
+                <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <span class="text-muted">Amount Paid</span>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted" style="width: 40%;">Invoice Number</td>
+                                    <td class="fw-bold">{{ $invoice->invoice_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Invoice Date</td>
+                                    <td>{{ $invoice->created_at->format('d M Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Due Date</td>
+                                    <td>
+                                        {{ $invoice->due_date ? $invoice->due_date->format('d M Y') : '-' }}
+                                        @if($invoice->due_date && $invoice->due_date->isPast() && $invoice->status !== 'paid')
+                                            <br><small class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> Overdue by {{ $invoice->due_date->diffForHumans() }}
+                                            </small>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
                         </div>
-                        <div class="col-md-6 text-end text-success">
-                            <strong>RM {{ number_format($invoice->paid_amount, 2) }}</strong>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted" style="width: 40%;">Type</td>
+                                    <td>{{ $invoice->type_label ?? ucfirst($invoice->type) }}</td>
+                                </tr>
+                                @if($invoice->billing_period)
+                                <tr>
+                                    <td class="text-muted">Billing Period</td>
+                                    <td>{{ $invoice->billing_period }}</td>
+                                </tr>
+                                @endif
+                                @if($invoice->enrollment && $invoice->enrollment->package)
+                                <tr>
+                                    <td class="text-muted">Package</td>
+                                    <td>{{ $invoice->enrollment->package->name }}</td>
+                                </tr>
+                                @endif
+                            </table>
                         </div>
                     </div>
-                    @endif
+                </div>
+            </div>
+
+            <!-- Amount Breakdown -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Amount Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="text-muted">Subtotal</td>
+                            <td class="text-end">RM {{ number_format($invoice->subtotal ?? $invoice->total_amount, 2) }}</td>
+                        </tr>
+                        @if($invoice->online_fee > 0)
+                        <tr>
+                            <td class="text-muted">Online Fee</td>
+                            <td class="text-end">RM {{ number_format($invoice->online_fee, 2) }}</td>
+                        </tr>
+                        @endif
+                        @if($invoice->discount > 0)
+                        <tr>
+                            <td class="text-muted">
+                                Discount
+                                @if($invoice->discount_reason)
+                                    <br><small class="text-success">{{ $invoice->discount_reason }}</small>
+                                @endif
+                            </td>
+                            <td class="text-end text-success">- RM {{ number_format($invoice->discount, 2) }}</td>
+                        </tr>
+                        @endif
+                        <tr class="border-top">
+                            <td class="fw-bold">Total Amount</td>
+                            <td class="text-end fw-bold fs-5">RM {{ number_format($invoice->total_amount, 2) }}</td>
+                        </tr>
+                        <tr class="text-success">
+                            <td>Paid Amount</td>
+                            <td class="text-end">RM {{ number_format($invoice->paid_amount, 2) }}</td>
+                        </tr>
+                        <tr class="{{ $invoice->balance > 0 ? 'text-danger' : 'text-success' }} border-top">
+                            <td class="fw-bold">Balance Due</td>
+                            <td class="text-end fw-bold fs-4">RM {{ number_format($invoice->balance, 2) }}</td>
+                        </tr>
+                    </table>
 
                     @if($invoice->balance > 0)
-                    <div class="row mt-2">
-                        <div class="col-md-6">
-                            <span class="text-danger fw-bold">Balance Due</span>
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Outstanding Balance:</strong> RM {{ number_format($invoice->balance, 2) }}
+                            @if($invoice->due_date && $invoice->due_date->isPast())
+                                <br><small>This invoice is overdue. Please make payment as soon as possible.</small>
+                            @endif
                         </div>
-                        <div class="col-md-6 text-end">
-                            <h4 class="mb-0 text-danger">RM {{ number_format($invoice->balance, 2) }}</h4>
+                    @else
+                        <div class="alert alert-success mt-3 mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            This invoice has been fully paid. Thank you!
                         </div>
-                    </div>
                     @endif
                 </div>
+            </div>
 
-                @if($invoice->notes)
-                <div class="mt-4">
-                    <h6 class="text-muted text-uppercase mb-2">Notes</h6>
-                    <p class="mb-0 bg-light p-3 rounded">{{ $invoice->notes }}</p>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        <!-- Info Alert for Students -->
-        <div class="info-alert">
-            <div class="d-flex">
-                <div class="me-3">
-                    <i class="fas fa-info-circle text-primary fa-2x"></i>
-                </div>
-                <div>
-                    <h6 class="mb-1">Payment Information</h6>
-                    <p class="mb-0 small">
-                        For payment inquiries or to make a payment, please contact your parent or guardian.
-                        They can view payment options and complete the payment through the parent portal.
-                        You can also visit the administration office for assistance.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-4">
-        <!-- Payment Status Card -->
-        <div class="card mb-4">
-            <div class="card-header bg-{{ $invoice->isPaid() ? 'success' : ($isOverdue ? 'danger' : 'warning') }} text-white">
-                <i class="fas fa-info-circle me-2"></i> Payment Status
-            </div>
-            <div class="card-body text-center py-4">
-                @if($invoice->isPaid())
-                    <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
-                    <h4 class="text-success">Fully Paid</h4>
-                    <p class="text-muted mb-0">This invoice has been paid in full.</p>
-                @elseif($invoice->status === 'partial')
-                    <i class="fas fa-clock text-info fa-4x mb-3"></i>
-                    <h4 class="text-info">Partially Paid</h4>
-                    <p class="mb-0">
-                        <span class="text-muted">Paid:</span> RM {{ number_format($invoice->paid_amount, 2) }}<br>
-                        <span class="text-danger">Balance:</span> RM {{ number_format($invoice->balance, 2) }}
-                    </p>
-                @elseif($isOverdue)
-                    <i class="fas fa-exclamation-triangle text-danger fa-4x mb-3"></i>
-                    <h4 class="text-danger">Overdue</h4>
-                    <p class="mb-0">
-                        This invoice is {{ $invoice->due_date->diffInDays(now()) }} days past due.
-                    </p>
-                @else
-                    <i class="fas fa-hourglass-half text-warning fa-4x mb-3"></i>
-                    <h4 class="text-warning">Pending</h4>
-                    <p class="mb-0">
-                        Due on {{ $invoice->due_date->format('d M Y') }}<br>
-                        <small class="text-muted">{{ $invoice->due_date->diffForHumans() }}</small>
-                    </p>
-                @endif
-            </div>
-        </div>
-
-        <!-- Payment History -->
-        @if($invoice->payments->isNotEmpty())
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-history me-2"></i> Payment History
-            </div>
-            <div class="card-body">
-                <div class="payment-timeline">
-                    @foreach($invoice->payments as $payment)
-                        <div class="payment-timeline-item">
-                            <div class="d-flex justify-content-between mb-1">
-                                <strong>RM {{ number_format($payment->amount, 2) }}</strong>
-                                <span class="badge bg-success">{{ ucfirst($payment->status) }}</span>
-                            </div>
-                            <small class="text-muted d-block">
-                                {{ $payment->payment_date->format('d M Y, h:i A') }}
-                            </small>
-                            <small class="text-muted">
-                                Via {{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}
-                            </small>
+            <!-- Payment History -->
+            @if($invoice->payments && $invoice->payments->count() > 0)
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Payment History</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Payment #</th>
+                                        <th>Date</th>
+                                        <th>Method</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($invoice->payments as $payment)
+                                        <tr>
+                                            <td>{{ $payment->payment_number }}</td>
+                                            <td>{{ $payment->payment_date->format('d M Y') }}</td>
+                                            <td>
+                                                @switch($payment->payment_method)
+                                                    @case('cash')
+                                                        <i class="fas fa-money-bill-wave text-success"></i> Cash
+                                                        @break
+                                                    @case('qr')
+                                                        <i class="fas fa-qrcode text-info"></i> QR
+                                                        @break
+                                                    @case('bank_transfer')
+                                                        <i class="fas fa-university text-primary"></i> Bank
+                                                        @break
+                                                    @case('online_gateway')
+                                                        <i class="fas fa-globe text-purple"></i> Online
+                                                        @break
+                                                    @default
+                                                        {{ ucfirst($payment->payment_method) }}
+                                                @endswitch
+                                            </td>
+                                            <td class="text-end fw-bold text-success">RM {{ number_format($payment->amount, 2) }}</td>
+                                            <td>
+                                                @if($payment->status === 'completed')
+                                                    <span class="badge bg-success">Completed</span>
+                                                @else
+                                                    <span class="badge bg-warning">{{ ucfirst($payment->status) }}</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if(Route::has('student.payments.show'))
+                                                    <a href="{{ route('student.payments.show', $payment) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <!-- Installments (if applicable) -->
+            @if($invoice->is_installment && $invoice->installments && $invoice->installments->count() > 0)
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Installment Plan</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Due Date</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($invoice->installments as $installment)
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>{{ $installment->due_date->format('d M Y') }}</td>
+                                            <td class="text-end">RM {{ number_format($installment->amount, 2) }}</td>
+                                            <td>
+                                                @switch($installment->status)
+                                                    @case('paid')
+                                                        <span class="badge bg-success">Paid</span>
+                                                        @break
+                                                    @case('pending')
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        @break
+                                                    @case('overdue')
+                                                        <span class="badge bg-danger">Overdue</span>
+                                                        @break
+                                                    @default
+                                                        <span class="badge bg-secondary">{{ ucfirst($installment->status) }}</span>
+                                                @endswitch
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    @if($invoice->balance > 0 && Route::has('student.payments.pay-online'))
+                        <a href="{{ route('student.payments.pay-online', $invoice) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-credit-card text-success me-2"></i> Pay Online
+                        </a>
+                    @endif
+                    <a href="{{ route('student.invoices.index') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-list me-2"></i> All Invoices
+                    </a>
+                    @if(Route::has('student.payments.index'))
+                        <a href="{{ route('student.payments.index') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-money-bill-wave me-2"></i> Payment Records
+                        </a>
+                    @endif
                 </div>
             </div>
-        </div>
-        @endif
 
-        <!-- Installments -->
-        @if($invoice->installments->isNotEmpty())
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-calendar-alt me-2"></i> Installment Plan
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    @foreach($invoice->installments as $installment)
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>Installment {{ $installment->installment_number }}</strong>
-                                <br>
-                                <small class="text-muted">Due: {{ $installment->due_date->format('d M Y') }}</small>
-                            </div>
-                            <div class="text-end">
-                                <strong>RM {{ number_format($installment->amount, 2) }}</strong>
-                                <br>
-                                @php
-                                    $instStatus = match($installment->status) {
-                                        'paid' => 'success',
-                                        'overdue' => 'danger',
-                                        default => 'secondary'
-                                    };
-                                @endphp
-                                <span class="badge bg-{{ $instStatus }}">{{ ucfirst($installment->status) }}</span>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-        @endif
-
-        <!-- Quick Actions -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-tools me-2"></i> Quick Actions
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('student.invoices.download', $invoice) }}" class="btn btn-outline-primary">
-                        <i class="fas fa-download me-2"></i> Download PDF
-                    </a>
-                    <a href="{{ route('student.invoices.print', $invoice) }}" class="btn btn-outline-secondary" target="_blank">
-                        <i class="fas fa-print me-2"></i> Print Invoice
-                    </a>
+            <!-- Package Information -->
+            @if($invoice->enrollment && $invoice->enrollment->package)
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0"><i class="fas fa-box me-2"></i>Package Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="mb-2">{{ $invoice->enrollment->package->name }}</h6>
+                        @if($invoice->enrollment->class)
+                            <p class="mb-1">
+                                <small class="text-muted">Class:</small> {{ $invoice->enrollment->class->name }}
+                            </p>
+                        @endif
+                        <p class="mb-1">
+                            <small class="text-muted">Enrolled:</small> {{ $invoice->enrollment->created_at->format('d M Y') }}
+                        </p>
+                        @if($invoice->enrollment->package->description)
+                            <hr>
+                            <p class="small text-muted mb-0">{{ $invoice->enrollment->package->description }}</p>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Contact Card -->
-        <div class="card mt-4 bg-light">
-            <div class="card-body">
-                <h6><i class="fas fa-question-circle me-2"></i> Need Help?</h6>
-                <p class="small mb-2">For payment-related questions:</p>
-                <ul class="small mb-0 ps-3">
-                    <li>Ask your parent or guardian</li>
-                    <li>Visit the administration office</li>
-                    <li>Contact us during office hours</li>
-                </ul>
-            </div>
+            @endif
         </div>
     </div>
 </div>
