@@ -92,6 +92,9 @@ use App\Http\Controllers\Staff\InventoryController as StaffInventoryController;
 use App\Http\Controllers\Admin\PosController as AdminPosController;
 use App\Http\Controllers\Admin\DailyCashReportController;
 use App\Http\Controllers\Staff\PosController as StaffPosController;
+use App\Http\Controllers\Student\ClassController as StudentClassController;
+use App\Http\Controllers\Student\AttendanceController as StudentAttendanceController;
+use App\Http\Controllers\Student\ResultController as StudentResultController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1599,21 +1602,31 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/{payment}/download-receipt', [StudentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
         });
 
+        // Student Classes Routes
+        Route::prefix('classes')->name('classes.')->group(function () {
+            Route::get('/', [StudentClassController::class, 'index'])->name('index');
+            Route::get('/{class}', [StudentClassController::class, 'show'])->name('show');
+        });
+
+        // Student Attendance Routes
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [StudentAttendanceController::class, 'index'])->name('index');
+        });
+
+        // Student Results Routes
+        Route::prefix('results')->name('results.')->group(function () {
+            Route::get('/', [StudentResultController::class, 'index'])->name('index');
+            Route::get('/{result}', [StudentResultController::class, 'show'])->name('show');
+        });
+
         // Enrollment Routes
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
-            // My Enrollments
             Route::get('/my-enrollments', [StudentEnrollmentController::class, 'myEnrollments'])->name('my-enrollments');
             Route::get('/{enrollment}', [StudentEnrollmentController::class, 'show'])->name('show');
-
-            // Browse & Enroll
             Route::get('/browse-classes', [StudentEnrollmentController::class, 'browseClasses'])->name('browse-classes');
             Route::get('/browse-packages', [StudentEnrollmentController::class, 'browsePackages'])->name('browse-packages');
-
-            // Class Enrollment
             Route::get('/enroll-class/{class}', [StudentEnrollmentController::class, 'enrollClass'])->name('enroll-class');
             Route::post('/enroll-class/{class}', [StudentEnrollmentController::class, 'storeClassEnrollment'])->name('enroll-class.store');
-
-            // Package Enrollment
             Route::get('/enroll-package/{package}', [StudentEnrollmentController::class, 'enrollPackage'])->name('enroll-package');
             Route::post('/enroll-package/{package}', [StudentEnrollmentController::class, 'storePackageEnrollment'])->name('enroll-package.store');
         });
