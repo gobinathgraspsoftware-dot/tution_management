@@ -1593,15 +1593,11 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/', [StudentPaymentController::class, 'index'])->name('index');
             Route::get('/history', [StudentPaymentController::class, 'history'])->name('history');
             Route::get('/outstanding', [StudentPaymentController::class, 'outstanding'])->name('outstanding');
+            Route::get('/pay-online/{invoice?}', [OnlinePaymentController::class, 'studentPayOnline'])->name('pay-online');
             Route::get('/{payment}', [StudentPaymentController::class, 'show'])->name('show');
             Route::get('/{payment}/receipt', [StudentPaymentController::class, 'receipt'])->name('receipt');
             Route::get('/{payment}/download-receipt', [StudentPaymentController::class, 'downloadReceipt'])->name('download-receipt');
         });
-
-        // Student Online Payment
-        Route::get('/payments/pay-online/{invoice?}', [OnlinePaymentController::class, 'studentPayOnline'])
-            // ->middleware('permission:make-payment')
-            ->name('payments.pay-online');
 
         // Enrollment Routes
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
