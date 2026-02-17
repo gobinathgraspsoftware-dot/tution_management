@@ -1396,75 +1396,109 @@
 </div>
 @endrole
 
+{{-- ============================================================ --}}
 {{-- Student Sidebar --}}
+{{-- Section IDs: section60 - section68 (avoids parent conflict) --}}
+{{-- ============================================================ --}}
 @role('student')
-<!-- Main -->
+
+{{-- ==================== MAIN ==================== --}}
 <div class="menu-dropdown">
-    <a href="#section49" class="menu-section-title sidebar-bg-color" data-bs-toggle="collapse" aria-expanded="false">
+    <a href="#section60" class="menu-section-title sidebar-bg-color" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Main
     </a>
-    <div class="collapse" id="section49">
-    <a href="{{ route('student.dashboard') }}" class="menu-item {{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
-    <i class="fas fa-home"></i> Dashboard
-    </a>
-    {{-- Start: Student Financial Section  --}}
+    <div class="collapse" id="section60">
+        <a href="{{ route('student.dashboard') }}" class="menu-item {{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
     </div>
 </div>
-<!-- Financial -->
+
+{{-- ==================== INVOICES ==================== --}}
 <div class="menu-dropdown">
-    <a href="#section50" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Financial
+    <a href="#section61" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Invoices
     </a>
-    <div class="collapse" id="section50">
-    <a href="{{ route('student.invoices.index') }}" class="menu-item {{ request()->routeIs('student.invoices.*') ? 'active' : '' }}">
-    <i class="fas fa-file-invoice"></i> My Invoices
-    </a>
-    <a href="{{ route('student.invoices.history') }}" class="menu-item {{ request()->routeIs('student.invoices.history') ? 'active' : '' }}">
-    <i class="fas fa-history"></i> Payment History
-    </a>
-    {{-- End: Student Financial Section  --}}
-    {{-- Student Payment Menu --}}
-    @if(Route::has('student.payments.index'))
-    <a href="{{ route('student.payments.index') }}" class="menu-item {{ request()->routeIs('student.payments.index') || request()->routeIs('student.payments.show') ? 'active' : '' }}">
-    <i class="fas fa-money-bill-wave"></i> My Payments
-    </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-money-bill-wave"></i> My Payments
-    </a>
-    @endif
-    @if(Route::has('student.payments.pay-online'))
-    <a href="{{ route('student.payments.pay-online') }}" class="menu-item {{ request()->routeIs('student.payments.pay-online') ? 'active' : '' }}">
-    <i class="fas fa-globe"></i> Pay Online
-    </a>
-    @endif
+    <div class="collapse" id="section61">
+        @if(Route::has('student.invoices.index'))
+        <a href="{{ route('student.invoices.index') }}" class="menu-item {{ request()->routeIs('student.invoices.index') || request()->routeIs('student.invoices.show') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice"></i> My Invoices
+        </a>
+        @endif
+
+        @if(Route::has('student.invoices.history'))
+        <a href="{{ route('student.invoices.history') }}" class="menu-item {{ request()->routeIs('student.invoices.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Invoice History
+        </a>
+        @endif
     </div>
 </div>
-<!-- Academic -->
+
+{{-- ==================== PAYMENTS ==================== --}}
 <div class="menu-dropdown">
-    <a href="#section51" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+    <a href="#section62" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Payments
+    </a>
+    <div class="collapse" id="section62">
+        @if(Route::has('student.payments.index'))
+        <a href="{{ route('student.payments.index') }}" class="menu-item {{ request()->routeIs('student.payments.index') || request()->routeIs('student.payments.show') ? 'active' : '' }}">
+            <i class="fas fa-money-bill-wave"></i> My Payments
+        </a>
+        @endif
+
+        @if(Route::has('student.payments.history'))
+        <a href="{{ route('student.payments.history') }}" class="menu-item {{ request()->routeIs('student.payments.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Payment History
+        </a>
+        @endif
+
+        @if(Route::has('student.payments.outstanding'))
+        <a href="{{ route('student.payments.outstanding') }}" class="menu-item {{ request()->routeIs('student.payments.outstanding') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-circle text-warning"></i> Outstanding
+        </a>
+        @endif
+
+        @if(Route::has('student.payments.pay-online'))
+        <a href="{{ route('student.payments.pay-online') }}" class="menu-item {{ request()->routeIs('student.payments.pay-online') ? 'active' : '' }}">
+            <i class="fas fa-credit-card"></i> Pay Online
+        </a>
+        @endif
+    </div>
+</div>
+
+{{-- ==================== ACADEMIC ==================== --}}
+<div class="menu-dropdown">
+    <a href="#section63" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Academic
     </a>
-    <div class="collapse" id="section51">
-    <a href="#" class="menu-item">
-    <i class="fas fa-school"></i> My Classes
-    </a>
-    <a href="{{ route('timetable.index') }}"
-       class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Timetable
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> Attendance
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-clipboard-list"></i> Results
-    </a>
+    <div class="collapse" id="section63">
+        @if(Route::has('student.classes.index'))
+        <a href="{{ route('student.classes.index') }}" class="menu-item {{ request()->routeIs('student.classes.*') ? 'active' : '' }}">
+            <i class="fas fa-school"></i> My Classes
+        </a>
+        @endif
 
+        @if(Route::has('timetable.index'))
+        <a href="{{ route('timetable.index') }}" class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+            <i class="fas fa-calendar-week"></i> Timetable
+        </a>
+        @endif
+
+        @if(Route::has('student.attendance.index'))
+        <a href="{{ route('student.attendance.index') }}" class="menu-item {{ request()->routeIs('student.attendance.*') ? 'active' : '' }}">
+            <i class="fas fa-check-square"></i> Attendance
+        </a>
+        @endif
+
+        @if(Route::has('student.results.index'))
+        <a href="{{ route('student.results.index') }}" class="menu-item {{ request()->routeIs('student.results.*') ? 'active' : '' }}">
+            <i class="fas fa-clipboard-list"></i> Exam Results
+        </a>
+        @endif
     </div>
 </div>
 
-{{-- Start: Enrollment Management --}}
+{{-- ==================== ENROLLMENTS ==================== --}}
 @if(Route::has('student.enrollments.my-enrollments'))
 <div class="menu-dropdown">
     <a href="#student_enrollment_collapse" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
@@ -1474,46 +1508,116 @@
         <a class="menu-item {{ request()->routeIs('student.enrollments.my-enrollments') ? 'active' : '' }}" href="{{ route('student.enrollments.my-enrollments') }}">
             <i class="fas fa-list"></i> All Enrollments
         </a>
+
+        @if(Route::has('student.enrollments.browse-classes'))
         <a class="menu-item {{ request()->routeIs('student.enrollments.browse-classes') ? 'active' : '' }}" href="{{ route('student.enrollments.browse-classes') }}">
             <i class="fas fa-search"></i> Browse Classes
         </a>
+        @endif
+
+        @if(Route::has('student.enrollments.browse-packages'))
         <a class="menu-item {{ request()->routeIs('student.enrollments.browse-packages') ? 'active' : '' }}" href="{{ route('student.enrollments.browse-packages') }}">
-            <i class="fas fa-search"></i> Browse Packages
+            <i class="fas fa-box-open"></i> Browse Packages
+        </a>
+        @endif
+    </div>
+</div>
+@endif
+
+{{-- ==================== LEARNING ==================== --}}
+<div class="menu-dropdown">
+    <a href="#section64" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Learning
+    </a>
+    <div class="collapse" id="section64">
+        @if(Route::has('student.announcements.index'))
+        <a href="{{ route('student.announcements.index') }}" class="menu-item {{ request()->routeIs('student.announcements.*') ? 'active' : '' }}">
+            <i class="fas fa-bullhorn"></i> Announcements
+        </a>
+        @endif
+
+        @if(Route::has('student.materials.index'))
+        <a href="{{ route('student.materials.index') }}" class="menu-item {{ request()->routeIs('student.materials.*') ? 'active' : '' }}">
+            <i class="fas fa-book-open"></i> Study Materials
+        </a>
+        @endif
+
+        @if(Route::has('student.schedule.index'))
+        <a href="{{ route('student.schedule.index') }}" class="menu-item {{ request()->routeIs('student.schedule.*') ? 'active' : '' }}">
+            <i class="fas fa-calendar-alt"></i> My Schedule
+        </a>
+        @endif
+    </div>
+</div>
+
+{{-- ==================== SEMINARS ==================== --}}
+@if(Route::has('student.seminars.index') || Route::has('student.seminars.my-registrations'))
+<div class="menu-dropdown">
+    <a href="#section65" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Seminars
+    </a>
+    <div class="collapse" id="section65">
+        @if(Route::has('student.seminars.index'))
+        <a href="{{ route('student.seminars.index') }}" class="menu-item {{ request()->routeIs('student.seminars.index') ? 'active' : '' }}">
+            <i class="fas fa-chalkboard"></i> Browse Seminars
+        </a>
+        @endif
+
+        @if(Route::has('student.seminars.my-registrations'))
+        <a href="{{ route('student.seminars.my-registrations') }}" class="menu-item {{ request()->routeIs('student.seminars.my-registrations') ? 'active' : '' }}">
+            <i class="fas fa-ticket-alt"></i> My Registrations
+        </a>
+        @endif
+    </div>
+</div>
+@endif
+
+{{-- ==================== REFERRALS ==================== --}}
+@if(Route::has('student.referrals.index'))
+<div class="menu-dropdown">
+    <a href="#section66" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Referrals
+    </a>
+    <div class="collapse" id="section66">
+        <a href="{{ route('student.referrals.index') }}" class="menu-item {{ request()->routeIs('student.referrals.*') ? 'active' : '' }}">
+            <i class="fas fa-user-plus"></i> My Referrals
         </a>
     </div>
 </div>
 @endif
-{{-- End: Enrollment Management --}}
 
-<!-- Learning -->
+{{-- ==================== REVIEWS ==================== --}}
+@if(Route::has('student.reviews.index'))
 <div class="menu-dropdown">
-    <a href="#section52" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Learning
+    <a href="#section67" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Reviews
     </a>
-    <div class="collapse" id="section52">
-    <a href="#" class="menu-item">
-    <i class="fas fa-bullhorn"></i> Announcements
-    </a>
-    <a href="{{ route('student.materials.index') }}" class="menu-item {{ request()->routeIs('student.materials.*') ? 'active' : '' }}">
-    <i class="fas fa-book-open"></i> Study Materials
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-calendar-alt"></i> My Schedule
-    </a>
-
+    <div class="collapse" id="section67">
+        <a href="{{ route('student.reviews.index') }}" class="menu-item {{ request()->routeIs('student.reviews.*') ? 'active' : '' }}">
+            <i class="fas fa-star"></i> My Reviews
+        </a>
     </div>
 </div>
-<!-- Account -->
+@endif
+
+{{-- ==================== ACCOUNT ==================== --}}
 <div class="menu-dropdown">
-    <a href="#section53" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+    <a href="#section68" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Account
     </a>
-    <div class="collapse" id="section53">
-    <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-    <i class="fas fa-user"></i> My Profile
-    </a>
+    <div class="collapse" id="section68">
+        <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.index') || request()->routeIs('profile.edit') ? 'active' : '' }}">
+            <i class="fas fa-user"></i> My Profile
+        </a>
+
+        @if(Route::has('profile.change-password'))
+        <a href="{{ route('profile.change-password') }}" class="menu-item {{ request()->routeIs('profile.change-password') ? 'active' : '' }}">
+            <i class="fas fa-key"></i> Change Password
+        </a>
+        @endif
     </div>
 </div>
+
 @endrole
 
 <style>
