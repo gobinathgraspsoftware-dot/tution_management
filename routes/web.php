@@ -95,6 +95,8 @@ use App\Http\Controllers\Staff\PosController as StaffPosController;
 use App\Http\Controllers\Student\ClassController as StudentClassController;
 use App\Http\Controllers\Student\AttendanceController as StudentAttendanceController;
 use App\Http\Controllers\Student\ResultController as StudentResultController;
+use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementController;
+use App\Http\Controllers\Student\ScheduleController as StudentScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1629,6 +1631,24 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/enroll-package/{package}', [StudentEnrollmentController::class, 'enrollPackage'])->name('enroll-package');
             Route::post('/enroll-package/{package}', [StudentEnrollmentController::class, 'storePackageEnrollment'])->name('enroll-package.store');
             Route::get('/{enrollment}', [StudentEnrollmentController::class, 'show'])->name('show');
+        });
+
+        // Student Announcements Routes
+        Route::prefix('announcements')->name('announcements.')->group(function () {
+            Route::get('/', [StudentAnnouncementController::class, 'index'])->name('index');
+            Route::get('/{announcement}', [StudentAnnouncementController::class, 'show'])->name('show');
+            Route::post('/{announcement}/mark-read', [StudentAnnouncementController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/mark-all-read', [StudentAnnouncementController::class, 'markAllAsRead'])->name('mark-all-read');
+        });
+
+        // Student Schedule/Timetable Routes
+        Route::prefix('schedule')->name('schedule.')->group(function () {
+            Route::get('/', [StudentScheduleController::class, 'index'])->name('index');
+            Route::get('/today', [StudentScheduleController::class, 'today'])->name('today');
+            Route::get('/export', [StudentScheduleController::class, 'export'])->name('export');
+            Route::get('/print', [StudentScheduleController::class, 'print'])->name('print');
+            Route::get('/icalendar', [StudentScheduleController::class, 'icalendar'])->name('icalendar');
+            Route::post('/get-by-date', [StudentScheduleController::class, 'getScheduleByDate'])->name('get-by-date');
         });
 
     });
