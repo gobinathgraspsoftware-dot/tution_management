@@ -98,6 +98,7 @@ use App\Http\Controllers\Student\ResultController as StudentResultController;
 use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementController;
 use App\Http\Controllers\Student\ScheduleController as StudentScheduleController;
 use App\Http\Controllers\Student\ReferralController as StudentReferralController;
+use App\Http\Controllers\Student\ReviewController as StudentsReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1662,6 +1663,18 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/get-referral-link', [StudentReferralController::class, 'getReferralLink'])->name('get-link');
             Route::post('/copy-code', [StudentReferralController::class, 'copyReferralCode'])->name('copy-code');
             Route::get('/voucher/{voucher}/download', [StudentReferralController::class, 'downloadVoucher'])->name('voucher.download');
+        });
+
+        // Student Reviews Routes
+        Route::prefix('reviews')->name('reviews.')->group(function () {
+            Route::get('/', [StudentsReviewController::class, 'index'])->name('index');
+            Route::get('/create', [StudentsReviewController::class, 'create'])->name('create');
+            Route::post('/', [StudentsReviewController::class, 'store'])->name('store');
+            Route::get('/{review}', [StudentsReviewController::class, 'show'])->name('show');
+            Route::get('/{review}/edit', [StudentsReviewController::class, 'edit'])->name('edit');
+            Route::put('/{review}', [StudentsReviewController::class, 'update'])->name('update');
+            Route::delete('/{review}', [StudentsReviewController::class, 'destroy'])->name('destroy');
+            Route::post('/get-class-teacher', [StudentsReviewController::class, 'getClassTeacher'])->name('get-class-teacher');
         });
 
     });
