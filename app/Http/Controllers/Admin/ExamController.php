@@ -18,10 +18,6 @@ class ExamController extends Controller
     public function __construct(ExamService $examService)
     {
         $this->examService = $examService;
-        $this->middleware('permission:view-exams')->only(['index', 'show']);
-        $this->middleware('permission:create-exams')->only(['create', 'store']);
-        $this->middleware('permission:edit-exams')->only(['edit', 'update']);
-        $this->middleware('permission:delete-exams')->only('destroy');
     }
 
     /**

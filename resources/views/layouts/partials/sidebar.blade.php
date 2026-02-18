@@ -1,18 +1,21 @@
 {{-- Admin/Super Admin Sidebar --}}
 @role('super-admin|admin')
-<!-- Main -->
+
+{{-- ==================== SECTION 1: MAIN DASHBOARD ==================== --}}
 <div class="menu-dropdown">
     <a href="#section1" class="menu-section-title sidebar-bg-color" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Main
     </a>
     <div class="collapse" id="section1">
-    <a href="{{ route('admin.dashboard') }}" class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-    <i class="fas fa-home"></i> Dashboard
-    </a>
-    {{-- Start: User Management --}}
+        <a href="{{ route('admin.dashboard') }}" class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
     </div>
 </div>
-<!-- User Management -->
+{{-- ==================== END: MAIN DASHBOARD ==================== --}}
+
+
+{{-- ==================== SECTION 2: USER MANAGEMENT ==================== --}}
 <div class="menu-dropdown">
     <a href="#section2" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> User Management
@@ -24,697 +27,538 @@
         <a href="{{ route('admin.permissions.index') }}" class="menu-item {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}">
             <i class="fas fa-shield-alt"></i> Permissions
         </a>
-    @can('view-students')
-    <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.index') ? 'active' : '' }}">
-    <i class="fas fa-users"></i> All Students
-    </a>
-    @endcan
-    <a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
-    <i class="fas fa-user-clock"></i> Pending Approvals
-    @php
-        $pendingCount = \App\Models\Student::pending()->count();
-    @endphp
-    @if($pendingCount > 0)
-    <span class="badge bg-warning text-dark ms-auto">{{ $pendingCount }}</span>
-    @endif
-    </a>
-    <a href="{{ route('admin.parents.index') }}" class="menu-item {{ request()->routeIs('admin.parents.*') ? 'active' : '' }}">
-    <i class="fas fa-user-friends"></i> Parents
-    </a>
-    <a href="{{ route('admin.teachers.index') }}" class="menu-item {{ request()->routeIs('admin.teachers.*') ? 'active' : '' }}">
-    <i class="fas fa-chalkboard-teacher"></i> Teachers
-    </a>
-    <a href="{{ route('admin.staff.index') }}" class="menu-item {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
-    <i class="fas fa-user-tie"></i> Staff
-    </a>
-    {{-- End: User Management --}}
+        @can('view-students')
+        <a href="{{ route('admin.students.index') }}" class="menu-item {{ request()->routeIs('admin.students.index') ? 'active' : '' }}">
+            <i class="fas fa-users"></i> All Students
+        </a>
+        @endcan
+        <a href="{{ route('admin.approvals.index') }}" class="menu-item {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
+            <i class="fas fa-user-clock"></i> Pending Approvals
+            @php
+                $pendingCount = \App\Models\Student::pending()->count();
+            @endphp
+            @if($pendingCount > 0)
+                <span class="badge bg-warning text-dark ms-auto">{{ $pendingCount }}</span>
+            @endif
+        </a>
+        <a href="{{ route('admin.parents.index') }}" class="menu-item {{ request()->routeIs('admin.parents.*') ? 'active' : '' }}">
+            <i class="fas fa-user-friends"></i> Parents
+        </a>
+        <a href="{{ route('admin.teachers.index') }}" class="menu-item {{ request()->routeIs('admin.teachers.*') ? 'active' : '' }}">
+            <i class="fas fa-chalkboard-teacher"></i> Teachers
+        </a>
+        <a href="{{ route('admin.staff.index') }}" class="menu-item {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
+            <i class="fas fa-user-tie"></i> Staff
+        </a>
     </div>
 </div>
-<!-- Academic Management -->
+{{-- ==================== END: USER MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 3: ACADEMIC MANAGEMENT ==================== --}}
 <div class="menu-dropdown">
-    <a href="#section11" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+    <a href="#section3" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Academic Management
     </a>
-    <div class="collapse" id="section11">
-    <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
-    <i class="fas fa-book"></i> Subjects
-    </a>
-    <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
-    <i class="fas fa-box"></i> Packages
-    </a>
+    <div class="collapse" id="section3">
+        <a href="{{ route('admin.subjects.index') }}" class="menu-item {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
+            <i class="fas fa-book"></i> Subjects
+        </a>
+        <a href="{{ route('admin.packages.index') }}" class="menu-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
+            <i class="fas fa-box"></i> Packages
+        </a>
     </div>
 </div>
-{{-- End: Academic Management  --}}
+{{-- ==================== END: ACADEMIC MANAGEMENT ==================== --}}
 
 
-{{-- Inventory Management --}}
-<div class="menu-dropdown">
-    <a href="#sectionInventory" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Inventory Management
-    </a>
-    <div class="collapse" id="sectionInventory">
-        @if(Route::has('admin.inventory.index'))
-        <a href="{{ route('admin.inventory.index') }}" class="menu-item {{ request()->routeIs('admin.inventory.index') || request()->routeIs('admin.inventory.show') ? 'active' : '' }}">
-            <i class="fas fa-boxes me-2"></i> All Items
-        </a>
-        @endif
-
-        @if(Route::has('admin.inventory.create'))
-        <a href="{{ route('admin.inventory.create') }}" class="menu-item {{ request()->routeIs('admin.inventory.create') ? 'active' : '' }}">
-            <i class="fas fa-plus me-2"></i> Add Item
-        </a>
-        @endif
-
-        @if(Route::has('admin.inventory-categories.index'))
-        <a href="{{ route('admin.inventory-categories.index') }}" class="menu-item {{ request()->routeIs('admin.inventory-categories.*') ? 'active' : '' }}">
-            <i class="fas fa-tags me-2"></i> Categories
-        </a>
-        @endif
-
-        @if(Route::has('admin.inventory.low-stock'))
-        <a href="{{ route('admin.inventory.low-stock') }}" class="menu-item {{ request()->routeIs('admin.inventory.low-stock') ? 'active' : '' }}">
-            <i class="fas fa-exclamation-triangle me-2"></i> Low Stock Alerts
-        </a>
-        @endif
-
-        @if(Route::has('admin.inventory.reports'))
-        <a href="{{ route('admin.inventory.reports') }}" class="menu-item {{ request()->routeIs('admin.inventory.reports*') ? 'active' : '' }}">
-            <i class="fas fa-chart-bar me-2"></i> Reports
-        </a>
-        @endif
-    </div>
-</div>
-{{-- Inventory Management --}}
-
-{{-- Start: pos management --}}
-<!-- POS & Sales -->
-<div class="menu-dropdown">
-    <a href="#sectionPOS" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> POS & Sales
-    </a>
-    <div class="collapse" id="sectionPOS">
-        {{-- POS Terminal --}}
-        @if(Route::has('admin.pos.index'))
-        <a href="{{ route('admin.pos.index') }}" class="menu-item {{ request()->routeIs('admin.pos.index') ? 'active' : '' }}">
-            <i class="fas fa-cash-register me-2"></i> POS Terminal
-        </a>
-        @endif
-        {{-- POS Terminal --}}
-
-        {{-- POS Transactions --}}
-        @if(Route::has('admin.pos.transactions'))
-        <a href="{{ route('admin.pos.transactions') }}" class="menu-item {{ request()->routeIs('admin.pos.transactions*') ? 'active' : '' }}">
-            <i class="fas fa-receipt me-2"></i> POS Transactions
-        </a>
-        @endif
-        {{-- POS Transactions --}}
-
-        {{-- Daily Cash Reports --}}
-        @if(Route::has('admin.daily-cash-reports.index'))
-        <a href="{{ route('admin.daily-cash-reports.index') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.index') || request()->routeIs('admin.daily-cash-reports.show') ? 'active' : '' }}">
-            <i class="fas fa-file-invoice-dollar me-2"></i> Daily Cash Reports
-        </a>
-        @endif
-        {{-- Daily Cash Reports --}}
-
-        {{-- Sales Summary --}}
-        @if(Route::has('admin.daily-cash-reports.summary'))
-        <a href="{{ route('admin.daily-cash-reports.summary') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.summary') ? 'active' : '' }}">
-            <i class="fas fa-chart-line me-2"></i> Sales Summary
-        </a>
-        @endif
-        {{-- Sales Summary --}}
-
-        {{-- Open/Close Drawer --}}
-        @if(Route::has('admin.daily-cash-reports.open-drawer'))
-        <a href="{{ route('admin.daily-cash-reports.open-drawer') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.open-drawer') ? 'active' : '' }}">
-            <i class="fas fa-cash-register me-2"></i> Open/Close Drawer
-        </a>
-        @endif
-        {{-- Open/Close Drawer --}}
-    </div>
-</div>
-{{-- End: pos management --}}
-
-{{-- Start: CLASS MANAGEMENT --}}
+{{-- ==================== SECTION 4: CLASS MANAGEMENT ==================== --}}
 @canany(['view-classes', 'create-classes', 'manage-class-schedule'])
-<!-- CLASS MANAGEMENT -->
 <div class="menu-dropdown">
-    <a href="#section12" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> CLASS MANAGEMENT
+    <a href="#section4" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Class Management
     </a>
-    <div class="collapse" id="section12">
-
-    @can('view-classes')
-    <a href="{{ route('admin.classes.index') }}"
-       class="menu-item {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
-    <i class="fas fa-chalkboard"></i>
-    Classes
-    </a>
-    @endcan
-    <a href="{{ route('timetable.index') }}"
-       class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Timetable
-    </a>
-    <a href="{{ route('admin.classes.timetable') }}"
-       class="menu-item {{ request()->routeIs('admin.classes.timetable') ? 'active' : '' }}">
-    <i class="fas fa-calendar-week"></i>
-    Weekly Timetable
-    </a>
+    <div class="collapse" id="section4">
+        @can('view-classes')
+        <a href="{{ route('admin.classes.index') }}" class="menu-item {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
+            <i class="fas fa-chalkboard"></i> Classes
+        </a>
+        @endcan
+        <a href="{{ route('timetable.index') }}" class="menu-item {{ request()->routeIs('timetable.index') ? 'active' : '' }}">
+            <i class="fas fa-calendar-week"></i> Timetable
+        </a>
+        <a href="{{ route('admin.classes.timetable') }}" class="menu-item {{ request()->routeIs('admin.classes.timetable') ? 'active' : '' }}">
+            <i class="fas fa-calendar-alt"></i> Weekly Timetable
+        </a>
     </div>
 </div>
 @endcanany
-{{-- End: CLASS MANAGEMENT --}}
-{{-- Start: Enrollment Management --}}
+{{-- ==================== END: CLASS MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 5: EXAMINATION MANAGEMENT ==================== --}}
+@canany(['view-exams', 'create-exams', 'view-exam-results'])
+<div class="menu-dropdown">
+    <a href="#section5" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Examination Management
+    </a>
+    <div class="collapse" id="section5">
+        @can('view-exams')
+        <a href="{{ route('admin.exams.index') }}" class="menu-item {{ request()->routeIs('admin.exams.*') ? 'active' : '' }}">
+            <i class="fas fa-file-alt"></i> All Exams
+        </a>
+        @endcan
+
+        @can('create-exams')
+        <a href="{{ route('admin.exams.create') }}" class="menu-item {{ request()->routeIs('admin.exams.create') ? 'active' : '' }}">
+            <i class="fas fa-plus"></i> Create Exam
+        </a>
+        @endcan
+    </div>
+</div>
+@endcanany
+{{-- ==================== END: EXAMINATION MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 6: ENROLLMENT MANAGEMENT ==================== --}}
 @if(Route::has('admin.enrollments.index'))
 <div class="menu-dropdown">
-    <a href="#admin_enrollment_collapse" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Enrollments
+    <a href="#section6" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Enrollment Management
     </a>
-    <div class="collapse" id="admin_enrollment_collapse">
+    <div class="collapse" id="section6">
         @can('view-enrollments')
-            <a class="menu-item {{ request()->routeIs('admin.enrollments.index') ? 'active' : '' }}" href="{{ route('admin.enrollments.index') }}">
-                <i class="fas fa-list"></i> All Enrollments
-            </a>
+        <a href="{{ route('admin.enrollments.index') }}" class="menu-item {{ request()->routeIs('admin.enrollments.index') ? 'active' : '' }}">
+            <i class="fas fa-list"></i> All Enrollments
+        </a>
         @endcan
         @can('create-enrollments')
-            <a class="menu-item {{ request()->routeIs('admin.enrollments.create') ? 'active' : '' }}" href="{{ route('admin.enrollments.create') }}">
-                <i class="fas fa-plus"></i> New Enrollment
-            </a>
+        <a href="{{ route('admin.enrollments.create') }}" class="menu-item {{ request()->routeIs('admin.enrollments.create') ? 'active' : '' }}">
+            <i class="fas fa-plus"></i> New Enrollment
+        </a>
         @endcan
     </div>
 </div>
 @endif
-{{-- End: Enrollment Management --}}
+{{-- ==================== END: ENROLLMENT MANAGEMENT ==================== --}}
 
-{{-- Start: Attendance Management --}}
+
+{{-- ==================== SECTION 7: ATTENDANCE MANAGEMENT ==================== --}}
 @canany(['view-student-attendance-all', 'view-teacher-attendance-all', 'mark-student-attendance', 'mark-teacher-attendance'])
-<!-- Attendance Management -->
-<div class="menu-dropdown">
-    <a href="#section3" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Attendance Management
-    </a>
-    <div class="collapse" id="section3">
-    @can('view-student-attendance-all')
-    <a href="{{ route('admin.attendance.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.index') ? 'active' : '' }}"><i class="fas fa-users"></i> Attendance Dashboard</a>
-    @endcan
-    @can('mark-student-attendance')
-    <a href="{{ route('admin.attendance.student.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Student Attendance</a>
-    @endcan
-
-    @can('view-student-attendance-all')
-    <a href="{{ route('admin.attendance.student.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Student Calendar</a>
-    @endcan
-
-    @can('mark-teacher-attendance')
-    <a href="{{ route('admin.attendance.teacher.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.mark') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Attendance</a>
-    @endcan
-
-    @can('view-teacher-attendance-all')
-    <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}"><i class="fas fa-home"></i>Teacher Calendar</a>
-    @endcan
-    </div>
-</div>
-@endcanany
-{{-- End: Attendance Management --}}
-<!-- Teacher Salary -->
-<div class="menu-dropdown">
-    <a href="#section4" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Teacher Salary
-    </a>
-    <div class="collapse" id="section4">
-    @if(Route::has('admin.teacher-payslips.index'))
-    <a href="{{ route('admin.teacher-payslips.index') }}" class="menu-item {{ request()->routeIs('admin.teacher-payslips.*') ? 'active' : '' }}">
-    <i class="fas fa-file-invoice-dollar"></i> Teacher Payslips
-    </a>
-    @endif
-    @if(Route::has('admin.teacher-performance.index'))
-    <a href="{{ route('admin.teacher-performance.index') }}" class="menu-item {{ request()->routeIs('admin.teacher-performance.*') ? 'active' : '' }}">
-    <i class="fas fa-chart-line"></i> Teacher Performance
-    </a>
-    @endif
-    </div>
-</div>
-{{-- End: Attendance Management --}}
-
-{{-- Start: Financial Management --}}
-@canany(['view-financial-dashboard', 'view-revenue-reports', 'view-expense-reports'])
-<!-- Financial Management -->
-<div class="menu-dropdown">
-    <a href="#section5" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Financial Management
-    </a>
-    <div class="collapse" id="section5">
-
-    @can('view-financial-dashboard')
-    <a href="{{ route('admin.financial.dashboard') }}"
-       class="menu-item {{ request()->routeIs('admin.financial.dashboard') ? 'active' : '' }}">
-    <i class="fas fa-chart-line"></i>
-    <span>Financial Dashboard</span>
-    </a>
-    @endcan
-
-    @can('view-revenue-reports')
-    <a href="{{ route('admin.financial.reports') }}"
-       class="menu-item {{ request()->routeIs('admin.financial.reports') ? 'active' : '' }}">
-    <i class="fas fa-file-invoice-dollar"></i>
-    <span>Financial Reports</span>
-    </a>
-    @endcan
-
-    @can('view-profit-loss-reports')
-    <a href="{{ route('admin.financial.reports.profit-loss') }}"
-       class="menu-item {{ request()->routeIs('admin.financial.reports.profit-loss') ? 'active' : '' }}">
-    <i class="fas fa-balance-scale"></i>
-    <span>Profit & Loss</span>
-    </a>
-    @endcan
-
-    @can('view-category-revenue')
-    <a href="{{ route('admin.financial.reports.category-revenue') }}"
-       class="menu-item {{ request()->routeIs('admin.financial.reports.category-revenue') ? 'active' : '' }}">
-    <i class="fas fa-chart-pie"></i>
-    <span>Revenue by Category</span>
-    </a>
-    @endcan
-
-    @can('view-financial-dashboard')
-    <a href="{{ route('admin.financial.reports.cash-flow') }}"
-       class="menu-item {{ request()->routeIs('admin.financial.reports.cash-flow') ? 'active' : '' }}">
-    <i class="fas fa-exchange-alt"></i>
-    <span>Cash Flow</span>
-    </a>
-    @endcan
-    </div>
-</div>
-@endcanany
-{{-- End: Financial Management --}}
-{{-- Expense Management --}}
-<div class="menu-dropdown">
-    <a href="#sectionExpenses" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Expenses Management
-    </a>
-    <div class="collapse" id="sectionExpenses">
-        @if(Route::has('admin.expenses.index'))
-        <a href="{{ route('admin.expenses.index') }}" class="menu-item {{ request()->routeIs('admin.expenses.*') && !request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
-            <i class="fas fa-receipt me-2"></i> Expense Vouchers
-        </a>
-        @endif
-
-        @if(Route::has('admin.expense-categories.index'))
-        <a href="{{ route('admin.expense-categories.index') }}" class="menu-item {{ request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
-            <i class="fas fa-tags me-2"></i> Expense Categories
-        </a>
-        @endif
-    </div>
-</div>
-{{-- Expense Management --}}
-<!-- Seminar Management -->
-<div class="menu-dropdown">
-    <a href="#section6" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Seminar Management
-    </a>
-    <div class="collapse" id="section6">
-
-    {{-- @can('view-seminars') --}}
-    <a href="{{ route('admin.seminars.index') }}" class="menu-item {{ request()->routeIs('admin.seminars.*') ? 'active' : '' }}">
-    <i class="fas fa-calendar-alt"></i> Seminars
-    </a>
-    {{-- @endcan --}}
-
-    {{-- @can('view-seminar-participants')
-    @if(Route::has('admin.seminars.index'))
-    <a href="{{ route('admin.seminars.index', ['status' => 'open']) }}" class="menu-item {{ request()->routeIs('admin.seminars.index') && request('status') == 'open' ? 'active' : '' }}">
-    <i class="fas fa-door-open"></i> Open Seminars
-    @php
-        $openSeminars = \App\Models\Seminar::where('status', 'open')->count();
-    @endphp
-    @if($openSeminars > 0)
-    <span class="badge bg-success text-white ms-auto">{{ $openSeminars }}</span>
-    @endif
-    </a>
-    @endif
-    @endcan --}}
-
-    {{-- Public Seminar Page Link --}}
-    @if(Route::has('public.seminars.index'))
-    <a href="{{ route('public.seminars.index') }}" class="menu-item" target="_blank">
-    <i class="fas fa-external-link-alt"></i> Public Seminar Page
-    </a>
-    @endif
-    <!-- Seminar Accounting -->
-    @if(Route::has('admin.seminars.accounting.dashboard'))
-    </div>
-</div>
-<!-- Seminar Accounting -->
 <div class="menu-dropdown">
     <a href="#section7" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Seminar Accounting
+        <i class="fas fa-chevron-down"></i> Attendance Management
     </a>
     <div class="collapse" id="section7">
-    <a href="{{ route('admin.seminars.accounting.dashboard') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.dashboard') ? 'active' : '' }}">
-    <i class="fas fa-calendar-alt"></i> Dashboard
-    </a>
-    <a href="{{ route('admin.seminars.accounting.reports.profitability') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.reports.profitability*') ? 'active' : '' }}">
-    <i class="fas fa-file-invoice-dollar"></i> Profitability Report
-    </a>
-    <a href="{{ route('admin.seminars.accounting.reports.payment-status') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.reports.payment-status') ? 'active' : '' }}">
-    <i class="fas fa-sync-alt"></i> Payment Status
-    </a>
-    @endif
-    {{-- End: Seminar Management --}}
-
-    {{-- Start: Reports Management --}}
+        @can('view-student-attendance-all')
+        <a href="{{ route('admin.attendance.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.index') ? 'active' : '' }}">
+            <i class="fas fa-tachometer-alt"></i> Attendance Dashboard
+        </a>
+        @endcan
+        @can('mark-student-attendance')
+        <a href="{{ route('admin.attendance.student.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.mark') ? 'active' : '' }}">
+            <i class="fas fa-user-check"></i> Student Attendance
+        </a>
+        @endcan
+        @can('view-student-attendance-all')
+        <a href="{{ route('admin.attendance.student.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.student.calendar') ? 'active' : '' }}">
+            <i class="fas fa-calendar-alt"></i> Student Calendar
+        </a>
+        @endcan
+        @can('mark-teacher-attendance')
+        <a href="{{ route('admin.attendance.teacher.mark') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.mark') ? 'active' : '' }}">
+            <i class="fas fa-chalkboard-teacher"></i> Teacher Attendance
+        </a>
+        @endcan
+        @can('view-teacher-attendance-all')
+        <a href="{{ route('admin.attendance.teacher.calendar') }}" class="menu-item {{ request()->routeIs('admin.attendance.teacher.calendar') ? 'active' : '' }}">
+            <i class="fas fa-calendar-week"></i> Teacher Calendar
+        </a>
+        @endcan
     </div>
 </div>
-<!-- Reports Management -->
+@endcanany
+{{-- ==================== END: ATTENDANCE MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 8: MATERIALS & CONTENT ==================== --}}
 <div class="menu-dropdown">
     <a href="#section8" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Reports Management
+        <i class="fas fa-chevron-down"></i> Materials & Content
     </a>
     <div class="collapse" id="section8">
-    <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
-    <i class="fas fa-tachometer-alt"></i> Reports Dashboard
-    </a>
-    <a href="{{ route('admin.attendance.reports.student') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
-    <i class="fas fa-user"></i> Student Report
-    </a>
-    <a href="{{ route('admin.attendance.reports.class') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
-    <i class="fas fa-school"></i> Class Report
-    </a>
-    <a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
-    <i class="fas fa-exclamation-triangle"></i> Low Attendance
-    </a>
-    <a href="{{ route('admin.attendance.reports.history') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
-    <i class="fas fa-history"></i> History
-    </a>
-    {{-- End: Reports Management --}}
-
-    {{-- Start: Referral & Trial --}}
+        <a href="{{ route('admin.materials.index') }}" class="menu-item {{ request()->routeIs('admin.materials.*') ? 'active' : '' }}">
+            <i class="fas fa-file-alt"></i> Digital Materials
+        </a>
+        <a href="{{ route('admin.physical-materials.index') }}" class="menu-item {{ request()->routeIs('admin.physical-materials.*') ? 'active' : '' }}">
+            <i class="fas fa-book"></i> Physical Materials
+        </a>
+        <a href="{{ route('announcements.index') }}" class="menu-item {{ request()->routeIs('announcements.index') ? 'active' : '' }}">
+            <i class="fas fa-bullhorn"></i> Announcements
+        </a>
     </div>
 </div>
-<!-- Referral & Trial -->
+{{-- ==================== END: MATERIALS & CONTENT ==================== --}}
+
+
+{{-- ==================== SECTION 9: FINANCIAL MANAGEMENT ==================== --}}
+@canany(['view-financial-dashboard', 'view-revenue-reports', 'view-expense-reports'])
 <div class="menu-dropdown">
     <a href="#section9" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Referral & Trial
+        <i class="fas fa-chevron-down"></i> Financial Management
     </a>
     <div class="collapse" id="section9">
-
-    @can('view-referrals')
-    <a href="{{ route('admin.referrals.index') }}" class="menu-item {{ request()->routeIs('admin.referrals.*') && !request()->routeIs('admin.referrals.vouchers') ? 'active' : '' }}">
-        <i class="fas fa-user-friends"></i> Referrals
-    </a>
-    @endcan
-
-    @can('view-referral-vouchers')
-    <a href="{{ route('admin.referrals.vouchers') }}" class="menu-item {{ request()->routeIs('admin.referrals.vouchers') ? 'active' : '' }}">
-        <i class="fas fa-ticket-alt"></i> Vouchers
-    </a>
-    @endcan
-
-    @can('view-trial-classes')
-    <a href="{{ route('admin.trial-classes.index') }}" class="menu-item {{ request()->routeIs('admin.trial-classes.*') ? 'active' : '' }}">
-        <i class="fas fa-chalkboard"></i> Trial Classes
-    </a>
-    @endcan
-
-    @can('view-reviews')
-    <a href="{{ route('admin.reviews.index') }}" class="menu-item {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}">
-        <i class="fas fa-star"></i> Student Reviews
-    </a>
-    @endcan
-    {{-- End: Referral & Trial --}}
-
-    {{-- Start: Materials Management  --}}
+        @can('view-financial-dashboard')
+        <a href="{{ route('admin.financial.dashboard') }}" class="menu-item {{ request()->routeIs('admin.financial.dashboard') ? 'active' : '' }}">
+            <i class="fas fa-chart-line"></i> Financial Dashboard
+        </a>
+        @endcan
+        @can('view-revenue-reports')
+        <a href="{{ route('admin.financial.reports') }}" class="menu-item {{ request()->routeIs('admin.financial.reports') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar"></i> Financial Reports
+        </a>
+        @endcan
+        @can('view-profit-loss-reports')
+        <a href="{{ route('admin.financial.reports.profit-loss') }}" class="menu-item {{ request()->routeIs('admin.financial.reports.profit-loss') ? 'active' : '' }}">
+            <i class="fas fa-balance-scale"></i> Profit & Loss
+        </a>
+        @endcan
+        @can('view-category-revenue')
+        <a href="{{ route('admin.financial.reports.category-revenue') }}" class="menu-item {{ request()->routeIs('admin.financial.reports.category-revenue') ? 'active' : '' }}">
+            <i class="fas fa-chart-pie"></i> Revenue by Category
+        </a>
+        @endcan
+        @can('view-financial-dashboard')
+        <a href="{{ route('admin.financial.reports.cash-flow') }}" class="menu-item {{ request()->routeIs('admin.financial.reports.cash-flow') ? 'active' : '' }}">
+            <i class="fas fa-exchange-alt"></i> Cash Flow
+        </a>
+        @endcan
     </div>
 </div>
-<!-- Materials Management -->
+@endcanany
+{{-- ==================== END: FINANCIAL MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 10: BILLING & PAYMENTS ==================== --}}
 <div class="menu-dropdown">
     <a href="#section10" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Materials Management
+        <i class="fas fa-chevron-down"></i> Billing & Payments
     </a>
     <div class="collapse" id="section10">
-    <a href="{{ route('admin.materials.index') }}" class="menu-item {{ request()->routeIs('admin.materials.*') ? 'active' : '' }}">
-    <i class="fas fa-file-alt"></i> Digital Materials
-    </a>
-    <a href="{{ route('admin.physical-materials.index') }}" class="menu-item {{ request()->routeIs('admin.physical-materials.*') ? 'active' : '' }}">
-    <i class="fas fa-book"></i> Physical Materials
-    </a>
-    {{-- End: Materials Management  --}}
+        {{-- Invoices --}}
+        <a href="{{ route('admin.invoices.index') }}" class="menu-item {{ request()->routeIs('admin.invoices.index') || request()->routeIs('admin.invoices.create') || request()->routeIs('admin.invoices.show') || request()->routeIs('admin.invoices.edit') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar"></i> Invoices
+        </a>
+        <a href="{{ route('admin.invoices.overdue') }}" class="menu-item {{ request()->routeIs('admin.invoices.overdue') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-triangle"></i> Overdue Invoices
+        </a>
 
-    {{-- Start: Academic Management  --}}
+        {{-- Payments --}}
+        @if(Route::has('admin.payments.index'))
+        <a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.index') ? 'active' : '' }}">
+            <i class="fas fa-money-bill-wave"></i> All Payments
+        </a>
+        <a href="{{ route('admin.payments.create') }}" class="menu-item {{ request()->routeIs('admin.payments.create') ? 'active' : '' }}">
+            <i class="fas fa-plus"></i> Record Payment
+        </a>
+        @if(Route::has('admin.payments.pending-verifications'))
+        <a href="{{ route('admin.payments.pending-verifications') }}" class="menu-item {{ request()->routeIs('admin.payments.pending-verifications') ? 'active' : '' }}">
+            <i class="fas fa-clock"></i> Pending Verifications
+            @php
+                $pendingPayments = \App\Models\Payment::where('status', 'pending_verification')->count();
+            @endphp
+            @if($pendingPayments > 0)
+                <span class="badge bg-warning ms-auto">{{ $pendingPayments }}</span>
+            @endif
+        </a>
+        @endif
+        <a href="{{ route('admin.payments.history') }}" class="menu-item {{ request()->routeIs('admin.payments.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Payment History
+        </a>
+        @if(Route::has('admin.payments.daily-report'))
+        <a href="{{ route('admin.payments.daily-report') }}" class="menu-item {{ request()->routeIs('admin.payments.daily-report') ? 'active' : '' }}">
+            <i class="fas fa-cash-register"></i> Daily Cash Report
+        </a>
+        @endif
+        @endif
+
+        {{-- Billing Cycles --}}
+        <a href="{{ route('admin.billing.payment-cycles') }}" class="menu-item {{ request()->routeIs('admin.billing.payment-cycles') ? 'active' : '' }}">
+            <i class="fas fa-sync-alt"></i> Payment Cycles
+        </a>
+        <a href="{{ route('admin.billing.subscription-alerts') }}" class="menu-item {{ request()->routeIs('admin.billing.subscription-alerts') ? 'active' : '' }}">
+            <i class="fas fa-bell"></i> Subscription Alerts
+        </a>
+
+        {{-- Installments --}}
+        <a href="{{ route('admin.installments.index') }}" class="menu-item {{ request()->routeIs('admin.installments.index') ? 'active' : '' }}">
+            <i class="fas fa-calendar-check"></i> Installments
+        </a>
+
+        {{-- Arrears --}}
+        <a href="{{ route('admin.arrears.index') }}" class="menu-item {{ request()->routeIs('admin.arrears.*') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-circle"></i> Arrears Management
+        </a>
+
+        {{-- Payment Reminders --}}
+        <a href="{{ route('admin.reminders.index') }}" class="menu-item {{ request()->routeIs('admin.reminders.*') ? 'active' : '' }}">
+            <i class="fas fa-paper-plane"></i> Payment Reminders
+        </a>
     </div>
 </div>
+{{-- ==================== END: BILLING & PAYMENTS ==================== --}}
 
-<!-- Operations -->
+
+{{-- ==================== SECTION 11: EXPENSE MANAGEMENT ==================== --}}
+<div class="menu-dropdown">
+    <a href="#section11" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Expense Management
+    </a>
+    <div class="collapse" id="section11">
+        @if(Route::has('admin.expenses.index'))
+        <a href="{{ route('admin.expenses.index') }}" class="menu-item {{ request()->routeIs('admin.expenses.*') && !request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
+            <i class="fas fa-receipt"></i> Expense Vouchers
+        </a>
+        @endif
+        @if(Route::has('admin.expense-categories.index'))
+        <a href="{{ route('admin.expense-categories.index') }}" class="menu-item {{ request()->routeIs('admin.expense-categories.*') ? 'active' : '' }}">
+            <i class="fas fa-tags"></i> Expense Categories
+        </a>
+        @endif
+    </div>
+</div>
+{{-- ==================== END: EXPENSE MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 12: TEACHER MANAGEMENT ==================== --}}
+<div class="menu-dropdown">
+    <a href="#section12" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Teacher Management
+    </a>
+    <div class="collapse" id="section12">
+        @if(Route::has('admin.teacher-payslips.index'))
+        <a href="{{ route('admin.teacher-payslips.index') }}" class="menu-item {{ request()->routeIs('admin.teacher-payslips.*') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar"></i> Teacher Payslips
+        </a>
+        @endif
+        @if(Route::has('admin.teacher-performance.index'))
+        <a href="{{ route('admin.teacher-performance.index') }}" class="menu-item {{ request()->routeIs('admin.teacher-performance.*') ? 'active' : '' }}">
+            <i class="fas fa-chart-line"></i> Teacher Performance
+        </a>
+        @endif
+    </div>
+</div>
+{{-- ==================== END: TEACHER MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 13: INVENTORY MANAGEMENT ==================== --}}
 <div class="menu-dropdown">
     <a href="#section13" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Operations
+        <i class="fas fa-chevron-down"></i> Inventory Management
     </a>
     <div class="collapse" id="section13">
-    <a href="#" class="menu-item">
-    <i class="fas fa-check-square"></i> Attendance
-    </a>
-
-    {{-- Start: Financial Section --}}
+        @if(Route::has('admin.inventory.index'))
+        <a href="{{ route('admin.inventory.index') }}" class="menu-item {{ request()->routeIs('admin.inventory.index') || request()->routeIs('admin.inventory.show') ? 'active' : '' }}">
+            <i class="fas fa-boxes"></i> All Items
+        </a>
+        @endif
+        @if(Route::has('admin.inventory.create'))
+        <a href="{{ route('admin.inventory.create') }}" class="menu-item {{ request()->routeIs('admin.inventory.create') ? 'active' : '' }}">
+            <i class="fas fa-plus"></i> Add Item
+        </a>
+        @endif
+        @if(Route::has('admin.inventory-categories.index'))
+        <a href="{{ route('admin.inventory-categories.index') }}" class="menu-item {{ request()->routeIs('admin.inventory-categories.*') ? 'active' : '' }}">
+            <i class="fas fa-tags"></i> Categories
+        </a>
+        @endif
+        @if(Route::has('admin.inventory.low-stock'))
+        <a href="{{ route('admin.inventory.low-stock') }}" class="menu-item {{ request()->routeIs('admin.inventory.low-stock') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-triangle"></i> Low Stock Alerts
+        </a>
+        @endif
+        @if(Route::has('admin.inventory.reports'))
+        <a href="{{ route('admin.inventory.reports') }}" class="menu-item {{ request()->routeIs('admin.inventory.reports*') ? 'active' : '' }}">
+            <i class="fas fa-chart-bar"></i> Inventory Reports
+        </a>
+        @endif
     </div>
 </div>
-<!-- Financial -->
+{{-- ==================== END: INVENTORY MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 14: POS & SALES ==================== --}}
 <div class="menu-dropdown">
     <a href="#section14" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Financial
+        <i class="fas fa-chevron-down"></i> POS & Sales
     </a>
     <div class="collapse" id="section14">
-    <a href="{{ route('admin.invoices.index') }}" class="menu-item {{ request()->routeIs('admin.invoices.index') || request()->routeIs('admin.invoices.create') || request()->routeIs('admin.invoices.show') || request()->routeIs('admin.invoices.edit') ? 'active' : '' }}">
-    <i class="fas fa-file-invoice-dollar"></i> Invoices
-    </a>
-    <a href="{{ route('admin.invoices.overdue') }}" class="menu-item {{ request()->routeIs('admin.invoices.overdue') ? 'active' : '' }}">
-    <i class="fas fa-exclamation-triangle"></i> Overdue Invoices
-    </a>
-    <a href="{{ route('admin.billing.payment-cycles') }}" class="menu-item {{ request()->routeIs('admin.billing.payment-cycles') ? 'active' : '' }}">
-    <i class="fas fa-sync-alt"></i> Payment Cycles
-    </a>
-    <a href="{{ route('admin.billing.subscription-alerts') }}" class="menu-item {{ request()->routeIs('admin.billing.subscription-alerts') ? 'active' : '' }}">
-    <i class="fas fa-bell"></i> Subscription Alerts
-    </a>
-    {{-- End: Financial Section --}}
-
-    {{-- Start: Installments Menu --}}
+        @if(Route::has('admin.pos.index'))
+        <a href="{{ route('admin.pos.index') }}" class="menu-item {{ request()->routeIs('admin.pos.index') ? 'active' : '' }}">
+            <i class="fas fa-cash-register"></i> POS Terminal
+        </a>
+        @endif
+        @if(Route::has('admin.pos.transactions'))
+        <a href="{{ route('admin.pos.transactions') }}" class="menu-item {{ request()->routeIs('admin.pos.transactions*') ? 'active' : '' }}">
+            <i class="fas fa-receipt"></i> POS Transactions
+        </a>
+        @endif
+        @if(Route::has('admin.daily-cash-reports.index'))
+        <a href="{{ route('admin.daily-cash-reports.index') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.index') || request()->routeIs('admin.daily-cash-reports.show') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar"></i> Daily Cash Reports
+        </a>
+        @endif
+        @if(Route::has('admin.daily-cash-reports.summary'))
+        <a href="{{ route('admin.daily-cash-reports.summary') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.summary') ? 'active' : '' }}">
+            <i class="fas fa-chart-line"></i> Sales Summary
+        </a>
+        @endif
+        @if(Route::has('admin.daily-cash-reports.open-drawer'))
+        <a href="{{ route('admin.daily-cash-reports.open-drawer') }}" class="menu-item {{ request()->routeIs('admin.daily-cash-reports.open-drawer') ? 'active' : '' }}">
+            <i class="fas fa-cash-register"></i> Open/Close Drawer
+        </a>
+        @endif
     </div>
 </div>
-<!-- Installments -->
+{{-- ==================== END: POS & SALES ==================== --}}
+
+
+{{-- ==================== SECTION 15: SEMINAR MANAGEMENT ==================== --}}
 <div class="menu-dropdown">
     <a href="#section15" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Installments
+        <i class="fas fa-chevron-down"></i> Seminar Management
     </a>
     <div class="collapse" id="section15">
-    <a href="{{ route('admin.installments.index') }}" class="menu-item ps-4 {{ request()->routeIs('admin.installments.index') ? 'active' : '' }}">
-    <i class="fas fa-list me-2"></i> All Installments
-    </a>
-    {{-- End: Installments Menu --}}
-
-    {{-- Start: Payment Reminders Menu --}}
+        <a href="{{ route('admin.seminars.index') }}" class="menu-item {{ request()->routeIs('admin.seminars.*') && !request()->routeIs('admin.seminars.accounting.*') ? 'active' : '' }}">
+            <i class="fas fa-calendar-alt"></i> Seminars
+        </a>
+        @if(Route::has('public.seminars.index'))
+        <a href="{{ route('public.seminars.index') }}" class="menu-item" target="_blank">
+            <i class="fas fa-external-link-alt"></i> Public Seminar Page
+        </a>
+        @endif
+        @if(Route::has('admin.seminars.accounting.dashboard'))
+        <a href="{{ route('admin.seminars.accounting.dashboard') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.dashboard') ? 'active' : '' }}">
+            <i class="fas fa-chart-pie"></i> Seminar Accounting
+        </a>
+        <a href="{{ route('admin.seminars.accounting.reports.profitability') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.reports.profitability*') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar"></i> Profitability Report
+        </a>
+        <a href="{{ route('admin.seminars.accounting.reports.payment-status') }}" class="menu-item {{ request()->routeIs('admin.seminars.accounting.reports.payment-status') ? 'active' : '' }}">
+            <i class="fas fa-sync-alt"></i> Payment Status
+        </a>
+        @endif
     </div>
 </div>
-<!-- Payment Reminders -->
+{{-- ==================== END: SEMINAR MANAGEMENT ==================== --}}
+
+
+{{-- ==================== SECTION 16: REFERRAL & TRIAL ==================== --}}
 <div class="menu-dropdown">
     <a href="#section16" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Payment Reminders
+        <i class="fas fa-chevron-down"></i> Referral & Trial
     </a>
     <div class="collapse" id="section16">
-    <a href="{{ route('admin.reminders.index') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.index') ? 'active' : '' }}">
-    <i class="fas fa-paper-plane me-2"></i> Send Reminders
-    </a>
-    @if(Route::has('admin.reminders.history'))
-    <a href="{{ route('admin.reminders.history') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.history') ? 'active' : '' }}">
-    <i class="fas fa-history me-2"></i> History
-    </a>
-    @endif
-    @if(Route::has('admin.reminders.schedule'))
-    <a href="{{ route('admin.reminders.schedule') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.schedule') ? 'active' : '' }}">
-    <i class="fas fa-calendar-alt me-2"></i> Schedule
-    </a>
-    @endif
-    @if(Route::has('admin.reminders.settings'))
-    <a href="{{ route('admin.reminders.settings') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.reminders.settings') ? 'active' : '' }}">
-    <i class="fas fa-cog me-2"></i> Settings
-    </a>
-    @endif
-    {{-- End: Payment Reminders Menu --}}
-
-    {{-- Start: Arrears Menu --}}
+        @can('view-referrals')
+        <a href="{{ route('admin.referrals.index') }}" class="menu-item {{ request()->routeIs('admin.referrals.*') && !request()->routeIs('admin.referrals.vouchers') ? 'active' : '' }}">
+            <i class="fas fa-user-friends"></i> Referrals
+        </a>
+        @endcan
+        @can('view-referral-vouchers')
+        <a href="{{ route('admin.referrals.vouchers') }}" class="menu-item {{ request()->routeIs('admin.referrals.vouchers') ? 'active' : '' }}">
+            <i class="fas fa-ticket-alt"></i> Vouchers
+        </a>
+        @endcan
+        @can('view-trial-classes')
+        <a href="{{ route('admin.trial-classes.index') }}" class="menu-item {{ request()->routeIs('admin.trial-classes.*') ? 'active' : '' }}">
+            <i class="fas fa-chalkboard"></i> Trial Classes
+        </a>
+        @endcan
+        @can('view-reviews')
+        <a href="{{ route('admin.reviews.index') }}" class="menu-item {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}">
+            <i class="fas fa-star"></i> Student Reviews
+        </a>
+        @endcan
     </div>
 </div>
-<!-- Arrears Menu -->
+{{-- ==================== END: REFERRAL & TRIAL ==================== --}}
+
+
+{{-- ==================== SECTION 17: REPORTS & ANALYTICS ==================== --}}
 <div class="menu-dropdown">
     <a href="#section17" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Arrears Menu
+        <i class="fas fa-chevron-down"></i> Reports & Analytics
     </a>
     <div class="collapse" id="section17">
-    <a href="{{ route('admin.arrears.index') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.index') ? 'active' : '' }}">
-    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-    </a>
-    @if(Route::has('admin.arrears.students-list'))
-    <a href="{{ route('admin.arrears.students-list') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.students-list') ? 'active' : '' }}">
-    <i class="fas fa-users me-2"></i> Students List
-    </a>
-    @endif
-    @if(Route::has('admin.arrears.by-class'))
-    <a href="{{ route('admin.arrears.by-class') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.by-class') ? 'active' : '' }}">
-    <i class="fas fa-school me-2"></i> By Class
-    </a>
-    @endif
-    @if(Route::has('admin.arrears.aging-analysis'))
-    <a href="{{ route('admin.arrears.aging-analysis') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.aging-analysis') ? 'active' : '' }}">
-    <i class="fas fa-chart-pie me-2"></i> Aging Analysis
-    </a>
-    @endif
-    @if(Route::has('admin.arrears.due-report'))
-    <a href="{{ route('admin.arrears.due-report') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.due-report') ? 'active' : '' }}">
-    <i class="fas fa-calendar-times me-2"></i> Due Report
-    </a>
-    @endif
-    @if(Route::has('admin.arrears.forecast'))
-    <a href="{{ route('admin.arrears.forecast') }}"
-    class="menu-item ps-4 {{ request()->routeIs('admin.arrears.forecast') ? 'active' : '' }}">
-    <i class="fas fa-chart-line me-2"></i> Forecast
-    </a>
-    @endif
-    {{-- End: Arrears Menu --}}
-
-    {{-- Payment Menu with Submenu --}}
-    @if(Route::has('admin.payments.index'))
+        <a href="{{ route('admin.attendance.reports.index') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.index') ? 'active' : '' }}">
+            <i class="fas fa-tachometer-alt"></i> Reports Dashboard
+        </a>
+        <a href="{{ route('admin.attendance.reports.student') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.student') ? 'active' : '' }}">
+            <i class="fas fa-user"></i> Student Report
+        </a>
+        <a href="{{ route('admin.attendance.reports.class') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.class') ? 'active' : '' }}">
+            <i class="fas fa-school"></i> Class Report
+        </a>
+        <a href="{{ route('admin.attendance.reports.low-attendance') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.low-attendance') ? 'active' : '' }}">
+            <i class="fas fa-exclamation-triangle"></i> Low Attendance
+        </a>
+        <a href="{{ route('admin.attendance.reports.history') }}" class="menu-item {{ request()->routeIs('admin.attendance.reports.history') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> History
+        </a>
     </div>
 </div>
-<!-- Payments Management -->
+{{-- ==================== END: REPORTS & ANALYTICS ==================== --}}
+
+
+{{-- ==================== SECTION 18: COMMUNICATIONS ==================== --}}
 <div class="menu-dropdown">
     <a href="#section18" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Payments Management
-    </a>
-    <div class="collapse" id="section18">
-    <a href="{{ route('admin.payments.index') }}" class="menu-item {{ request()->routeIs('admin.payments.index') ? 'active' : '' }}">
-    <i class="fas fa-list"></i> All Payments
-    </a>
-    <a href="{{ route('admin.payments.create') }}" class="menu-item {{ request()->routeIs('admin.payments.create') ? 'active' : '' }}">
-    <i class="fas fa-plus"></i> Record Payment
-    </a>
-    @if(Route::has('admin.payments.pending-verifications'))
-    <a href="{{ route('admin.payments.pending-verifications') }}" class="menu-item {{ request()->routeIs('admin.payments.pending-verifications') ? 'active' : '' }}">
-    <i class="fas fa-clock"></i> Pending Verifications
-    @php
-        $pendingCount = \App\Models\Payment::where('status', 'pending_verification')->count();
-    @endphp
-    @if($pendingCount > 0)
-    <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
-    @endif
-    </a>
-    @endif
-    @if(Route::has('admin.payments.daily-report'))
-    <a href="{{ route('admin.payments.daily-report') }}" class="menu-item {{ request()->routeIs('admin.payments.daily-report') ? 'active' : '' }}">
-    <i class="fas fa-cash-register"></i> Daily Cash Report
-    </a>
-    @endif
-    <a href="{{ route('admin.payments.history') }}" class="menu-item {{ request()->routeIs('admin.payments.history') ? 'active' : '' }}">
-    <i class="fas fa-history"></i> Payment History
-    </a>
-    @else
-    <a href="#" class="menu-item">
-    <i class="fas fa-money-bill-wave"></i> Payments
-    </a>
-    @endif
-    @can('manage-payment-gateway')
-    <a href="{{ route('admin.payment-gateways.index') }}" class="menu-item {{ request()->routeIs('admin.payment-gateways.*') ? 'active' : '' }}">
-    <i class="fas fa-credit-card"></i> Payment Gateways
-    </a>
-    @endcan
-
-    </div>
-</div>
-<!-- Content -->
-<div class="menu-dropdown">
-    <a href="#section19" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Content
-    </a>
-    <div class="collapse" id="section19">
-    <a href="#" class="menu-item">
-    <i class="fas fa-file-alt"></i> Materials
-    </a>
-    <a href="{{ route('announcements.index') }}" class="menu-item {{ request()->routeIs('announcements.index') ? 'active' : '' }}">
-    <i class="fas fa-bullhorn"></i> Announcements
-    </a>
-
-    </div>
-</div>
-<!-- Other -->
-<div class="menu-dropdown">
-    <a href="#section20" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Other
-    </a>
-    <div class="collapse" id="section20">
-    <a href="#" class="menu-item">
-    <i class="fas fa-calendar-check"></i> Seminars
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-shopping-cart"></i> Cafeteria POS
-    </a>
-    <a href="#" class="menu-item">
-    <i class="fas fa-cog"></i> Settings
-    </a>
-
-    </div>
-</div>
-<!-- Account -->
-<div class="menu-dropdown">
-    <a href="#section21" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
-        <i class="fas fa-chevron-down"></i> Account
-    </a>
-    <div class="collapse" id="section21">
-    <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-    <i class="fas fa-user"></i> My Profile
-    </a>
-
-    </div>
-</div>
-<!-- Communications -->
-<div class="menu-dropdown">
-    <a href="#section22" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
         <i class="fas fa-chevron-down"></i> Communications
     </a>
-    <div class="collapse" id="section22">
-    <a href="{{ route('admin.notifications.index') }}" class="menu-item {{ request()->routeIs('admin.notifications.index') ? 'active' : '' }}">
-    <i class="fas fa-bell"></i> Notification Dashboard
-    </a>
-    <a href="{{ route('admin.notifications.create') }}" class="menu-item {{ request()->routeIs('admin.notifications.create') ? 'active' : '' }}">
-    <i class="fas fa-paper-plane"></i> Send Notification
-    </a>
-    <a href="{{ route('admin.notifications.logs') }}" class="menu-item {{ request()->routeIs('admin.notifications.logs') ? 'active' : '' }}">
-    <i class="fas fa-history"></i> Notification Logs
-    </a>
-    <a href="{{ route('admin.templates.index') }}" class="menu-item {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}">
-    <i class="fas fa-file-alt"></i> Message Templates
-    </a>
-    <a href="{{ route('admin.notifications.whatsapp-queue') }}" class="menu-item {{ request()->routeIs('admin.notifications.whatsapp-queue') ? 'active' : '' }}">
-    <i class="fab fa-whatsapp"></i> WhatsApp Queue
-    </a>
-    <a href="{{ route('admin.notifications.email-queue') }}" class="menu-item {{ request()->routeIs('admin.notifications.email-queue') ? 'active' : '' }}">
-    <i class="fas fa-envelope"></i> Email Queue
-    </a>
-    <a href="{{ route('admin.notifications.settings') }}" class="menu-item {{ request()->routeIs('admin.notifications.settings') ? 'active' : '' }}">
-    <i class="fas fa-cog"></i> Notification Settings
-    </a>
-
+    <div class="collapse" id="section18">
+        <a href="{{ route('admin.notifications.index') }}" class="menu-item {{ request()->routeIs('admin.notifications.index') ? 'active' : '' }}">
+            <i class="fas fa-bell"></i> Notification Dashboard
+        </a>
+        <a href="{{ route('admin.notifications.create') }}" class="menu-item {{ request()->routeIs('admin.notifications.create') ? 'active' : '' }}">
+            <i class="fas fa-paper-plane"></i> Send Notification
+        </a>
+        <a href="{{ route('admin.notifications.logs') }}" class="menu-item {{ request()->routeIs('admin.notifications.logs') ? 'active' : '' }}">
+            <i class="fas fa-history"></i> Notification Logs
+        </a>
+        <a href="{{ route('admin.templates.index') }}" class="menu-item {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}">
+            <i class="fas fa-file-alt"></i> Message Templates
+        </a>
+        <a href="{{ route('admin.notifications.whatsapp-queue') }}" class="menu-item {{ request()->routeIs('admin.notifications.whatsapp-queue') ? 'active' : '' }}">
+            <i class="fab fa-whatsapp"></i> WhatsApp Queue
+        </a>
+        <a href="{{ route('admin.notifications.email-queue') }}" class="menu-item {{ request()->routeIs('admin.notifications.email-queue') ? 'active' : '' }}">
+            <i class="fas fa-envelope"></i> Email Queue
+        </a>
+        <a href="{{ route('admin.notifications.settings') }}" class="menu-item {{ request()->routeIs('admin.notifications.settings') ? 'active' : '' }}">
+            <i class="fas fa-cog"></i> Notification Settings
+        </a>
     </div>
 </div>
+{{-- ==================== END: COMMUNICATIONS ==================== --}}
+
+
+{{-- ==================== SECTION 19: SETTINGS & ACCOUNT ==================== --}}
+<div class="menu-dropdown">
+    <a href="#section19" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Settings & Account
+    </a>
+    <div class="collapse" id="section19">
+        <a href="{{ route('profile.index') }}" class="menu-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+            <i class="fas fa-user"></i> My Profile
+        </a>
+        @can('manage-payment-gateway')
+        <a href="{{ route('admin.payment-gateways.index') }}" class="menu-item {{ request()->routeIs('admin.payment-gateways.*') ? 'active' : '' }}">
+            <i class="fas fa-credit-card"></i> Payment Gateways
+        </a>
+        @endcan
+    </div>
+</div>
+{{-- ==================== END: SETTINGS & ACCOUNT ==================== --}}
 @endrole
 
 {{-- Staff Sidebar --}}
