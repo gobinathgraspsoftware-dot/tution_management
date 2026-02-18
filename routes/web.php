@@ -97,6 +97,7 @@ use App\Http\Controllers\Student\AttendanceController as StudentAttendanceContro
 use App\Http\Controllers\Student\ResultController as StudentResultController;
 use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementController;
 use App\Http\Controllers\Student\ScheduleController as StudentScheduleController;
+use App\Http\Controllers\Student\ReferralController as StudentReferralController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1649,6 +1650,18 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/print', [StudentScheduleController::class, 'print'])->name('print');
             Route::get('/icalendar', [StudentScheduleController::class, 'icalendar'])->name('icalendar');
             Route::post('/get-by-date', [StudentScheduleController::class, 'getScheduleByDate'])->name('get-by-date');
+        });
+
+        // Student Referrals Routes
+        Route::prefix('referrals')->name('referrals.')->group(function () {
+            Route::get('/', [StudentReferralController::class, 'index'])->name('index');
+            Route::get('/vouchers', [StudentReferralController::class, 'vouchers'])->name('vouchers');
+            Route::get('/history', [StudentReferralController::class, 'history'])->name('history');
+            Route::get('/{referral}', [StudentReferralController::class, 'show'])->name('show');
+            Route::post('/validate-voucher', [StudentReferralController::class, 'validateVoucher'])->name('validate-voucher');
+            Route::get('/get-referral-link', [StudentReferralController::class, 'getReferralLink'])->name('get-link');
+            Route::post('/copy-code', [StudentReferralController::class, 'copyReferralCode'])->name('copy-code');
+            Route::get('/voucher/{voucher}/download', [StudentReferralController::class, 'downloadVoucher'])->name('voucher.download');
         });
 
     });
