@@ -25,21 +25,6 @@
                 <div class="card-body">
                     <p class="lead">{{ $package->description }}</p>
 
-                    @if($package->discountRule)
-                        <div class="alert alert-success">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-tag me-2"></i>Special Discount Applied!
-                            </h6>
-                            <p class="mb-0">
-                                @if($package->discountRule->type === 'percentage')
-                                    Save {{ $package->discountRule->value }}% on this package
-                                @else
-                                    Save RM {{ number_format($package->discountRule->value, 2) }} on this package
-                                @endif
-                            </p>
-                        </div>
-                    @endif
-
                     <h6 class="mb-3">Classes Included in This Package:</h6>
 
                     @if($classes->isEmpty())
@@ -66,7 +51,7 @@
                                         <tr>
                                             <td><strong>{{ $class->name }}</strong></td>
                                             <td>
-                                                <span class="badge bg-soft-primary text-primary">
+                                                <span class="badge bg-primary bg-soft text-primary">
                                                     {{ $class->subject->name ?? 'N/A' }}
                                                 </span>
                                             </td>
@@ -87,7 +72,7 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                <span class="badge bg-soft-info text-info">
+                                                <span class="badge bg-info bg-soft text-info">
                                                     {{ ucfirst($class->type) }}
                                                 </span>
                                             </td>
@@ -115,36 +100,24 @@
 
                     <div class="row mt-4">
                         <div class="col-md-4">
-                            <div class="p-3 bg-soft-primary rounded text-center">
+                            <div class="p-3 bg-primary bg-soft rounded text-center">
                                 <i class="fas fa-book fs-3 text-primary mb-2"></i>
                                 <p class="mb-0 small text-muted">Total Classes</p>
                                 <h5 class="mb-0">{{ $classes->count() }}</h5>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="p-3 bg-soft-info rounded text-center">
+                            <div class="p-3 bg-info bg-soft rounded text-center">
                                 <i class="fas fa-calendar-alt fs-3 text-info mb-2"></i>
                                 <p class="mb-0 small text-muted">Duration</p>
                                 <h5 class="mb-0">{{ $package->duration_months }} months</h5>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="p-3 bg-soft-success rounded text-center">
+                            <div class="p-3 bg-success bg-soft rounded text-center">
                                 <i class="fas fa-dollar-sign fs-3 text-success mb-2"></i>
                                 <p class="mb-0 small text-muted">Package Price</p>
-                                <h5 class="mb-0">
-                                    @if($package->discountRule)
-                                        @php
-                                            $discountedPrice = $package->discountRule->type === 'percentage'
-                                                ? $package->price - ($package->price * $package->discountRule->value / 100)
-                                                : $package->price - $package->discountRule->value;
-                                        @endphp
-                                        <small class="text-muted text-decoration-line-through">RM {{ number_format($package->price, 2) }}</small><br>
-                                        RM {{ number_format($discountedPrice, 2) }}
-                                    @else
-                                        RM {{ number_format($package->price, 2) }}
-                                    @endif
-                                </h5>
+                                <h5 class="mb-0">RM {{ number_format($package->price, 2) }}</h5>
                             </div>
                         </div>
                     </div>
@@ -214,28 +187,15 @@
                                 <hr>
                                 @php
                                     $totalMonthlyFee = $classes->sum('monthly_fee');
-                                    if ($package->discountRule) {
-                                        $packageDiscount = $package->discountRule->type === 'percentage'
-                                            ? $package->price * $package->discountRule->value / 100
-                                            : $package->discountRule->value;
-                                    } else {
-                                        $packageDiscount = 0;
-                                    }
                                 @endphp
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>Monthly Fee (All Classes):</span>
                                     <strong>RM {{ number_format($totalMonthlyFee, 2) }}</strong>
                                 </div>
-                                @if($packageDiscount > 0)
-                                    <div class="d-flex justify-content-between mb-2 text-success">
-                                        <span>Package Discount:</span>
-                                        <strong>- RM {{ number_format($packageDiscount, 2) }}</strong>
-                                    </div>
-                                @endif
                                 <hr>
                                 <div class="d-flex justify-content-between">
                                     <span><strong>Total Due Today:</strong></span>
-                                    <strong class="text-primary">RM {{ number_format($totalMonthlyFee - $packageDiscount, 2) }}</strong>
+                                    <strong class="text-primary">RM {{ number_format($totalMonthlyFee, 2) }}</strong>
                                 </div>
                             </div>
 
@@ -269,9 +229,6 @@
                 <div class="card-body">
                     <ul class="mb-0 small">
                         <li class="mb-2">Enroll in multiple classes at once</li>
-                        @if($package->discountRule)
-                            <li class="mb-2">Special package discount applied</li>
-                        @endif
                         <li class="mb-2">Single monthly payment for all classes</li>
                         <li class="mb-2">Comprehensive learning across subjects</li>
                         <li>Access to all class materials and resources</li>
@@ -281,4 +238,25 @@
         </div>
     </div>
 </div>
+
+@push('styles')
+<style>
+    /* Soft background colors */
+    .bg-primary.bg-soft {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    .bg-success.bg-soft {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    .bg-info.bg-soft {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+
+    /* Badge styling */
+    .badge {
+        padding: 0.35em 0.65em;
+        font-weight: 500;
+    }
+</style>
+@endpush
 @endsection

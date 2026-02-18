@@ -164,7 +164,7 @@
                             <label class="form-label required">Payment Cycle Day</label>
                             <select name="payment_cycle_day" class="form-select @error('payment_cycle_day') is-invalid @enderror" required>
                                 <option value="">Select day of month</option>
-                                @for($i = 1; $i <= 28; $i++)
+                                @for($i = 1; $i <= 15; $i++)
                                     <option value="{{ $i }}" {{ old('payment_cycle_day', 5) == $i ? 'selected' : '' }}>
                                         {{ $i }}{{ $i == 1 ? 'st' : ($i == 2 ? 'nd' : ($i == 3 ? 'rd' : 'th')) }} of each month
                                     </option>

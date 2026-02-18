@@ -39,7 +39,7 @@ class EnrollmentService
         // 1. Are active
         // 2. Have available capacity
         // 3. Student is not already enrolled in
-        
+
         $enrolledClassIds = $student->enrollments()
             ->whereIn('status', ['active', 'pending'])
             ->pluck('class_id')
@@ -58,9 +58,9 @@ class EnrollmentService
      */
     public function getAvailablePackages(Student $student)
     {
-        // Get all active packages
+        // Get all active packages - removed discountRule relationship
         return Package::active()
-            ->with(['subjects', 'discountRule'])
+            ->with(['subjects'])
             ->orderBy('name')
             ->get();
     }
@@ -115,7 +115,7 @@ class EnrollmentService
             $class = ClassModel::find($data['class_id']);
             if ($class) {
                 $class->increment('current_enrollment');
-                
+
                 // Update class status if full
                 if ($class->current_enrollment >= $class->capacity) {
                     $class->update(['status' => 'full']);
@@ -152,7 +152,7 @@ class EnrollmentService
             foreach ($classes as $class) {
                 // Check if can enroll
                 $canEnroll = $this->canEnroll($student, $class);
-                
+
                 if ($canEnroll['can_enroll']) {
                     $enrollmentData = array_merge($data, [
                         'student_id' => $student->id,
@@ -194,7 +194,7 @@ class EnrollmentService
                 $class = $enrollment->class;
                 if ($class) {
                     $class->decrement('current_enrollment');
-                    
+
                     // Update class status if was full
                     if ($class->status === 'full' && $class->current_enrollment < $class->capacity) {
                         $class->update(['status' => 'active']);
@@ -205,7 +205,7 @@ class EnrollmentService
                 $class = $enrollment->class;
                 if ($class) {
                     $class->increment('current_enrollment');
-                    
+
                     // Update class status if now full
                     if ($class->current_enrollment >= $class->capacity) {
                         $class->update(['status' => 'full']);
@@ -269,7 +269,7 @@ class EnrollmentService
     {
         $paymentCycleDay = $enrollment->payment_cycle_day;
         $now = now();
-        
+
         // Get the payment day for current month
         $nextPayment = Carbon::create(
             $now->year,

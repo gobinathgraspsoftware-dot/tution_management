@@ -47,7 +47,7 @@
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 border-primary shadow-sm">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">{{ $package->name }}</h5>
+                        <h5 class="card-title mb-0 text-white">{{ $package->name }}</h5>
                     </div>
                     <div class="card-body">
                         <p class="text-muted mb-3">{{ $package->description }}</p>
@@ -57,7 +57,7 @@
                             @if($package->subjects && $package->subjects->isNotEmpty())
                                 <div class="d-flex flex-wrap gap-1">
                                     @foreach($package->subjects as $subject)
-                                        <span class="badge bg-soft-primary text-primary">
+                                        <span class="badge bg-primary bg-soft text-primary">
                                             {{ $subject->name }}
                                         </span>
                                     @endforeach
@@ -66,18 +66,6 @@
                                 <p class="text-muted small mb-0">No subjects assigned</p>
                             @endif
                         </div>
-
-                        @if($package->discountRule)
-                            <div class="alert alert-success mb-3">
-                                <i class="fas fa-tag me-1"></i>
-                                <strong>Special Offer:</strong>
-                                @if($package->discountRule->type === 'percentage')
-                                    {{ $package->discountRule->value }}% discount
-                                @else
-                                    RM {{ number_format($package->discountRule->value, 2) }} off
-                                @endif
-                            </div>
-                        @endif
 
                         <div class="mb-3">
                             <div class="row">
@@ -100,20 +88,7 @@
 
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                @if($package->discountRule)
-                                    @php
-                                        $originalPrice = $package->price;
-                                        $discountedPrice = $package->discountRule->type === 'percentage'
-                                            ? $originalPrice - ($originalPrice * $package->discountRule->value / 100)
-                                            : $originalPrice - $package->discountRule->value;
-                                    @endphp
-                                    <div>
-                                        <small class="text-muted text-decoration-line-through">RM {{ number_format($originalPrice, 2) }}</small>
-                                        <h4 class="mb-0 text-success">RM {{ number_format($discountedPrice, 2) }}</h4>
-                                    </div>
-                                @else
-                                    <h4 class="mb-0 text-primary">RM {{ number_format($package->price, 2) }}</h4>
-                                @endif
+                                <h4 class="mb-0 text-primary">RM {{ number_format($package->price, 2) }}</h4>
                                 <small class="text-muted">total package price</small>
                             </div>
                             @if($package->is_active)
@@ -142,9 +117,9 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body text-center py-5">
-                        <div class="avatar-lg mx-auto mb-4">
-                            <div class="avatar-title bg-soft-warning text-warning rounded-circle fs-1">
-                                <i class="fas fa-box-open"></i>
+                        <div class="mb-4">
+                            <div class="avatar-lg mx-auto rounded-circle bg-warning bg-soft d-flex align-items-center justify-content-center" style="width: 5rem; height: 5rem;">
+                                <i class="fas fa-box-open text-warning" style="font-size: 2.5rem;"></i>
                             </div>
                         </div>
                         <h5>No Packages Found</h5>
@@ -164,4 +139,32 @@
         @endforelse
     </div>
 </div>
+
+@push('styles')
+<style>
+    /* Soft background colors */
+    .bg-primary.bg-soft {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    .bg-warning.bg-soft {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+
+    /* Card styling */
+    .card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Badge styling */
+    .badge {
+        padding: 0.35em 0.65em;
+        font-weight: 500;
+    }
+</style>
+@endpush
 @endsection
