@@ -13,20 +13,38 @@ use Carbon\Carbon;
 class EnrollmentService
 {
     /**
-     * Get enrollment statistics for a student.
+     * Get enrollment statistics.
+     * When called without a student, returns global stats (for admin/staff index page).
+     * When called with a student, returns per-student stats.
+     *
+     * Global keys match blade: $stats['total'], $stats['active'], $stats['expiring_soon'], $stats['expired']
      */
-    public function getEnrollmentStats(Student $student): array
+    public function getEnrollmentStats(?Student $student = null): array
     {
-        $enrollments = $student->enrollments();
+        if ($student) {
+            // Per-student stats
+            $query = $student->enrollments();
 
+            return [
+                'total_enrollments'     => (clone $query)->count(),
+                'active_enrollments'    => (clone $query)->where('status', 'active')->count(),
+                'pending_enrollments'   => (clone $query)->where('status', 'pending')->count(),
+                'suspended_enrollments' => (clone $query)->where('status', 'suspended')->count(),
+                'cancelled_enrollments' => (clone $query)->where('status', 'cancelled')->count(),
+                'completed_enrollments' => (clone $query)->where('status', 'completed')->count(),
+                'total_monthly_fee'     => (clone $query)->where('status', 'active')->sum('monthly_fee'),
+            ];
+        }
+
+        // Global stats — keys MUST match blade: $stats['total'], $stats['active'], etc.
         return [
-            'total_enrollments' => $enrollments->count(),
-            'active_enrollments' => $enrollments->where('status', 'active')->count(),
-            'pending_enrollments' => $enrollments->where('status', 'pending')->count(),
-            'suspended_enrollments' => $enrollments->where('status', 'suspended')->count(),
-            'cancelled_enrollments' => $enrollments->where('status', 'cancelled')->count(),
-            'completed_enrollments' => $enrollments->where('status', 'completed')->count(),
-            'total_monthly_fee' => $enrollments->where('status', 'active')->sum('monthly_fee'),
+            'total'         => Enrollment::count(),
+            'active'        => Enrollment::where('status', 'active')->count(),
+            'expiring_soon' => Enrollment::where('status', 'active')
+                                    ->whereNotNull('end_date')
+                                    ->whereBetween('end_date', [now(), now()->addDays(7)])
+                                    ->count(),
+            'expired'       => Enrollment::where('status', 'expired')->count(),
         ];
     }
 
@@ -35,11 +53,6 @@ class EnrollmentService
      */
     public function getAvailableClasses(Student $student)
     {
-        // Get classes that:
-        // 1. Are active
-        // 2. Have available capacity
-        // 3. Student is not already enrolled in
-
         $enrolledClassIds = $student->enrollments()
             ->whereIn('status', ['active', 'pending'])
             ->pluck('class_id')
@@ -58,7 +71,6 @@ class EnrollmentService
      */
     public function getAvailablePackages(Student $student)
     {
-        // Get all active packages - removed discountRule relationship
         return Package::active()
             ->with(['subjects'])
             ->orderBy('name')
@@ -73,26 +85,23 @@ class EnrollmentService
         $errors = [];
         $canEnroll = true;
 
-        // Check if class is active
         if ($class->status !== 'active') {
             $errors[] = 'This class is not currently accepting enrollments.';
             $canEnroll = false;
         }
 
-        // Check class capacity
         if ($class->current_enrollment >= $class->capacity) {
             $errors[] = 'This class is currently full.';
             $canEnroll = false;
         }
 
-        // Check if already enrolled
         $existingEnrollment = $student->enrollments()
             ->where('class_id', $class->id)
-            ->whereIn('status', ['active', 'pending'])
+            ->whereIn('status', ['active', 'pending', 'trial', 'suspended'])
             ->first();
 
         if ($existingEnrollment) {
-            $errors[] = 'You are already enrolled in this class.';
+            $errors[] = 'Student is already enrolled in this class.';
             $canEnroll = false;
         }
 
@@ -108,7 +117,6 @@ class EnrollmentService
     public function createEnrollment(array $data): Enrollment
     {
         return DB::transaction(function () use ($data) {
-            // Create enrollment
             $enrollment = Enrollment::create($data);
 
             // Increment class enrollment count
@@ -116,7 +124,6 @@ class EnrollmentService
             if ($class) {
                 $class->increment('current_enrollment');
 
-                // Update class status if full
                 if ($class->current_enrollment >= $class->capacity) {
                     $class->update(['status' => 'full']);
                 }
@@ -134,7 +141,6 @@ class EnrollmentService
         return DB::transaction(function () use ($student, $package, $data) {
             $enrollments = [];
 
-            // Get all classes from package subjects
             $classes = $package->subjects()
                 ->with(['classes' => function ($query) {
                     $query->active()->whereRaw('current_enrollment < capacity');
@@ -148,18 +154,16 @@ class EnrollmentService
                 throw new \Exception('No available classes found in this package.');
             }
 
-            // Create enrollment for each class
             foreach ($classes as $class) {
-                // Check if can enroll
                 $canEnroll = $this->canEnroll($student, $class);
 
                 if ($canEnroll['can_enroll']) {
                     $enrollmentData = array_merge($data, [
-                        'student_id' => $student->id,
-                        'package_id' => $package->id,
-                        'class_id' => $class->id,
-                        'monthly_fee' => $class->monthly_fee,
-                        'status' => 'active',
+                        'student_id'  => $student->id,
+                        'package_id'  => $package->id,
+                        'class_id'    => $class->id,
+                        'monthly_fee' => $class->price ?? 0,
+                        'status'      => 'active',
                     ]);
 
                     $enrollments[] = $this->createEnrollment($enrollmentData);
@@ -175,6 +179,118 @@ class EnrollmentService
     }
 
     /**
+     * Enroll student in a package with specific class selections per subject.
+     * Called from EnrollmentController@store when enrollment_type = 'package'.
+     *
+     * @param Student $student
+     * @param Package $package
+     * @param array   $subjectClasses  e.g. [subject_id => class_id, ...]
+     * @param array   $data            Validated form data (start_date, end_date, etc.)
+     * @return array  ['created' => [...], 'skipped' => [...]]
+     */
+    public function enrollInPackageWithClasses(Student $student, Package $package, array $subjectClasses, array $data): array
+    {
+        return DB::transaction(function () use ($student, $package, $subjectClasses, $data) {
+            $created = [];
+            $skipped = [];
+
+            foreach ($subjectClasses as $subjectId => $classId) {
+                if (empty($classId)) {
+                    continue;
+                }
+
+                $class = ClassModel::find($classId);
+                if (!$class) {
+                    continue;
+                }
+
+                $canEnroll = $this->canEnroll($student, $class);
+
+                if (!$canEnroll['can_enroll']) {
+                    $skipped[] = [
+                        'class_id'   => $class->id,
+                        'class_name' => $class->name,
+                        'reasons'    => $canEnroll['errors'],
+                    ];
+                    continue;
+                }
+
+                $enrollmentData = [
+                    'student_id'        => $student->id,
+                    'package_id'        => $package->id,
+                    'class_id'          => $class->id,
+                    'enrollment_date'   => $data['enrollment_date'] ?? $data['start_date'] ?? now()->toDateString(),
+                    'start_date'        => $data['start_date'] ?? now()->toDateString(),
+                    'end_date'          => $data['end_date'] ?? null,
+                    'payment_cycle_day' => $data['payment_cycle_day'] ?? 1,
+                    'monthly_fee'       => $class->price ?? 0,
+                    'status'            => $data['status'] ?? 'active',
+                ];
+
+                $enrollment = $this->createEnrollment($enrollmentData);
+                $created[] = $enrollment;
+            }
+
+            if (empty($created) && empty($skipped)) {
+                throw new \Exception('No classes were selected for enrollment.');
+            }
+
+            if (empty($created) && !empty($skipped)) {
+                throw new \Exception('Student is already enrolled in all selected classes.');
+            }
+
+            return [
+                'created' => $created,
+                'skipped' => $skipped,
+            ];
+        });
+    }
+
+    /**
+     * Update an existing enrollment.
+     * Called from EnrollmentController@update.
+     */
+    public function updateEnrollment(Enrollment $enrollment, array $data): Enrollment
+    {
+        return DB::transaction(function () use ($enrollment, $data) {
+            $oldClassId = $enrollment->class_id;
+            $newClassId = $data['class_id'] ?? $oldClassId;
+
+            // If class is being changed and enrollment is active
+            if ($newClassId != $oldClassId && $enrollment->isActive()) {
+                // Decrement old class count
+                $oldClass = ClassModel::find($oldClassId);
+                if ($oldClass) {
+                    $oldClass->decrement('current_enrollment');
+                    if ($oldClass->status === 'full' && $oldClass->current_enrollment < $oldClass->capacity) {
+                        $oldClass->update(['status' => 'active']);
+                    }
+                }
+
+                // Check new class capacity
+                $newClass = ClassModel::find($newClassId);
+                if ($newClass && $newClass->current_enrollment >= $newClass->capacity) {
+                    throw new \Exception("Class '{$newClass->name}' is currently full.");
+                }
+
+                // Increment new class count
+                if ($newClass) {
+                    $newClass->increment('current_enrollment');
+                    if ($newClass->current_enrollment >= $newClass->capacity) {
+                        $newClass->update(['status' => 'full']);
+                    }
+                }
+            }
+
+            // Filter to only fillable fields
+            $updateData = array_intersect_key($data, array_flip($enrollment->getFillable()));
+            $enrollment->update($updateData);
+
+            return $enrollment->fresh();
+        });
+    }
+
+    /**
      * Update enrollment status.
      */
     public function updateStatus(Enrollment $enrollment, string $status, ?string $reason = null): Enrollment
@@ -182,31 +298,28 @@ class EnrollmentService
         return DB::transaction(function () use ($enrollment, $status, $reason) {
             $oldStatus = $enrollment->status;
 
-            $enrollment->update([
-                'status' => $status,
-                'status_changed_at' => now(),
-                'status_change_reason' => $reason,
-            ]);
+            $updateData = ['status' => $status];
+
+            if ($status === 'cancelled' && $reason) {
+                $updateData['cancellation_reason'] = $reason;
+                $updateData['cancelled_at'] = now();
+            }
+
+            $enrollment->update($updateData);
 
             // Update class enrollment count
             if ($oldStatus === 'active' && $status !== 'active') {
-                // Decrement count when deactivating
                 $class = $enrollment->class;
                 if ($class) {
                     $class->decrement('current_enrollment');
-
-                    // Update class status if was full
                     if ($class->status === 'full' && $class->current_enrollment < $class->capacity) {
                         $class->update(['status' => 'active']);
                     }
                 }
             } elseif ($oldStatus !== 'active' && $status === 'active') {
-                // Increment count when activating
                 $class = $enrollment->class;
                 if ($class) {
                     $class->increment('current_enrollment');
-
-                    // Update class status if now full
                     if ($class->current_enrollment >= $class->capacity) {
                         $class->update(['status' => 'full']);
                     }
@@ -238,7 +351,48 @@ class EnrollmentService
      */
     public function resumeEnrollment(Enrollment $enrollment): Enrollment
     {
-        return $this->updateStatus($enrollment, 'active', 'Resumed from suspension');
+        return $this->updateStatus($enrollment, 'active', null);
+    }
+
+    /**
+     * Renew an enrollment by extending the end date.
+     * Called from EnrollmentController@renew.
+     */
+    public function renewEnrollment(Enrollment $enrollment, ?int $months = null): Enrollment
+    {
+        return DB::transaction(function () use ($enrollment, $months) {
+            if (!$months) {
+                $months = $enrollment->package && $enrollment->package->duration_months
+                    ? $enrollment->package->duration_months
+                    : 1;
+            }
+
+            $baseDate = $enrollment->end_date && $enrollment->end_date->isFuture()
+                ? $enrollment->end_date
+                : now();
+
+            $newEndDate = $baseDate->copy()->addMonths($months);
+
+            $oldStatus = $enrollment->status;
+
+            $enrollment->update([
+                'end_date' => $newEndDate,
+                'status'   => 'active',
+            ]);
+
+            // If enrollment was not active, re-increment class count
+            if ($oldStatus !== 'active') {
+                $class = $enrollment->class;
+                if ($class) {
+                    $class->increment('current_enrollment');
+                    if ($class->current_enrollment >= $class->capacity) {
+                        $class->update(['status' => 'full']);
+                    }
+                }
+            }
+
+            return $enrollment->fresh();
+        });
     }
 
     /**
@@ -256,9 +410,6 @@ class EnrollmentService
             'invoices' => function ($query) {
                 $query->latest()->limit(10);
             },
-            'payments' => function ($query) {
-                $query->latest()->limit(10);
-            },
         ]);
     }
 
@@ -270,14 +421,12 @@ class EnrollmentService
         $paymentCycleDay = $enrollment->payment_cycle_day;
         $now = now();
 
-        // Get the payment day for current month
         $nextPayment = Carbon::create(
             $now->year,
             $now->month,
             min($paymentCycleDay, $now->daysInMonth)
         );
 
-        // If payment day has passed, move to next month
         if ($nextPayment->isPast()) {
             $nextPayment->addMonth();
             $nextPayment->day = min($paymentCycleDay, $nextPayment->daysInMonth);

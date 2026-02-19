@@ -24,7 +24,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col me-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Enrollments</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total'] }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total'] ?? 0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -40,7 +40,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col me-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['active'] }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['active'] ?? 0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -56,7 +56,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col me-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Expiring Soon</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expiring_soon'] }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expiring_soon'] ?? 0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
@@ -72,7 +72,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col me-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Expired</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expired'] }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['expired'] ?? 0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-times-circle fa-2x text-gray-300"></i>
@@ -147,8 +147,9 @@
 
     <!-- Enrollments Table -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">All Enrollments</h6>
+            <small class="text-muted">Showing {{ $enrollments->firstItem() ?? 0 }} - {{ $enrollments->lastItem() ?? 0 }} of {{ $enrollments->total() }} results</small>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -169,26 +170,28 @@
                         @forelse($enrollments as $enrollment)
                         <tr>
                             <td>
-                                <strong>{{ $enrollment->student->user->name }}</strong><br>
-                                <small class="text-muted">{{ $enrollment->student->student_id }}</small>
+                                <strong>{{ $enrollment->student->user->name ?? 'N/A' }}</strong><br>
+                                <small class="text-muted">{{ $enrollment->student->student_id ?? '' }}</small>
                             </td>
                             <td>
                                 @if($enrollment->package)
                                     <span class="badge bg-info">Package</span>
                                     {{ $enrollment->package->name }}
-                                @else
+                                @elseif($enrollment->class)
                                     <span class="badge bg-secondary">Class</span>
                                     {{ $enrollment->class->name }}
                                     <br><small class="text-muted">{{ $enrollment->class->subject->name ?? '' }}</small>
+                                @else
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $enrollment->start_date->format('d M Y') }}</td>
+                            <td>{{ $enrollment->start_date ? $enrollment->start_date->format('d M Y') : '-' }}</td>
                             <td>
                                 @if($enrollment->end_date)
                                     {{ $enrollment->end_date->format('d M Y') }}
                                     @if($enrollment->end_date->isPast() && $enrollment->status == 'active')
                                         <span class="badge bg-danger">Expired</span>
-                                    @elseif($enrollment->days_remaining <= 30 && $enrollment->days_remaining > 0 && $enrollment->status == 'active')
+                                    @elseif($enrollment->days_remaining !== null && $enrollment->days_remaining <= 30 && $enrollment->days_remaining > 0 && $enrollment->status == 'active')
                                         <span class="badge bg-warning">{{ $enrollment->days_remaining }} days left</span>
                                     @endif
                                 @else
@@ -198,17 +201,25 @@
                             <td>RM {{ number_format($enrollment->monthly_fee, 2) }}</td>
                             <td>Day {{ $enrollment->payment_cycle_day }}</td>
                             <td>
-                                @if($enrollment->status == 'active')
-                                    <span class="badge bg-success">Active</span>
-                                @elseif($enrollment->status == 'suspended')
-                                    <span class="badge bg-warning">Suspended</span>
-                                @elseif($enrollment->status == 'expired')
-                                    <span class="badge bg-danger">Expired</span>
-                                @elseif($enrollment->status == 'cancelled')
-                                    <span class="badge bg-dark">Cancelled</span>
-                                @elseif($enrollment->status == 'trial')
-                                    <span class="badge bg-info">Trial</span>
-                                @endif
+                                @switch($enrollment->status)
+                                    @case('active')
+                                        <span class="badge bg-success">Active</span>
+                                        @break
+                                    @case('suspended')
+                                        <span class="badge bg-warning">Suspended</span>
+                                        @break
+                                    @case('expired')
+                                        <span class="badge bg-danger">Expired</span>
+                                        @break
+                                    @case('cancelled')
+                                        <span class="badge bg-dark">Cancelled</span>
+                                        @break
+                                    @case('trial')
+                                        <span class="badge bg-info">Trial</span>
+                                        @break
+                                    @default
+                                        <span class="badge bg-secondary">{{ ucfirst($enrollment->status) }}</span>
+                                @endswitch
                             </td>
                             <td>
                                 <a href="{{ route('admin.enrollments.show', $enrollment) }}"
@@ -243,7 +254,7 @@
                         @empty
                         <tr>
                             <td colspan="8" class="text-center py-4">
-                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
                                 <p class="text-muted">No enrollments found</p>
                             </td>
                         </tr>
@@ -252,10 +263,71 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="mt-3">
-                {{ $enrollments->links() }}
-            </div>
+            <!-- Pagination - Fixed Bootstrap 5 -->
+            @if($enrollments->hasPages())
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted small">
+                        Showing {{ $enrollments->firstItem() }} to {{ $enrollments->lastItem() }} of {{ $enrollments->total() }} results
+                    </div>
+                    <nav aria-label="Enrollment pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            {{-- Previous Page Link --}}
+                            @if($enrollments->onFirstPage())
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo; Previous</span>
+                                </li>
+                            @else
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $enrollments->appends(request()->query())->previousPageUrl() }}">&laquo; Previous</a>
+                                </li>
+                            @endif
+
+                            {{-- Page Numbers --}}
+                            @php
+                                $currentPage = $enrollments->currentPage();
+                                $lastPage = $enrollments->lastPage();
+                                $start = max(1, $currentPage - 2);
+                                $end = min($lastPage, $currentPage + 2);
+                            @endphp
+
+                            @if($start > 1)
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $enrollments->appends(request()->query())->url(1) }}">1</a>
+                                </li>
+                                @if($start > 2)
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                @endif
+                            @endif
+
+                            @for($i = $start; $i <= $end; $i++)
+                                <li class="page-item {{ $i == $currentPage ? 'active' : '' }}">
+                                    <a class="page-link" href="{{ $enrollments->appends(request()->query())->url($i) }}">{{ $i }}</a>
+                                </li>
+                            @endfor
+
+                            @if($end < $lastPage)
+                                @if($end < $lastPage - 1)
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                @endif
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $enrollments->appends(request()->query())->url($lastPage) }}">{{ $lastPage }}</a>
+                                </li>
+                            @endif
+
+                            {{-- Next Page Link --}}
+                            @if($enrollments->hasMorePages())
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $enrollments->appends(request()->query())->nextPageUrl() }}">Next &raquo;</a>
+                                </li>
+                            @else
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next &raquo;</span>
+                                </li>
+                            @endif
+                        </ul>
+                    </nav>
+                </div>
+            @endif
         </div>
     </div>
 </div>
