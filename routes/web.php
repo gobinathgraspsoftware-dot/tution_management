@@ -530,6 +530,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::post('announcements/{announcement}/toggle-pin', [AnnouncementController::class, 'togglePin'])->name('announcements.toggle-pin');
         Route::post('announcements/{announcement}/mark-read', [AnnouncementController::class, 'markAsRead'])->name('announcements.mark-read');
         Route::delete('announcements/{announcement}/attachment/{index}', [AnnouncementController::class, 'deleteAttachment'])->name('announcements.delete-attachment');
+        
         Route::resource('exams', ExamController::class);
         Route::post('exams/{exam}/update-status', [ExamController::class, 'updateStatus'])->name('exams.update-status');
         Route::get('exams/{exam}/students', [ExamController::class, 'getStudents'])->name('exams.students');

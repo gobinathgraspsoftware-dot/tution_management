@@ -4,78 +4,82 @@
 
 @section('content')
 <div class="container-fluid">
+    {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1">Exam Management</h1>
-            <p class="text-muted mb-0">Create and manage exams</p>
+            <h4 class="mb-1"><i class="fas fa-file-signature me-2"></i>Exam Management</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Exams</li>
+                </ol>
+            </nav>
         </div>
-        @can('create-exams')
-            <a href="{{ route('admin.exams.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Create Exam
-            </a>
-        @endcan
+        <a href="{{ route('admin.exams.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Create Exam
+        </a>
     </div>
 
+    {{-- Statistics --}}
     @include('admin.exams._stats')
 
-    <div class="card">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">All Exams</h5>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
-                    <i class="fas fa-filter"></i> Filters
-                </button>
-            </div>
-        </div>
-        <div class="card-body">
-            @include('admin.exams._filters')
+    {{-- Filters --}}
+    @include('admin.exams._filters')
 
+    {{-- Exams Table --}}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-list me-2"></i>Exams List</h6>
+            <span class="badge bg-secondary">{{ $exams->total() }} records</span>
+        </div>
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Exam Name</th>
-                            <th>Class</th>
-                            <th>Subject</th>
-                            <th>Date & Time</th>
-                            <th>Marks</th>
-                            <th>Duration</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 20%;">Exam Name</th>
+                            <th style="width: 15%;">Class</th>
+                            <th style="width: 12%;">Subject</th>
+                            <th style="width: 12%;">Date</th>
+                            <th style="width: 8%;">Max Marks</th>
+                            <th style="width: 8%;">Pass Marks</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 10%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($exams as $exam)
                             <tr>
+                                <td>{{ $loop->iteration + ($exams->currentPage() - 1) * $exams->perPage() }}</td>
                                 <td>
-                                    <strong>{{ $exam->name }}</strong>
-                                    @if($exam->description)
-                                        <br><small class="text-muted">{{ Str::limit($exam->description, 40) }}</small>
+                                    <a href="{{ route('admin.exams.show', $exam) }}" class="text-decoration-none fw-semibold">
+                                        {{ $exam->name }}
+                                    </a>
+                                    @if($exam->results_count ?? $exam->results->count())
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-clipboard-check me-1"></i>{{ $exam->results->count() }} results
+                                        </small>
                                     @endif
                                 </td>
-                                <td>{{ $exam->class->name }}</td>
+                                <td>{{ $exam->class->name ?? 'N/A' }}</td>
+                                <td>{{ $exam->subject->name ?? ($exam->class->subject->name ?? 'N/A') }}</td>
                                 <td>
-                                    <span class="badge bg-info">{{ $exam->subject->name }}</span>
+                                    <i class="fas fa-calendar me-1 text-muted"></i>
+                                    {{ $exam->exam_date ? $exam->exam_date->format('d M Y') : 'N/A' }}
                                 </td>
+                                <td><span class="badge bg-primary">{{ number_format($exam->max_marks, 0) }}</span></td>
+                                <td><span class="badge bg-warning text-dark">{{ number_format($exam->passing_marks, 0) }}</span></td>
                                 <td>
-                                    <div>{{ \Carbon\Carbon::parse($exam->exam_date)->format('M j, Y') }}</div>
-                                    <small class="text-muted">
-                                        {{ \Carbon\Carbon::parse($exam->start_time)->format('h:i A') }} -
-                                        {{ \Carbon\Carbon::parse($exam->end_time)->format('h:i A') }}
-                                    </small>
-                                </td>
-                                <td>
-                                    <div>{{ $exam->max_marks }} marks</div>
-                                    <small class="text-muted">Pass: {{ $exam->passing_marks }}</small>
-                                </td>
-                                <td>{{ $exam->duration }} min</td>
-                                <td>
-                                    <span class="badge
-                                        @if($exam->status == 'completed') bg-success
-                                        @elseif($exam->status == 'ongoing') bg-warning
-                                        @elseif($exam->status == 'cancelled') bg-danger
-                                        @else bg-primary
-                                        @endif">
+                                    @php
+                                        $statusColors = [
+                                            'scheduled' => 'warning',
+                                            'ongoing' => 'primary',
+                                            'completed' => 'success',
+                                            'cancelled' => 'danger',
+                                        ];
+                                    @endphp
+                                    <span class="badge bg-{{ $statusColors[$exam->status] ?? 'secondary' }}">
                                         {{ ucfirst($exam->status) }}
                                     </span>
                                 </td>
@@ -85,17 +89,34 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
-                                    <i class="fas fa-inbox"></i> No exams found.
+                                <td colspan="9" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-file-alt fa-3x mb-3 d-block"></i>
+                                        <p class="mb-0">No exams found.</p>
+                                        <a href="{{ route('admin.exams.create') }}" class="btn btn-sm btn-primary mt-2">
+                                            <i class="fas fa-plus me-1"></i> Create First Exam
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-
-            {{ $exams->links() }}
         </div>
+        @if($exams->hasPages())
+            <div class="card-footer bg-white">
+                {{ $exams->links() }}
+            </div>
+        @endif
     </div>
 </div>
+
+{{-- Delete Modal --}}
+@include('components.delete-modal', [
+    'id' => 'deleteExamModal',
+    'title' => 'Delete Exam',
+    'message' => 'Are you sure you want to delete this exam? This action cannot be undone.',
+    'route' => 'admin.exams.destroy',
+])
 @endsection

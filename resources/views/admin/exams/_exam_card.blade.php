@@ -1,72 +1,81 @@
-<div class="card h-100 exam-card">
+{{-- Exam Info Card (used in show page) --}}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Exam Information</h6>
+        @php
+            $statusColors = [
+                'scheduled' => 'warning',
+                'ongoing' => 'primary',
+                'completed' => 'success',
+                'cancelled' => 'danger',
+            ];
+            $statusIcons = [
+                'scheduled' => 'calendar-check',
+                'ongoing' => 'spinner fa-spin',
+                'completed' => 'check-circle',
+                'cancelled' => 'times-circle',
+            ];
+        @endphp
+        <span class="badge bg-{{ $statusColors[$exam->status] ?? 'secondary' }} fs-6">
+            <i class="fas fa-{{ $statusIcons[$exam->status] ?? 'circle' }} me-1"></i>
+            {{ ucfirst($exam->status) }}
+        </span>
+    </div>
     <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <span class="badge
-                @if($exam->status == 'completed') bg-success
-                @elseif($exam->status == 'ongoing') bg-warning
-                @elseif($exam->status == 'cancelled') bg-danger
-                @else bg-primary
-                @endif">
-                {{ ucfirst($exam->status) }}
-            </span>
-            <span class="badge bg-info">{{ $exam->subject->name }}</span>
-        </div>
-
-        <h5 class="card-title mb-2">{{ $exam->name }}</h5>
-        <p class="text-muted small mb-3">{{ $exam->class->name }}</p>
-
-        <div class="exam-details mb-3">
-            <div class="d-flex align-items-center mb-2">
-                <i class="fas fa-calendar text-muted me-2"></i>
-                <span class="small">{{ \Carbon\Carbon::parse($exam->exam_date)->format('M j, Y') }}</span>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted fw-semibold" style="width: 40%;">Exam Name</td>
+                        <td>{{ $exam->name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted fw-semibold">Class</td>
+                        <td>{{ $exam->class->name ?? 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted fw-semibold">Subject</td>
+                        <td>{{ $exam->subject->name ?? ($exam->class->subject->name ?? 'N/A') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted fw-semibold">Exam Date</td>
+                        <td>
+                            <i class="fas fa-calendar me-1 text-primary"></i>
+                            {{ $exam->exam_date ? $exam->exam_date->format('d M Y (l)') : 'N/A' }}
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <div class="d-flex align-items-center mb-2">
-                <i class="fas fa-clock text-muted me-2"></i>
-                <span class="small">
-                    {{ \Carbon\Carbon::parse($exam->start_time)->format('h:i A') }} -
-                    {{ \Carbon\Carbon::parse($exam->end_time)->format('h:i A') }}
-                </span>
-            </div>
-            <div class="d-flex align-items-center">
-                <i class="fas fa-star text-muted me-2"></i>
-                <span class="small">Max Marks: {{ $exam->max_marks }} | Pass: {{ $exam->passing_marks }}</span>
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted fw-semibold" style="width: 40%;">Start Time</td>
+                        <td>
+                            <i class="fas fa-clock me-1 text-info"></i>
+                            {{ $exam->start_time ? \Carbon\Carbon::parse($exam->start_time)->format('h:i A') : 'N/A' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted fw-semibold">Duration</td>
+                        <td>{{ $exam->duration_minutes ?? 0 }} minutes</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted fw-semibold">Max Marks</td>
+                        <td><span class="badge bg-primary">{{ number_format($exam->max_marks, 0) }}</span></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted fw-semibold">Passing Marks</td>
+                        <td><span class="badge bg-warning text-dark">{{ number_format($exam->passing_marks, 0) }}</span></td>
+                    </tr>
+                </table>
             </div>
         </div>
-
-        <div class="d-flex gap-2">
-            @if(auth()->user()->hasRole(['super-admin', 'admin', 'staff']))
-                <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-sm btn-outline-primary flex-grow-1">
-                    <i class="fas fa-eye"></i> View
-                </a>
-                @can('create-exam-results')
-                    <a href="{{ route('admin.exam-results.create', $exam) }}" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-pen-square"></i>
-                    </a>
-                @endcan
-            @elseif(auth()->user()->hasRole('student'))
-                @php
-                    $result = $exam->results()->where('student_id', auth()->user()->student->id)->first();
-                @endphp
-                @if($result && $result->is_published)
-                    <a href="{{ route('student.exam-results.show', $result) }}" class="btn btn-sm btn-primary w-100">
-                        <i class="fas fa-chart-line"></i> View Result
-                    </a>
-                @else
-                    <button class="btn btn-sm btn-secondary w-100" disabled>
-                        <i class="fas fa-hourglass-half"></i> Result Pending
-                    </button>
-                @endif
-            @endif
-        </div>
+        @if($exam->description)
+            <hr>
+            <div>
+                <strong class="text-muted">Description:</strong>
+                <p class="mb-0 mt-1">{{ $exam->description }}</p>
+            </div>
+        @endif
     </div>
 </div>
-
-<style>
-.exam-card {
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.exam-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-</style>

@@ -1,152 +1,240 @@
 @extends('layouts.app')
 
-@section('title', 'Exam Results')
+@section('title', 'Exam Results - ' . $exam->name)
 
 @section('content')
 <div class="container-fluid">
-    <div class="mb-4">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ route('admin.exams.index') }}">Exams</a></li>
-                <li class="breadcrumb-item active">Results</li>
-            </ol>
-        </nav>
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="h3 mb-1">{{ $exam->name }} - Results</h1>
-                <p class="text-muted mb-0">{{ $exam->class->name }} | {{ $exam->subject->name }}</p>
-            </div>
-            <div class="btn-group">
-                @can('create-exam-results')
-                    <a href="{{ route('admin.exam-results.create', $exam) }}" class="btn btn-success">
-                        <i class="fas fa-pen-square"></i> Enter Results
-                    </a>
-                @endcan
-                <a href="{{ route('admin.exam-results.statistics', $exam) }}" class="btn btn-info">
-                    <i class="fas fa-chart-bar"></i> Statistics
+    {{-- Page Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-clipboard-list me-2"></i>Exam Results</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.exams.index') }}">Exams</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.exams.show', $exam) }}">{{ $exam->name }}</a></li>
+                    <li class="breadcrumb-item active">Results</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex gap-2">
+            @if(Route::has('admin.exam-results.create'))
+                <a href="{{ route('admin.exam-results.create', $exam) }}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i> Enter Results
                 </a>
-                @can('publish-exam-results')
-                    @if($exam->results()->whereNotNull('marks_obtained')->where('is_published', false)->count() > 0)
-                        <form action="{{ route('admin.exam-results.publish', $exam) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('PATCH')
-                            <button type="submit" class="btn btn-primary" onclick="return confirm('Publish all results and notify parents?')">
-                                <i class="fas fa-paper-plane"></i> Publish Results
-                            </button>
-                        </form>
-                    @endif
-                @endcan
-                @can('export-exam-results')
-                    <a href="{{ route('admin.exam-results.export', $exam) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-download"></i> Export
-                    </a>
-                @endcan
+            @endif
+            @if(Route::has('admin.exam-results.export'))
+                <a href="{{ route('admin.exam-results.export', $exam) }}" class="btn btn-outline-success">
+                    <i class="fas fa-download me-1"></i> Export CSV
+                </a>
+            @endif
+            @if(Route::has('admin.exam-results.statistics'))
+                <a href="{{ route('admin.exam-results.statistics', $exam) }}" class="btn btn-outline-info">
+                    <i class="fas fa-chart-pie me-1"></i> Statistics
+                </a>
+            @endif
+            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Exam
+            </a>
+        </div>
+    </div>
+
+    {{-- Exam Info Banner --}}
+    <div class="alert alert-light border mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-3">
+                <strong>Exam:</strong> {{ $exam->name }}
+            </div>
+            <div class="col-md-3">
+                <strong>Class:</strong> {{ $exam->class->name ?? 'N/A' }}
+            </div>
+            <div class="col-md-2">
+                <strong>Subject:</strong> {{ $exam->subject->name ?? 'N/A' }}
+            </div>
+            <div class="col-md-2">
+                <strong>Max Marks:</strong> <span class="badge bg-primary">{{ number_format($exam->max_marks, 0) }}</span>
+            </div>
+            <div class="col-md-2">
+                <strong>Pass Marks:</strong> <span class="badge bg-warning text-dark">{{ number_format($exam->passing_marks, 0) }}</span>
             </div>
         </div>
     </div>
 
+    {{-- Statistics --}}
     @include('admin.exam-results._stats')
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Student Results</h5>
+    {{-- Publish Actions --}}
+    @if(($stats['results_entered'] ?? 0) > 0)
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    @if(($stats['published_results'] ?? 0) > 0)
+                        <span class="badge bg-success fs-6 me-2">
+                            <i class="fas fa-check-circle me-1"></i> Published
+                        </span>
+                        <span class="text-muted">{{ $stats['published_results'] }} of {{ $stats['results_entered'] }} results published</span>
+                    @else
+                        <span class="badge bg-secondary fs-6 me-2">
+                            <i class="fas fa-eye-slash me-1"></i> Not Published
+                        </span>
+                        <span class="text-muted">{{ $stats['results_entered'] }} results ready to publish</span>
+                    @endif
+                </div>
+                <div>
+                    @if(($stats['published_results'] ?? 0) > 0)
+                        @if(Route::has('admin.exam-results.unpublish'))
+                            <form action="{{ route('admin.exam-results.unpublish', $exam) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Unpublish all results?')">
+                                    <i class="fas fa-eye-slash me-1"></i> Unpublish
+                                </button>
+                            </form>
+                        @endif
+                    @else
+                        @if(Route::has('admin.exam-results.publish'))
+                            <form action="{{ route('admin.exam-results.publish', $exam) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        onclick="return confirm('Publish results and notify parents?')">
+                                    <i class="fas fa-bullhorn me-1"></i> Publish & Notify Parents
+                                </button>
+                            </form>
+                        @endif
+                    @endif
+                </div>
+            </div>
         </div>
-        <div class="card-body">
+    @endif
+
+    {{-- Results Table --}}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-table me-2"></i>Results List</h6>
+            <span class="badge bg-secondary">{{ $stats['results_entered'] ?? 0 }} / {{ $stats['total_students'] ?? 0 }} entered</span>
+        </div>
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Student</th>
-                            <th>Student ID</th>
-                            <th>Marks Obtained</th>
-                            <th>Percentage</th>
-                            <th>Grade</th>
-                            <th>Rank</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 12%;">Student ID</th>
+                            <th style="width: 18%;">Student Name</th>
+                            <th style="width: 10%;">Marks</th>
+                            <th style="width: 10%;">Percentage</th>
+                            <th style="width: 8%;">Grade</th>
+                            <th style="width: 8%;">Rank</th>
+                            <th style="width: 8%;">Status</th>
+                            <th style="width: 8%;">Published</th>
+                            <th style="width: 13%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($students as $enrollment)
+                        @php
+                            $enrolledStudents = $students;
+                            $resultMap = $exam->results->keyBy('student_id');
+                        @endphp
+                        @forelse($enrolledStudents as $enrollment)
                             @php
                                 $student = $enrollment->student;
-                                $result = $exam->results()->where('student_id', $student->id)->first();
+                                $result = $resultMap[$student->id] ?? null;
                             @endphp
                             <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td><span class="text-muted">{{ $student->student_id ?? 'N/A' }}</span></td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="me-2">
-                                            @if($student->user->avatar)
-                                                <img src="{{ Storage::url($student->user->avatar) }}" alt="{{ $student->user->name }}"
-                                                     class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
-                                            @else
-                                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                                     style="width: 32px; height: 32px;">
-                                                    {{ substr($student->user->name, 0, 1) }}
-                                                </div>
-                                            @endif
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width:32px;height:32px;">
+                                            <i class="fas fa-user text-muted small"></i>
                                         </div>
-                                        <div>
-                                            <strong>{{ $student->user->name }}</strong>
-                                        </div>
+                                        <span class="fw-semibold">{{ $student->user->name ?? 'N/A' }}</span>
                                     </div>
                                 </td>
-                                <td>{{ $student->student_id }}</td>
                                 <td>
                                     @if($result && $result->marks_obtained !== null)
-                                        <strong>{{ $result->marks_obtained }}</strong> / {{ $exam->max_marks }}
+                                        <span class="fw-semibold">{{ number_format($result->marks_obtained, 0) }}</span>
+                                        <small class="text-muted">/ {{ number_format($exam->max_marks, 0) }}</small>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
-                                    @if($result && $result->percentage !== null)
-                                        {{ number_format($result->percentage, 2) }}%
+                                    @if($result && $result->percentage)
+                                        {{ number_format($result->percentage, 1) }}%
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($result && $result->grade)
-                                        <span class="badge bg-primary">{{ $result->grade }}</span>
+                                        @php
+                                            $gradeColors = [
+                                                'A+' => 'success', 'A' => 'success',
+                                                'B+' => 'info', 'B' => 'info',
+                                                'C' => 'warning', 'D' => 'warning',
+                                                'F' => 'danger',
+                                            ];
+                                        @endphp
+                                        <span class="badge bg-{{ $gradeColors[$result->grade] ?? 'secondary' }}">{{ $result->grade }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($result && $result->rank)
-                                        <span class="badge bg-success">{{ $result->rank }}</span>
+                                        @if($result->rank <= 3)
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-trophy me-1"></i>#{{ $result->rank }}
+                                            </span>
+                                        @else
+                                            #{{ $result->rank }}
+                                        @endif
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
-                                    @if($result)
-                                        @if($result->is_published)
-                                            <span class="badge bg-success">Published</span>
+                                    @if($result && $result->marks_obtained !== null)
+                                        @if($result->marks_obtained >= $exam->passing_marks)
+                                            <span class="badge bg-success">Pass</span>
                                         @else
-                                            <span class="badge bg-warning">Unpublished</span>
+                                            <span class="badge bg-danger">Fail</span>
                                         @endif
                                     @else
-                                        <span class="badge bg-secondary">Not Entered</span>
+                                        <span class="badge bg-secondary">Pending</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($result && $result->is_published)
+                                        <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                    @else
+                                        <span class="badge bg-secondary"><i class="fas fa-times"></i></span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($result)
                                         <div class="btn-group btn-group-sm">
-                                            @can('edit-exam-results')
+                                            @if(Route::has('admin.exam-results.edit'))
                                                 <a href="{{ route('admin.exam-results.edit', $result) }}" class="btn btn-outline-primary" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                            @endcan
-                                            @can('generate-result-cards')
-                                                <a href="{{ route('admin.exam-results.result-card', $result) }}" class="btn btn-outline-info" title="View Result Card">
+                                            @endif
+                                            @if(Route::has('admin.exam-results.card'))
+                                                <a href="{{ route('admin.exam-results.card', $result) }}" class="btn btn-outline-info" title="Result Card" target="_blank">
                                                     <i class="fas fa-id-card"></i>
                                                 </a>
-                                                <a href="{{ route('admin.exam-results.download-result-card', $result) }}" class="btn btn-outline-success" title="Download PDF">
-                                                    <i class="fas fa-download"></i>
-                                                </a>
-                                            @endcan
+                                            @endif
+                                            @if(Route::has('admin.exam-results.destroy'))
+                                                <form action="{{ route('admin.exam-results.destroy', $result) }}" method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Delete this result?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     @else
                                         <span class="text-muted small">No result</span>
@@ -155,8 +243,11 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
-                                    <i class="fas fa-inbox"></i> No students found in this class.
+                                <td colspan="10" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-users fa-3x mb-3 d-block"></i>
+                                        <p>No enrolled students found for this class.</p>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse

@@ -1,60 +1,58 @@
+{{-- Exam Result Statistics Cards --}}
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card border-primary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Total Students</h6>
-                        <h3 class="mb-0">{{ $stats['total_students'] }}</h3>
-                    </div>
-                    <div class="text-primary">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle p-3 me-3" style="background-color: #e3f2fd;">
+                    <i class="fas fa-users text-primary fa-lg"></i>
+                </div>
+                <div>
+                    <h4 class="mb-0">{{ $stats['total_students'] ?? 0 }}</h4>
+                    <small class="text-muted">Total Students</small>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-info">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Results Entered</h6>
-                        <h3 class="mb-0">{{ $stats['results_entered'] }}</h3>
-                    </div>
-                    <div class="text-info">
-                        <i class="fas fa-pen fa-2x"></i>
-                    </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle p-3 me-3" style="background-color: #e8f5e9;">
+                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                </div>
+                <div>
+                    <h4 class="mb-0">{{ $stats['results_entered'] ?? 0 }}</h4>
+                    <small class="text-muted">Results Entered</small>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Pass Count</h6>
-                        <h3 class="mb-0">{{ $stats['pass_count'] }}</h3>
-                    </div>
-                    <div class="text-success">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                    </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle p-3 me-3" style="background-color: #fff3e0;">
+                    <i class="fas fa-chart-line text-warning fa-lg"></i>
+                </div>
+                <div>
+                    <h4 class="mb-0">{{ $stats['average_marks'] ? number_format($stats['average_marks'], 1) : '0' }}</h4>
+                    <small class="text-muted">Average Marks</small>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-warning">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Average Marks</h6>
-                        <h3 class="mb-0">{{ number_format($stats['average_marks'] ?? 0, 1) }}</h3>
-                    </div>
-                    <div class="text-warning">
-                        <i class="fas fa-chart-line fa-2x"></i>
-                    </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle p-3 me-3" style="background-color: #fce4ec;">
+                    <i class="fas fa-percentage text-danger fa-lg"></i>
+                </div>
+                <div>
+                    @php
+                        $passRate = ($stats['results_entered'] ?? 0) > 0 
+                            ? round((($stats['pass_count'] ?? 0) / $stats['results_entered']) * 100, 1) 
+                            : 0;
+                    @endphp
+                    <h4 class="mb-0">{{ $passRate }}%</h4>
+                    <small class="text-muted">Pass Rate</small>
                 </div>
             </div>
         </div>

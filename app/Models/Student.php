@@ -165,6 +165,15 @@ class Student extends Model
         return $this->hasMany(ExamResult::class);
     }
 
+    /**
+     * Alias for examResults() - used by ExamResultController & exam blade views.
+     * Kept as separate method so both $student->results and $student->examResults work.
+     */
+    public function results()
+    {
+        return $this->hasMany(ExamResult::class);
+    }
+
     public function reviews()
     {
         return $this->hasMany(StudentReview::class);

@@ -4,74 +4,48 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="mb-4">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ route('admin.exams.index') }}">Exams</a></li>
-                <li class="breadcrumb-item active">Edit</li>
-            </ol>
-        </nav>
-        <h1 class="h3">Edit Exam</h1>
+    {{-- Page Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-edit me-2"></i>Edit Exam</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.exams.index') }}">Exams</a></li>
+                    <li class="breadcrumb-item active">Edit: {{ $exam->name }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline-info">
+                <i class="fas fa-eye me-1"></i> View
+            </a>
+            <a href="{{ route('admin.exams.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-body">
-                    <form action="{{ route('admin.exams.update', $exam) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        @include('admin.exams._form')
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Update Exam
-                            </button>
-                            <a href="{{ route('admin.exams.index') }}" class="btn btn-outline-secondary">
-                                Cancel
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Update Exam Details</h6>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Exam Info</h6>
+        <div class="card-body">
+            <form action="{{ route('admin.exams.update', $exam) }}" method="POST">
+                @csrf
+                @method('PUT')
+                @include('admin.exams._form')
+
+                <hr>
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ route('admin.exams.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Update Exam
+                    </button>
                 </div>
-                <div class="card-body">
-                    <dl class="row small mb-0">
-                        <dt class="col-sm-5">Created at:</dt>
-                        <dd class="col-sm-7">{{ $exam->created_at->format('M j, Y h:i A') }}</dd>
-
-                        <dt class="col-sm-5">Last updated:</dt>
-                        <dd class="col-sm-7">{{ $exam->updated_at->format('M j, Y h:i A') }}</dd>
-
-                        <dt class="col-sm-5">Total Students:</dt>
-                        <dd class="col-sm-7">{{ $exam->class->enrollments()->count() }}</dd>
-
-                        <dt class="col-sm-5">Results Entered:</dt>
-                        <dd class="col-sm-7">{{ $exam->results()->count() }}</dd>
-                    </dl>
-                </div>
-            </div>
-
-            @if($exam->results()->count() == 0)
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h6 class="text-danger"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h6>
-                        <p class="small text-muted">Delete this exam permanently.</p>
-                        <form action="{{ route('admin.exams.destroy', $exam) }}" method="POST">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('Are you sure you want to delete this exam?')">
-                                <i class="fas fa-trash"></i> Delete Exam
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            @endif
+            </form>
         </div>
     </div>
 </div>

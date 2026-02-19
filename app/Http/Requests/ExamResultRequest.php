@@ -11,7 +11,7 @@ class ExamResultRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth()->user()->hasAnyRole(['super-admin', 'admin', 'staff']);
     }
 
     /**
@@ -19,12 +19,16 @@ class ExamResultRequest extends FormRequest
      */
     public function rules(): array
     {
-        $exam = $this->route('result') ? $this->route('result')->exam : null;
-        $maxMarks = $exam ? $exam->max_marks : 100;
+        // Get max marks from the exam (via result relationship or route param)
+        $maxMarks = 9999.99;
+
+        if ($this->route('result') && $this->route('result')->exam) {
+            $maxMarks = $this->route('result')->exam->max_marks;
+        }
 
         return [
-            'marks_obtained' => 'required|numeric|min:0|max:' . $maxMarks,
-            'remarks' => 'nullable|string|max:500',
+            'marks_obtained' => "required|numeric|min:0|max:{$maxMarks}",
+            'remarks'        => 'nullable|string|max:500',
         ];
     }
 
@@ -35,20 +39,31 @@ class ExamResultRequest extends FormRequest
     {
         return [
             'marks_obtained.required' => 'Marks obtained is required.',
-            'marks_obtained.numeric' => 'Marks must be a number.',
-            'marks_obtained.min' => 'Marks cannot be negative.',
-            'marks_obtained.max' => 'Marks cannot exceed maximum marks for this exam.',
-            'remarks.max' => 'Remarks cannot exceed 500 characters.',
+            'marks_obtained.numeric'  => 'Marks must be a valid number.',
+            'marks_obtained.min'      => 'Marks cannot be negative.',
+            'marks_obtained.max'      => 'Marks cannot exceed the maximum marks for this exam.',
+            'remarks.max'             => 'Remarks cannot exceed 500 characters.',
         ];
     }
 
     /**
-     * Get custom attribute names.
+     * Get custom attributes for validator errors.
      */
     public function attributes(): array
     {
         return [
             'marks_obtained' => 'marks obtained',
+            'remarks'        => 'remarks',
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('marks_obtained') && $this->input('marks_obtained') !== '') {
+            $this->merge(['marks_obtained' => (float) $this->input('marks_obtained')]);
+        }
     }
 }

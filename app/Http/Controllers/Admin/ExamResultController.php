@@ -21,12 +21,6 @@ class ExamResultController extends Controller
     {
         $this->examService = $examService;
         $this->notificationService = $notificationService;
-        $this->middleware('permission:view-exam-results')->only(['index', 'show']);
-        $this->middleware('permission:create-exam-results')->only(['create', 'store', 'bulkStore']);
-        $this->middleware('permission:edit-exam-results')->only(['edit', 'update']);
-        $this->middleware('permission:delete-exam-results')->only('destroy');
-        $this->middleware('permission:publish-exam-results')->only('publish');
-        $this->middleware('permission:generate-result-cards')->only(['resultCard', 'downloadResultCard']);
     }
 
     /**

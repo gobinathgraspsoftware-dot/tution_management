@@ -1,94 +1,167 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Result Card - {{ $result->student->user->name }}</title>
+    <meta charset="UTF-8">
+    <title>Result Card - {{ $result->student->user->name ?? 'Student' }}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { margin: 0; color: #333; }
-        .header h2 { margin: 5px 0 0 0; color: #666; }
-        hr { border: none; border-top: 2px solid #333; margin: 20px 0; }
-        table { width: 100%; margin-bottom: 20px; }
-        table th { text-align: left; width: 35%; padding: 5px 0; }
-        table td { padding: 5px 0; }
-        .results-box { background: #f5f5f5; padding: 20px; margin: 20px 0; text-align: center; }
-        .results-box .item { display: inline-block; width: 23%; margin: 0 1%; }
-        .results-box h3 { margin: 5px 0; color: #333; }
-        .badge { display: inline-block; padding: 15px 30px; font-size: 20px; font-weight: bold; margin: 20px 0; }
-        .badge.pass { background: #10b981; color: white; }
-        .badge.fail { background: #ef4444; color: white; }
-        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ccc; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            margin: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #fda530;
+            padding-bottom: 15px;
+        }
+        .header h2 {
+            margin: 0;
+            color: #4c4c4c;
+        }
+        .header h4 {
+            margin: 5px 0 0;
+            color: #888;
+            font-weight: normal;
+        }
+        .info-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .info-table td {
+            padding: 5px 10px;
+            vertical-align: top;
+        }
+        .info-table .label {
+            font-weight: 600;
+            color: #666;
+            width: 35%;
+        }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .result-table th, .result-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        .result-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+        }
+        .grade-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: white;
+        }
+        .grade-pass { background-color: #28a745; }
+        .grade-fail { background-color: #dc3545; }
+        .remarks { margin: 15px 0; }
+        .signatures {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-line {
+            text-align: center;
+            width: 30%;
+            display: inline-block;
+        }
+        .signature-line .line {
+            border-top: 1px solid #333;
+            margin-bottom: 5px;
+            padding-top: 5px;
+        }
+        @media print {
+            body { margin: 20px; }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>ARENA MATRIKS EDU GROUP</h1>
-        <h2>EXAMINATION RESULT CARD</h2>
-        <hr>
+        <h2>Arena Matriks Edu Group</h2>
+        <h4>Exam Result Card</h4>
     </div>
 
-    <table>
+    <table class="info-table">
         <tr>
-            <th>Student Name:</th>
-            <td><strong>{{ $result->student->user->name }}</strong></td>
-            <th>Exam Name:</th>
-            <td>{{ $result->exam->name }}</td>
-        </tr>
-        <tr>
-            <th>Student ID:</th>
-            <td>{{ $result->student->student_id }}</td>
-            <th>Subject:</th>
-            <td>{{ $result->exam->subject->name }}</td>
-        </tr>
-        <tr>
-            <th>Class:</th>
-            <td>{{ $result->exam->class->name }}</td>
-            <th>Exam Date:</th>
-            <td>{{ \Carbon\Carbon::parse($result->exam->exam_date)->format('F j, Y') }}</td>
+            <td>
+                <table>
+                    <tr><td class="label">Student Name:</td><td>{{ $result->student->user->name ?? 'N/A' }}</td></tr>
+                    <tr><td class="label">Student ID:</td><td>{{ $result->student->student_id ?? 'N/A' }}</td></tr>
+                    <tr><td class="label">Parent:</td><td>{{ $result->student->parent->user->name ?? 'N/A' }}</td></tr>
+                </table>
+            </td>
+            <td>
+                <table>
+                    <tr><td class="label">Exam:</td><td>{{ $result->exam->name }}</td></tr>
+                    <tr><td class="label">Class:</td><td>{{ $result->exam->class->name ?? 'N/A' }}</td></tr>
+                    <tr><td class="label">Subject:</td><td>{{ $result->exam->subject->name ?? 'N/A' }}</td></tr>
+                    <tr><td class="label">Date:</td><td>{{ $result->exam->exam_date ? $result->exam->exam_date->format('d M Y') : 'N/A' }}</td></tr>
+                </table>
+            </td>
         </tr>
     </table>
 
-    <div class="results-box">
-        <div class="item">
-            <p>Marks Obtained</p>
-            <h3>{{ $result->marks_obtained }}/{{ $result->exam->max_marks }}</h3>
-        </div>
-        <div class="item">
-            <p>Percentage</p>
-            <h3>{{ number_format($result->percentage, 2) }}%</h3>
-        </div>
-        <div class="item">
-            <p>Grade</p>
-            <h3>{{ $result->grade }}</h3>
-        </div>
-        <div class="item">
-            <p>Rank</p>
-            <h3>{{ $result->rank }}</h3>
-        </div>
-    </div>
-
-    <div style="text-align: center;">
-        @if($result->marks_obtained >= $result->exam->passing_marks)
-            <span class="badge pass">✓ PASSED</span>
-        @else
-            <span class="badge fail">✗ NEEDS IMPROVEMENT</span>
-        @endif
-    </div>
+    <table class="result-table">
+        <thead>
+            <tr>
+                <th>Maximum Marks</th>
+                <th>Passing Marks</th>
+                <th>Marks Obtained</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+                <th>Rank</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ number_format($result->exam->max_marks, 0) }}</td>
+                <td>{{ number_format($result->exam->passing_marks, 0) }}</td>
+                <td style="font-weight: bold; font-size: 18px;">{{ number_format($result->marks_obtained, 0) }}</td>
+                <td>{{ number_format($result->percentage, 1) }}%</td>
+                <td><strong>{{ $result->grade }}</strong></td>
+                <td>{{ $result->rank ? '#' . $result->rank : 'N/A' }}</td>
+                <td>
+                    @if($result->marks_obtained >= $result->exam->passing_marks)
+                        <span class="grade-badge grade-pass">PASS</span>
+                    @else
+                        <span class="grade-badge grade-fail">FAIL</span>
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
     @if($result->remarks)
-        <div style="margin-top: 20px;">
-            <strong>Remarks:</strong>
-            <p>{{ $result->remarks }}</p>
+        <div class="remarks">
+            <strong>Remarks:</strong> {{ $result->remarks }}
         </div>
     @endif
 
-    <div class="footer">
-        <table>
+    <div style="margin-top: 80px;">
+        <table style="width: 100%;">
             <tr>
-                <td><strong>Published Date:</strong> {{ $result->published_at->format('F j, Y') }}</td>
-                <td style="text-align: right;">
-                    <strong>Signature:</strong> ___________________<br>
-                    <small>Authorized Signatory</small>
+                <td style="text-align: center; width: 33%;">
+                    <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
+                        <small>Teacher's Signature</small>
+                    </div>
+                </td>
+                <td style="text-align: center; width: 33%;">
+                    <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
+                        <small>Date</small>
+                    </div>
+                </td>
+                <td style="text-align: center; width: 33%;">
+                    <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
+                        <small>Principal's Signature</small>
+                    </div>
                 </td>
             </tr>
         </table>
