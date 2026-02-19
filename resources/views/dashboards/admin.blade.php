@@ -97,13 +97,13 @@
             <div class="card-body">
                 <h5 class="card-title">Quick Actions</h5>
                 <div class="d-grid gap-2 d-md-flex">
-                    <a href="#" class="btn btn-primary">
+                    <a href="{{ route('admin.students.create') }}" class="btn btn-primary">
                         <i class="fas fa-user-plus me-2"></i> Add Student
                     </a>
-                    <a href="#" class="btn btn-success">
+                    {{-- <a href="{{ route('admin.payments.index') }}" class="btn btn-success">
                         <i class="fas fa-check me-2"></i> Process Payment
-                    </a>
-                    <a href="#" class="btn btn-info">
+                    </a> --}}
+                    <a href="{{ route('admin.announcements.create') }}" class="btn btn-info">
                         <i class="fas fa-bullhorn me-2"></i> New Announcement
                     </a>
                 </div>
@@ -118,7 +118,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-user-graduate me-2"></i> Recent Enrollments</span>
-                <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="{{ route('admin.enrollments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="card-body">
                 @forelse($recent_enrollments as $enrollment)
@@ -154,7 +154,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-money-bill-wave me-2"></i> Recent Payments</span>
-                <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="{{ route('admin.payments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="card-body">
                 @forelse($recent_payments as $payment)
