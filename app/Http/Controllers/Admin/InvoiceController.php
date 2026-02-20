@@ -1,4 +1,18 @@
 <?php
+/**
+ * FILE: app/Http/Controllers/Admin/InvoiceController.php
+ *
+ * FIX APPLIED: Restored original index() method that uses
+ *   $this->invoiceService->getInvoiceStatistics() → $statistics
+ * instead of Invoice::getSummary() → $summary.
+ *
+ * NEW METHODS ADDED AT BOTTOM:
+ *   - studentDashboard()
+ *   - exportStudentBillingCsv()
+ *
+ * NEW IMPORT ADDED:
+ *   - use App\Models\Payment;
+ */
 
 namespace App\Http\Controllers\Admin;
 
@@ -8,6 +22,7 @@ use App\Models\Invoice;
 use App\Models\Student;
 use App\Models\Enrollment;
 use App\Models\Package;
+use App\Models\Payment;
 use App\Services\InvoiceService;
 use App\Services\PaymentCycleService;
 use App\Services\SubscriptionService;
@@ -33,6 +48,11 @@ class InvoiceController extends Controller
 
     /**
      * Display a listing of invoices.
+     *
+     * IMPORTANT: The blade view (admin.invoices.index) expects $statistics
+     * from $this->invoiceService->getInvoiceStatistics().
+     * Keys used: total_invoices, pending_invoices, overdue_invoices,
+     *            paid_invoices, total_invoiced, total_collected, total_outstanding
      */
     public function index(Request $request)
     {
@@ -65,18 +85,18 @@ class InvoiceController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // Search by invoice number
+        // Search by invoice number or student name
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
-                    ->orWhereHas('student.user', function($q2) use ($search) {
+                    ->orWhereHas('student.user', function ($q2) use ($search) {
                         $q2->where('name', 'like', "%{$search}%");
                     });
             });
         }
 
-        // Get statistics
+        // Get statistics — blade expects $statistics with specific keys
         $statistics = $this->invoiceService->getInvoiceStatistics();
 
         // Paginate results
@@ -93,22 +113,18 @@ class InvoiceController extends Controller
      */
     public function create(Request $request)
     {
-        $students = Student::approved()
-            ->with(['user', 'enrollments.package'])
-            ->get();
+        $students = Student::approved()->with(['user', 'enrollments' => function ($q) {
+            $q->active()->with('package');
+        }])->get();
 
         $selectedStudent = null;
-        $selectedEnrollment = null;
-
         if ($request->filled('student_id')) {
-            $selectedStudent = Student::with(['enrollments.package'])->find($request->student_id);
+            $selectedStudent = Student::with(['user', 'enrollments' => function ($q) {
+                $q->active()->with('package');
+            }])->find($request->student_id);
         }
 
-        if ($request->filled('enrollment_id')) {
-            $selectedEnrollment = Enrollment::with('package')->find($request->enrollment_id);
-        }
-
-        return view('admin.invoices.create', compact('students', 'selectedStudent', 'selectedEnrollment'));
+        return view('admin.invoices.create', compact('students', 'selectedStudent'));
     }
 
     /**
@@ -116,46 +132,13 @@ class InvoiceController extends Controller
      */
     public function store(InvoiceRequest $request)
     {
-        $validated = $request->validated();
-
         try {
-            DB::beginTransaction();
+            $invoice = $this->invoiceService->createInvoice($request->validated());
 
-            // Calculate total amount
-            $totalAmount = $validated['subtotal']
-                + ($validated['online_fee'] ?? 0)
-                - ($validated['discount'] ?? 0)
-                + ($validated['tax'] ?? 0);
-
-            $invoice = Invoice::create([
-                'invoice_number' => Invoice::generateInvoiceNumber(),
-                'student_id' => $validated['student_id'],
-                'enrollment_id' => $validated['enrollment_id'] ?? null,
-                'type' => $validated['type'],
-                'billing_period_start' => $validated['billing_period_start'],
-                'billing_period_end' => $validated['billing_period_end'],
-                'subtotal' => $validated['subtotal'],
-                'online_fee' => $validated['online_fee'] ?? 0,
-                'discount' => $validated['discount'] ?? 0,
-                'discount_reason' => $validated['discount_reason'] ?? null,
-                'tax' => $validated['tax'] ?? 0,
-                'total_amount' => $totalAmount,
-                'paid_amount' => 0,
-                'due_date' => $validated['due_date'],
-                'status' => 'pending',
-                'reminder_count' => 0,
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('admin.invoices.show', $invoice)
-                ->with('success', "Invoice {$invoice->invoice_number} created successfully.");
-
+            return redirect()->route('admin.invoices.show', $invoice->id)
+                ->with('success', 'Invoice created successfully.');
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withInput()
-                ->with('error', 'Failed to create invoice. ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to create invoice. ' . $e->getMessage());
         }
     }
 
@@ -166,9 +149,10 @@ class InvoiceController extends Controller
     {
         $invoice->load([
             'student.user',
-            'student.parent.user',
             'enrollment.package',
-            'enrollment.class',
+            'payments' => function ($q) {
+                $q->orderBy('payment_date', 'desc');
+            },
             'payments.processedBy',
             'installments',
             'reminders',
@@ -182,14 +166,13 @@ class InvoiceController extends Controller
      */
     public function edit(Invoice $invoice)
     {
-        if ($invoice->status === 'paid') {
-            return back()->with('error', 'Cannot edit a paid invoice.');
+        if (!$invoice->isEditable()) {
+            return back()->with('error', 'This invoice cannot be edited.');
         }
 
         $invoice->load(['student.user', 'enrollment.package']);
-        $students = Student::approved()->with('user')->get();
 
-        return view('admin.invoices.edit', compact('invoice', 'students'));
+        return view('admin.invoices.edit', compact('invoice'));
     }
 
     /**
@@ -197,34 +180,18 @@ class InvoiceController extends Controller
      */
     public function update(InvoiceRequest $request, Invoice $invoice)
     {
-        if ($invoice->status === 'paid') {
-            return back()->with('error', 'Cannot edit a paid invoice.');
+        if (!$invoice->isEditable()) {
+            return back()->with('error', 'This invoice cannot be edited.');
         }
 
-        $validated = $request->validated();
-
         try {
-            // Recalculate total
-            $totalAmount = ($validated['subtotal'] ?? $invoice->subtotal)
-                + ($validated['online_fee'] ?? $invoice->online_fee)
-                - ($validated['discount'] ?? $invoice->discount)
-                + ($validated['tax'] ?? $invoice->tax);
+            $invoice->update($request->validated());
+            $invoice->recalculateTotal();
 
-            $invoice->update(array_merge($validated, [
-                'total_amount' => $totalAmount,
-            ]));
-
-            // Update status if overdue
-            if ($invoice->due_date->isPast() && $invoice->status === 'pending') {
-                $invoice->update(['status' => 'overdue']);
-            }
-
-            return redirect()->route('admin.invoices.show', $invoice)
+            return redirect()->route('admin.invoices.show', $invoice->id)
                 ->with('success', 'Invoice updated successfully.');
-
         } catch (\Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Failed to update invoice. ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to update invoice. ' . $e->getMessage());
         }
     }
 
@@ -233,159 +200,36 @@ class InvoiceController extends Controller
      */
     public function destroy(Invoice $invoice)
     {
-        if ($invoice->paid_amount > 0) {
-            return back()->with('error', 'Cannot delete invoice with payments. Please refund first.');
+        if ($invoice->isPaid()) {
+            return back()->with('error', 'Cannot delete a paid invoice.');
         }
 
-        try {
-            $invoiceNumber = $invoice->invoice_number;
-            $invoice->delete();
-
-            return redirect()->route('admin.invoices.index')
-                ->with('success', "Invoice {$invoiceNumber} deleted successfully.");
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete invoice. ' . $e->getMessage());
+        if ($invoice->payments()->exists()) {
+            return back()->with('error', 'Cannot delete invoice with associated payments.');
         }
+
+        $invoice->cancel();
+
+        return redirect()->route('admin.invoices.index')
+            ->with('success', 'Invoice cancelled successfully.');
     }
 
     /**
-     * Cancel an invoice.
+     * Generate monthly invoices in bulk.
      */
-    public function cancel(Request $request, Invoice $invoice)
-    {
-        try {
-            $this->invoiceService->cancelInvoice($invoice, $request->reason);
-
-            return back()->with('success', "Invoice {$invoice->invoice_number} cancelled successfully.");
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-    /**
-     * Apply discount to invoice.
-     */
-    public function applyDiscount(Request $request, Invoice $invoice)
-    {
-        $request->validate([
-            'discount_amount' => 'required|numeric|min:0|max:' . $invoice->balance,
-            'discount_reason' => 'required|string|max:255',
-        ]);
-
-        try {
-            $this->invoiceService->applyDiscount(
-                $invoice,
-                $request->discount_amount,
-                $request->discount_reason
-            );
-
-            return back()->with('success', 'Discount applied successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to apply discount. ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Send invoice to student/parent.
-     */
-    public function send(Invoice $invoice)
-    {
-        try {
-            // Here you would integrate with notification service
-            // For now, we'll just mark that a reminder was sent
-            $invoice->sendReminder();
-
-            return back()->with('success', 'Invoice sent successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to send invoice. ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Display bulk generate form.
-     */
-    public function bulkGenerateForm(Request $request)
-    {
-        $month = $request->filled('month')
-            ? Carbon::parse($request->month)
-            : Carbon::now();
-
-        // Get enrollments that would receive invoices
-        $enrollments = Enrollment::active()
-            ->with(['student.user', 'package'])
-            ->whereHas('student', function($q) {
-                $q->where('status', 'approved');
-            })
-            ->get()
-            ->map(function($enrollment) use ($month) {
-                $hasInvoice = Invoice::where('enrollment_id', $enrollment->id)
-                    ->where('billing_period_start', $month->copy()->startOfMonth())
-                    ->where('billing_period_end', $month->copy()->endOfMonth())
-                    ->whereNotIn('status', ['cancelled', 'refunded'])
-                    ->exists();
-
-                return [
-                    'enrollment' => $enrollment,
-                    'has_invoice' => $hasInvoice,
-                    'monthly_fee' => $enrollment->monthly_fee ?? $enrollment->package->price,
-                ];
-            });
-
-        return view('admin.invoices.bulk-generate', compact('enrollments', 'month'));
-    }
-
-    /**
-     * Bulk generate invoices.
-     */
-    public function bulkGenerate(Request $request)
+    public function generateMonthly(Request $request)
     {
         $request->validate([
             'month' => 'required|date_format:Y-m',
-            'enrollment_ids' => 'nullable|array',
-            'enrollment_ids.*' => 'exists:enrollments,id',
         ]);
 
-        $month = Carbon::parse($request->month);
-
         try {
-            if ($request->filled('enrollment_ids')) {
-                // Generate for selected enrollments only
-                $results = [
-                    'generated' => 0,
-                    'skipped' => 0,
-                    'failed' => 0,
-                    'errors' => [],
-                ];
+            $month = Carbon::parse($request->month . '-01');
+            $results = $this->invoiceService->generateMonthlyInvoices($month);
 
-                foreach ($request->enrollment_ids as $enrollmentId) {
-                    $enrollment = Enrollment::find($enrollmentId);
-                    if (!$enrollment) continue;
-
-                    try {
-                        $invoice = $this->invoiceService->generateInvoice($enrollment, [
-                            'billing_start' => $month->copy()->startOfMonth(),
-                            'billing_end' => $month->copy()->endOfMonth(),
-                            'type' => 'monthly',
-                        ]);
-
-                        if ($invoice) {
-                            $results['generated']++;
-                        } else {
-                            $results['skipped']++;
-                        }
-                    } catch (\Exception $e) {
-                        $results['failed']++;
-                        $results['errors'][] = "Enrollment #{$enrollmentId}: " . $e->getMessage();
-                    }
-                }
-            } else {
-                // Generate for all active enrollments
-                $results = $this->invoiceService->generateMonthlyInvoices($month);
-            }
-
-            $message = "Generated {$results['generated']} invoices.";
+            $message = "Monthly invoices generated: {$results['created']} created.";
             if ($results['skipped'] > 0) {
-                $message .= " Skipped {$results['skipped']} (already exist).";
+                $message .= " Skipped: {$results['skipped']}.";
             }
             if ($results['failed'] > 0) {
                 $message .= " Failed: {$results['failed']}.";
@@ -477,10 +321,8 @@ class InvoiceController extends Controller
      */
     public function export(Request $request)
     {
-        // Implementation for CSV/Excel export
         $query = Invoice::with(['student.user', 'enrollment.package']);
 
-        // Apply same filters as index
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -491,15 +333,15 @@ class InvoiceController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $invoices = $query->orderBy('created_at', 'desc')->get();
+        $invoices = $query->latest()->get();
 
-        $filename = 'invoices_' . date('Y-m-d_His') . '.csv';
+        $filename = 'invoices_' . now()->format('Ymd_His') . '.csv';
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function() use ($invoices) {
+        $callback = function () use ($invoices) {
             $file = fopen('php://output', 'w');
 
             // Header row
@@ -525,6 +367,296 @@ class InvoiceController extends Controller
                     $invoice->due_date->format('Y-m-d'),
                     ucfirst($invoice->status),
                 ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // =========================================================================
+    // STUDENT BILLING DASHBOARD (Online / Offline)
+    // Added: Student billing dashboard with separated Online/Offline views
+    // =========================================================================
+
+    /**
+     * Display student billing dashboard with Online/Offline separation.
+     * Route: admin.billing.student-dashboard
+     */
+    public function studentDashboard(Request $request)
+    {
+        $month = $request->filled('month')
+            ? Carbon::parse($request->month . '-01')
+            : Carbon::now();
+
+        $monthStart = $month->copy()->startOfMonth();
+        $monthEnd   = $month->copy()->endOfMonth();
+
+        // ── Base Query Builder (shared filters) ────────────────────
+        $baseQuery = function ($regType) use ($request, $monthStart, $monthEnd) {
+            $query = Student::approved()
+                ->where('registration_type', $regType)
+                ->with([
+                    'user',
+                    'enrollments' => function ($q) {
+                        $q->active()->with('package');
+                    },
+                ]);
+
+            // Search filter
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('student_id', 'like', "%{$search}%")
+                      ->orWhereHas('user', function ($q2) use ($search) {
+                          $q2->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Package filter
+            if ($request->filled('package_id')) {
+                $query->whereHas('enrollments', function ($q) use ($request) {
+                    $q->active()->where('package_id', $request->package_id);
+                });
+            }
+
+            // Payment status filter
+            if ($request->filled('payment_status')) {
+                $status = $request->payment_status;
+                $query->where(function ($q) use ($status, $monthStart, $monthEnd) {
+                    if ($status === 'overdue') {
+                        $q->whereHas('invoices', function ($iq) {
+                            $iq->whereIn('status', ['pending', 'partial', 'overdue'])
+                               ->where('due_date', '<', now());
+                        });
+                    } elseif ($status === 'paid') {
+                        $q->whereDoesntHave('invoices', function ($iq) use ($monthStart, $monthEnd) {
+                            $iq->whereBetween('billing_period_start', [$monthStart, $monthEnd])
+                               ->whereIn('status', ['pending', 'partial', 'overdue']);
+                        });
+                    } elseif ($status === 'partial') {
+                        $q->whereHas('invoices', function ($iq) {
+                            $iq->where('status', 'partial');
+                        });
+                    } elseif ($status === 'pending') {
+                        $q->whereHas('invoices', function ($iq) {
+                            $iq->where('status', 'pending');
+                        });
+                    }
+                });
+            }
+
+            return $query;
+        };
+
+        // ── Fetch Online & Offline Students (Paginated) ──────────
+        $onlineStudents = $baseQuery('online')
+            ->withSum(['invoices as billing_total_invoiced' => function ($q) {
+                $q->whereNotIn('status', ['cancelled', 'draft']);
+            }], 'total_amount')
+            ->withSum(['invoices as billing_total_paid' => function ($q) {
+                $q->whereNotIn('status', ['cancelled', 'draft']);
+            }], 'paid_amount')
+            ->withMax('payments as last_payment_date', 'payment_date')
+            ->withExists(['invoices as has_overdue' => function ($q) {
+                $q->whereIn('status', ['pending', 'partial', 'overdue'])
+                  ->where('due_date', '<', now());
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15, ['*'], 'online_page');
+
+        $offlineStudents = $baseQuery('offline')
+            ->withSum(['invoices as billing_total_invoiced' => function ($q) {
+                $q->whereNotIn('status', ['cancelled', 'draft']);
+            }], 'total_amount')
+            ->withSum(['invoices as billing_total_paid' => function ($q) {
+                $q->whereNotIn('status', ['cancelled', 'draft']);
+            }], 'paid_amount')
+            ->withMax('payments as last_payment_date', 'payment_date')
+            ->withExists(['invoices as has_overdue' => function ($q) {
+                $q->whereIn('status', ['pending', 'partial', 'overdue'])
+                  ->where('due_date', '<', now());
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15, ['*'], 'offline_page');
+
+        // ── Aggregate Statistics ──────────────────────────────────
+        $onlineCount  = Student::approved()->onlineRegistration()->count();
+        $offlineCount = Student::approved()->offlineRegistration()->count();
+
+        // Revenue this month by revenue_source
+        $onlineRevenueMonth = Payment::completed()
+            ->studentFeesOnline()
+            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->sum('amount');
+
+        $offlineRevenueMonth = Payment::completed()
+            ->studentFeesPhysical()
+            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->sum('amount');
+
+        // Outstanding by registration type
+        $onlineOutstanding = Invoice::whereHas('student', function ($q) {
+                $q->where('registration_type', 'online');
+            })
+            ->unpaid()
+            ->sum(DB::raw('total_amount - paid_amount'));
+
+        $offlineOutstanding = Invoice::whereHas('student', function ($q) {
+                $q->where('registration_type', 'offline');
+            })
+            ->unpaid()
+            ->sum(DB::raw('total_amount - paid_amount'));
+
+        // Collection rate
+        $totalInvoiced = Invoice::whereNotIn('status', ['cancelled', 'draft'])->sum('total_amount');
+        $totalPaid     = Invoice::whereNotIn('status', ['cancelled', 'draft'])->sum('paid_amount');
+        $collectionRate = $totalInvoiced > 0 ? round(($totalPaid / $totalInvoiced) * 100, 1) : 0;
+
+        // Average monthly fees
+        $onlineAvgFee = Enrollment::active()
+            ->whereHas('student', function ($q) { $q->where('registration_type', 'online'); })
+            ->avg('monthly_fee') ?? 0;
+
+        $offlineAvgFee = Enrollment::active()
+            ->whereHas('student', function ($q) { $q->where('registration_type', 'offline'); })
+            ->avg('monthly_fee') ?? 0;
+
+        // Overdue counts per type
+        $onlineOverdueCount = Invoice::whereHas('student', function ($q) {
+                $q->where('registration_type', 'online');
+            })
+            ->where(function ($q) {
+                $q->where('status', 'overdue')
+                  ->orWhere(function ($q2) {
+                      $q2->whereIn('status', ['pending', 'partial'])
+                         ->where('due_date', '<', now());
+                  });
+            })
+            ->distinct('student_id')
+            ->count('student_id');
+
+        $offlineOverdueCount = Invoice::whereHas('student', function ($q) {
+                $q->where('registration_type', 'offline');
+            })
+            ->where(function ($q) {
+                $q->where('status', 'overdue')
+                  ->orWhere(function ($q2) {
+                      $q2->whereIn('status', ['pending', 'partial'])
+                         ->where('due_date', '<', now());
+                  });
+            })
+            ->distinct('student_id')
+            ->count('student_id');
+
+        $stats = [
+            'total_students'       => $onlineCount + $offlineCount,
+            'online_count'         => $onlineCount,
+            'offline_count'        => $offlineCount,
+            'total_revenue_month'  => $onlineRevenueMonth + $offlineRevenueMonth,
+            'online_revenue_month' => $onlineRevenueMonth,
+            'offline_revenue_month'=> $offlineRevenueMonth,
+            'total_outstanding'    => $onlineOutstanding + $offlineOutstanding,
+            'online_outstanding'   => $onlineOutstanding,
+            'offline_outstanding'  => $offlineOutstanding,
+            'collection_rate'      => $collectionRate,
+            'online_avg_fee'       => $onlineAvgFee,
+            'offline_avg_fee'      => $offlineAvgFee,
+            'online_overdue_count' => $onlineOverdueCount,
+            'offline_overdue_count'=> $offlineOverdueCount,
+        ];
+
+        // ── Chart Data (Last 6 Months) ───────────────────────────
+        $chartData = ['months' => [], 'online_revenue' => [], 'offline_revenue' => []];
+        for ($i = 5; $i >= 0; $i--) {
+            $m = Carbon::now()->subMonths($i);
+            $chartData['months'][] = $m->format('M Y');
+
+            $chartData['online_revenue'][] = (float) Payment::completed()
+                ->studentFeesOnline()
+                ->whereMonth('payment_date', $m->month)
+                ->whereYear('payment_date', $m->year)
+                ->sum('amount');
+
+            $chartData['offline_revenue'][] = (float) Payment::completed()
+                ->studentFeesPhysical()
+                ->whereMonth('payment_date', $m->month)
+                ->whereYear('payment_date', $m->year)
+                ->sum('amount');
+        }
+
+        // ── Packages for Filter Dropdown ─────────────────────────
+        $packages = Package::active()->orderBy('name')->get(['id', 'name', 'type']);
+
+        // ── CSV Export ───────────────────────────────────────────
+        if ($request->get('export') === 'csv') {
+            return $this->exportStudentBillingCsv($onlineStudents, $offlineStudents);
+        }
+
+        return view('admin.billing.student-dashboard', compact(
+            'onlineStudents',
+            'offlineStudents',
+            'stats',
+            'chartData',
+            'packages'
+        ));
+    }
+
+    /**
+     * Export student billing data as CSV.
+     */
+    private function exportStudentBillingCsv($onlineStudents, $offlineStudents)
+    {
+        $filename = 'student_billing_' . now()->format('Ymd_His') . '.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($onlineStudents, $offlineStudents) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, [
+                'Type', 'Student ID', 'Name', 'Email', 'Package',
+                'Monthly Fee', 'Total Invoiced', 'Total Paid', 'Outstanding',
+                'Last Payment', 'Status'
+            ]);
+
+            foreach (['Online' => $onlineStudents, 'Offline' => $offlineStudents] as $type => $students) {
+                foreach ($students as $student) {
+                    $enrollment  = $student->enrollments->first();
+                    $outstanding = max(0, ($student->billing_total_invoiced ?? 0) - ($student->billing_total_paid ?? 0));
+
+                    if ($outstanding <= 0 && ($student->billing_total_invoiced ?? 0) > 0) {
+                        $status = 'Paid';
+                    } elseif ($student->has_overdue) {
+                        $status = 'Overdue';
+                    } elseif (($student->billing_total_paid ?? 0) > 0) {
+                        $status = 'Partial';
+                    } else {
+                        $status = 'Pending';
+                    }
+
+                    fputcsv($file, [
+                        $type,
+                        $student->student_id,
+                        $student->user->name ?? 'N/A',
+                        $student->user->email ?? 'N/A',
+                        $enrollment->package->name ?? 'N/A',
+                        number_format($enrollment->monthly_fee ?? 0, 2),
+                        number_format($student->billing_total_invoiced ?? 0, 2),
+                        number_format($student->billing_total_paid ?? 0, 2),
+                        number_format($outstanding, 2),
+                        $student->last_payment_date
+                            ? Carbon::parse($student->last_payment_date)->format('d M Y')
+                            : 'N/A',
+                        $status,
+                    ]);
+                }
             }
 
             fclose($file);

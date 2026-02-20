@@ -245,6 +245,13 @@
         <i class="fas fa-chevron-down"></i> Billing & Payments
     </a>
     <div class="collapse" id="section10">
+        {{-- Online/Offline stundets list --}}
+        @if(Route::has('admin.billing.student-dashboard'))
+        <a href="{{ route('admin.billing.student-dashboard') }}" class="menu-item {{ request()->routeIs('admin.billing.student-dashboard') ? 'active' : '' }}">
+            <i class="fas fa-chart-bar"></i> Student Billing
+        </a>
+        @endif
+
         {{-- Invoices --}}
         <a href="{{ route('admin.invoices.index') }}" class="menu-item {{ request()->routeIs('admin.invoices.index') || request()->routeIs('admin.invoices.create') || request()->routeIs('admin.invoices.show') || request()->routeIs('admin.invoices.edit') ? 'active' : '' }}">
             <i class="fas fa-file-invoice-dollar"></i> Invoices

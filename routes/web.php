@@ -530,7 +530,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::post('announcements/{announcement}/toggle-pin', [AnnouncementController::class, 'togglePin'])->name('announcements.toggle-pin');
         Route::post('announcements/{announcement}/mark-read', [AnnouncementController::class, 'markAsRead'])->name('announcements.mark-read');
         Route::delete('announcements/{announcement}/attachment/{index}', [AnnouncementController::class, 'deleteAttachment'])->name('announcements.delete-attachment');
-        
+
         Route::resource('exams', ExamController::class);
         Route::post('exams/{exam}/update-status', [ExamController::class, 'updateStatus'])->name('exams.update-status');
         Route::get('exams/{exam}/students', [ExamController::class, 'getStudents'])->name('exams.students');
@@ -627,6 +627,7 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         // Billing Management
         Route::prefix('billing')->name('billing.')->group(function () {
+            Route::get('/student-dashboard', [AdminInvoiceController::class, 'studentDashboard'])->name('student-dashboard');
             Route::get('/payment-cycles', [AdminInvoiceController::class, 'paymentCycles'])->name('payment-cycles');
             Route::get('/subscription-alerts', [AdminInvoiceController::class, 'subscriptionAlerts'])->name('subscription-alerts');
             Route::post('/renew-enrollment/{enrollment}', [AdminInvoiceController::class, 'renewEnrollment'])->name('renew-enrollment');
