@@ -15,7 +15,7 @@
     </nav>
 </div>
 
-<!-- Statistics Cards -->
+<!-- Statistics Cards - Row 1 -->
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="stat-card">
@@ -66,8 +66,32 @@
     </div>
 </div>
 
-<!-- Quick Stats Row 2 -->
+<!-- Statistics Cards - Row 2: Online/Offline Counts + Active Classes + Pending Payments -->
 <div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: #e0f7fa; color: #00bcd4;">
+                <i class="fas fa-globe"></i>
+            </div>
+            <div class="stat-details">
+                <h3 class="mb-0">{{ $online_students_count }}</h3>
+                <p class="text-muted mb-0">Online Students</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: #fce4ec; color: #e91e63;">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-details">
+                <h3 class="mb-0">{{ $offline_students_count }}</h3>
+                <p class="text-muted mb-0">Offline Students</p>
+            </div>
+        </div>
+    </div>
+
     <div class="col-md-3">
         <div class="stat-card">
             <div class="stat-icon" style="background-color: #e1f5fe; color: #03a9f4;">
@@ -91,91 +115,123 @@
             </div>
         </div>
     </div>
-
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Quick Actions</h5>
-                <div class="d-grid gap-2 d-md-flex">
-                    <a href="{{ route('admin.students.create') }}" class="btn btn-primary">
-                        <i class="fas fa-user-plus me-2"></i> Add Student
-                    </a>
-                    {{-- <a href="{{ route('admin.payments.index') }}" class="btn btn-success">
-                        <i class="fas fa-check me-2"></i> Process Payment
-                    </a> --}}
-                    <a href="{{ route('admin.announcements.create') }}" class="btn btn-info">
-                        <i class="fas fa-bullhorn me-2"></i> New Announcement
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
-<!-- Recent Activity -->
+<!-- Online & Offline Students Lists -->
 <div class="row">
+    <!-- Online Students -->
     <div class="col-md-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-user-graduate me-2"></i> Recent Enrollments</span>
-                <a href="{{ route('admin.enrollments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                <span>
+                    <i class="fas fa-globe me-2 text-info"></i> Online Students
+                    <span class="badge bg-info ms-2">{{ $online_students_count }}</span>
+                </span>
+                @if(Route::has('admin.students.index'))
+                <a href="{{ route('admin.students.index', ['registration_type' => 'online']) }}" class="btn btn-sm btn-outline-info">View All</a>
+                @endif
             </div>
-            <div class="card-body">
-                @forelse($recent_enrollments as $enrollment)
-                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                        <div class="user-avatar me-3">
-                            {{ substr($enrollment->student->user->name ?? 'N', 0, 1) }}
+            <div class="card-body p-0">
+                @forelse($online_students as $student)
+                    <div class="d-flex align-items-center px-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}">
+                        <div class="user-avatar me-3" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);">
+                            {{ substr($student->user->name ?? 'N', 0, 1) }}
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-0">{{ $enrollment->student->user->name ?? 'Unknown Student' }}</h6>
-                            <small class="text-muted">
-                                @if($enrollment->package)
-                                    {{ $enrollment->package->name }}
-                                @elseif($enrollment->class)
-                                    {{ $enrollment->class->name }} ({{ $enrollment->class->subject->name ?? 'Single Class' }})
+                            <h6 class="mb-0">{{ $student->user->name ?? 'Unknown Student' }}</h6>
+                            <small class="text-muted">{{ $student->student_id }}</small>
+                            @if($student->user && $student->user->phone)
+                                <small class="text-muted"> &bull; {{ $student->user->phone }}</small>
+                            @endif
+                            <div>
+                                @if($student->enrollments->count() > 0)
+                                    @foreach($student->enrollments->take(2) as $enrollment)
+                                        <span class="badge bg-light text-dark border me-1" style="font-size: 0.7rem;">
+                                            @if($enrollment->package)
+                                                {{ $enrollment->package->name }}
+                                            @elseif($enrollment->class)
+                                                {{ $enrollment->class->subject->name ?? $enrollment->class->name }}
+                                            @endif
+                                        </span>
+                                    @endforeach
+                                    @if($student->enrollments->count() > 2)
+                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">+{{ $student->enrollments->count() - 2 }} more</span>
+                                    @endif
                                 @else
-                                    Single Class Enrollment
+                                    <small class="text-muted fst-italic">No active enrollments</small>
                                 @endif
-                                - {{ $enrollment->enrollment_date ? $enrollment->enrollment_date->format('d M Y') : 'N/A' }}
-                            </small>
+                            </div>
                         </div>
-                        <span class="badge bg-{{ $enrollment->status == 'active' ? 'success' : ($enrollment->status == 'trial' ? 'info' : 'secondary') }}">
-                            {{ ucfirst($enrollment->status) }}
-                        </span>
+                        <div class="text-end">
+                            <span class="badge bg-info">Online</span>
+                            <br>
+                            <small class="text-muted">{{ $student->registration_date ? $student->registration_date->format('d M Y') : 'N/A' }}</small>
+                        </div>
                     </div>
                 @empty
-                    <p class="text-muted text-center">No recent enrollments</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-globe fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No online students found</p>
+                    </div>
                 @endforelse
             </div>
         </div>
     </div>
 
+    <!-- Offline Students -->
     <div class="col-md-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-money-bill-wave me-2"></i> Recent Payments</span>
-                <a href="{{ route('admin.payments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                <span>
+                    <i class="fas fa-building me-2 text-danger"></i> Offline Students
+                    <span class="badge bg-danger ms-2">{{ $offline_students_count }}</span>
+                </span>
+                @if(Route::has('admin.students.index'))
+                <a href="{{ route('admin.students.index', ['registration_type' => 'offline']) }}" class="btn btn-sm btn-outline-danger">View All</a>
+                @endif
             </div>
-            <div class="card-body">
-                @forelse($recent_payments as $payment)
-                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                        <div class="user-avatar me-3">
-                            {{ substr($payment->student->user->name ?? 'N', 0, 1) }}
+            <div class="card-body p-0">
+                @forelse($offline_students as $student)
+                    <div class="d-flex align-items-center px-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}">
+                        <div class="user-avatar me-3" style="background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);">
+                            {{ substr($student->user->name ?? 'N', 0, 1) }}
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-0">{{ $payment->student->user->name ?? 'Unknown' }}</h6>
-                            <small class="text-muted">
-                                {{ $payment->payment_date ? $payment->payment_date->format('d M Y, h:i A') : 'N/A' }}
-                            </small>
+                            <h6 class="mb-0">{{ $student->user->name ?? 'Unknown Student' }}</h6>
+                            <small class="text-muted">{{ $student->student_id }}</small>
+                            @if($student->user && $student->user->phone)
+                                <small class="text-muted"> &bull; {{ $student->user->phone }}</small>
+                            @endif
+                            <div>
+                                @if($student->enrollments->count() > 0)
+                                    @foreach($student->enrollments->take(2) as $enrollment)
+                                        <span class="badge bg-light text-dark border me-1" style="font-size: 0.7rem;">
+                                            @if($enrollment->package)
+                                                {{ $enrollment->package->name }}
+                                            @elseif($enrollment->class)
+                                                {{ $enrollment->class->subject->name ?? $enrollment->class->name }}
+                                            @endif
+                                        </span>
+                                    @endforeach
+                                    @if($student->enrollments->count() > 2)
+                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">+{{ $student->enrollments->count() - 2 }} more</span>
+                                    @endif
+                                @else
+                                    <small class="text-muted fst-italic">No active enrollments</small>
+                                @endif
+                            </div>
                         </div>
                         <div class="text-end">
-                            <strong class="text-success">RM {{ number_format($payment->amount, 2) }}</strong>
+                            <span class="badge bg-secondary">Offline</span>
                             <br>
-                            <small class="text-muted">{{ $payment->payment_method ?? 'N/A' }}</small>
+                            <small class="text-muted">{{ $student->registration_date ? $student->registration_date->format('d M Y') : 'N/A' }}</small>
                         </div>
                     </div>
                 @empty
-                    <p class="text-muted text-center">No recent payments</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-building fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No offline students found</p>
+                    </div>
                 @endforelse
             </div>
         </div>

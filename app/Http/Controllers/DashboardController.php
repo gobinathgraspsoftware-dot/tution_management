@@ -17,6 +17,10 @@ class DashboardController extends Controller
      */
     public function adminDashboard()
     {
+        // Online & Offline student counts (approved only)
+        $online_students_count = Student::approved()->onlineRegistration()->count();
+        $offline_students_count = Student::approved()->offlineRegistration()->count();
+
         $data = [
             'total_students' => Student::approved()->count(),
             'pending_approvals' => Student::pending()->count(),
@@ -24,14 +28,29 @@ class DashboardController extends Controller
             'active_classes' => ClassModel::active()->count(),
             'total_revenue_month' => Payment::completed()->thisMonth()->sum('amount'),
             'pending_payments' => Invoice::pending()->count(),
-            // Load both package and class for enrollments (to handle single class enrollments)
-            'recent_enrollments' => Enrollment::with(['student.user', 'package', 'class.subject'])
+
+            // Online/Offline counts
+            'online_students_count' => $online_students_count,
+            'offline_students_count' => $offline_students_count,
+
+            // Online students list (approved, eager load relationships)
+            'online_students' => Student::approved()
+                ->onlineRegistration()
+                ->with(['user', 'parent.user', 'enrollments' => function ($q) {
+                    $q->active()->with(['package', 'class.subject']);
+                }])
                 ->latest()
-                ->take(5)
+                ->take(10)
                 ->get(),
-            'recent_payments' => Payment::with(['student.user', 'invoice'])
-                ->completed()
-                ->take(5)
+
+            // Offline students list (approved, eager load relationships)
+            'offline_students' => Student::approved()
+                ->offlineRegistration()
+                ->with(['user', 'parent.user', 'enrollments' => function ($q) {
+                    $q->active()->with(['package', 'class.subject']);
+                }])
+                ->latest()
+                ->take(10)
                 ->get(),
         ];
 
