@@ -172,7 +172,14 @@ class PaymentController extends Controller
      */
     public function show(Payment $payment)
     {
-        $payment->load(['invoice.student.user', 'invoice.student.parent.user', 'invoice.enrollment.package', 'processedBy']);
+        $payment->load([
+            'invoice.student.user',
+            'invoice.student.parent.user',
+            'invoice.enrollment.package',
+            'invoice.enrollment.class.subject',
+            'processedBy',
+            'student.user',
+        ]);
 
         $receiptData = $this->receiptService->getReceiptForPreview($payment);
 
@@ -260,7 +267,7 @@ class PaymentController extends Controller
     {
         $query = Payment::with(['invoice', 'student.user', 'processedBy']);
 
-        // Date range filter
+        // Date range
         $dateFrom = $request->filled('date_from')
             ? Carbon::parse($request->date_from)
             : Carbon::now()->startOfMonth();

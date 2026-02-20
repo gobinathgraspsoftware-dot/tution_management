@@ -138,7 +138,7 @@ class ReceiptService
     /**
      * Download receipt PDF
      */
-    public function downloadReceiptPdf(Payment $payment): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadReceiptPdf(Payment $payment)
     {
         $pdf = $this->generateReceiptPdf($payment);
         $filename = 'receipt_' . $payment->payment_number . '.pdf';
@@ -149,7 +149,7 @@ class ReceiptService
     /**
      * Stream receipt PDF
      */
-    public function streamReceiptPdf(Payment $payment): \Illuminate\Http\Response
+    public function streamReceiptPdf(Payment $payment)
     {
         $pdf = $this->generateReceiptPdf($payment);
         return $pdf->stream();
@@ -266,7 +266,7 @@ class ReceiptService
     {
         $data = $this->generateReceiptData($payment);
 
-        return "🧾 *PAYMENT RECEIPT*\n\n" .
+        return "ðŸ§¾ *PAYMENT RECEIPT*\n\n" .
             "*{$data['company']['name']}*\n\n" .
             "Receipt No: {$data['receipt_number']}\n" .
             "Date: {$data['payment_details']['date']}\n\n" .
@@ -282,7 +282,7 @@ class ReceiptService
             "Total: RM " . number_format($data['invoice_details']['total'], 2) . "\n" .
             "Paid: RM " . number_format($data['invoice_details']['paid'], 2) . "\n" .
             "Balance: RM " . number_format($data['invoice_details']['balance'], 2) . "\n\n" .
-            "Thank you for your payment! 🙏";
+            "Thank you for your payment! ðŸ™";
     }
 
     /**
