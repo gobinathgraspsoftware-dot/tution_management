@@ -548,6 +548,20 @@
 </div>
 {{-- ==================== END: COMMUNICATIONS ==================== --}}
 
+{{-- ==================== SECTION: WEBSITE MANAGEMENT ==================== --}}
+<div class="menu-dropdown">
+    <a href="#sectionWebsite" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Website Management
+    </a>
+    <div class="collapse" id="sectionWebsite">
+        @if(Route::has('admin.carousel.index'))
+        <a href="{{ route('admin.carousel.index') }}" class="menu-item {{ request()->routeIs('admin.carousel.*') ? 'active' : '' }}">
+            <i class="fas fa-images"></i> Carousel Images
+        </a>
+        @endif
+    </div>
+</div>
+{{-- ==================== END: WEBSITE MANAGEMENT ==================== --}}
 
 {{-- ==================== SECTION 19: SETTINGS & ACCOUNT ==================== --}}
 <div class="menu-dropdown">

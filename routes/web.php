@@ -99,6 +99,7 @@ use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementCo
 use App\Http\Controllers\Student\ScheduleController as StudentScheduleController;
 use App\Http\Controllers\Student\ReferralController as StudentReferralController;
 use App\Http\Controllers\Student\ReviewController as StudentsReviewController;
+use App\Http\Controllers\Admin\CarouselImageController as AdminCarouselImageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1170,6 +1171,17 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::post('/{report}/close', [DailyCashReportController::class, 'close'])->name('close.store');
             Route::get('/{report}/pdf', [DailyCashReportController::class, 'pdf'])->name('pdf');
             Route::get('/{report}/download', [DailyCashReportController::class, 'download'])->name('download');
+        });
+
+        /* Carousel Images */
+        Route::prefix('carousel')->name('carousel.')->group(function () {
+            Route::get('/', [AdminCarouselImageController::class, 'index'])->name('index');
+            Route::get('/create', [AdminCarouselImageController::class, 'create'])->name('create');
+            Route::post('/', [AdminCarouselImageController::class, 'store'])->name('store');
+            Route::get('/{carousel}/edit', [AdminCarouselImageController::class, 'edit'])->name('edit');
+            Route::put('/{carousel}', [AdminCarouselImageController::class, 'update'])->name('update');
+            Route::delete('/{carousel}', [AdminCarouselImageController::class, 'destroy'])->name('destroy');
+            Route::patch('/{carousel}/toggle-status', [AdminCarouselImageController::class, 'toggleStatus'])->name('toggle-status');
         });
 
     });

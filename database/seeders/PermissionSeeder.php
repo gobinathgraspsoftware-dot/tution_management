@@ -500,6 +500,12 @@ class PermissionSeeder extends Seeder
             'flag-student-arrears',
             'export-arrears-reports',
             'print-arrears-reports',
+
+            /* CAROUSEL IMAGE PERMISSIONS */
+            'view-carousel',
+            'create-carousel',
+            'edit-carousel',
+            'delete-carousel',
         ];
 
         // Create all permissions
