@@ -36,7 +36,7 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-upload me-2"></i>Upload Carousel Image
+                <i class="fas fa-upload me-2"></i>Upload Banner Image
             </div>
             <div class="card-body">
                 <form action="{{ route('admin.carousel.store') }}" method="POST" enctype="multipart/form-data" id="carouselForm">
@@ -46,7 +46,7 @@
                     <div class="mb-4">
                         <label for="image" class="form-label">Banner Image <span class="text-danger">*</span></label>
                         <div id="dropZone" class="border border-2 border-dashed rounded-3 p-4 text-center position-relative"
-                             style="cursor:pointer; min-height:200px; background:#fafafa; transition: all 0.3s;">
+                             style="cursor:pointer; min-height:220px; background:#fafafa; transition: all 0.3s;">
                             <div id="dropPlaceholder">
                                 <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
                                 <p class="mb-1 fw-semibold">Click to upload or drag & drop</p>
@@ -60,38 +60,6 @@
                             <div class="text-danger small mt-1"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
                         @enderror
                         <div id="imageInfo" class="small text-muted mt-1 d-none"></div>
-                    </div>
-
-                    {{-- Title --}}
-                    <div class="mb-3">
-                        <label for="title" class="form-label">Title</label>
-                        <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror"
-                               value="{{ old('title') }}" placeholder="e.g. Welcome to Arena Matriks" maxlength="150">
-                        @error('title')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    {{-- Caption --}}
-                    <div class="mb-3">
-                        <label for="caption" class="form-label">Caption</label>
-                        <textarea name="caption" id="caption" rows="2"
-                                  class="form-control @error('caption') is-invalid @enderror"
-                                  placeholder="Brief description shown on the banner..." maxlength="255">{{ old('caption') }}</textarea>
-                        @error('caption')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-muted"><span id="captionCount">0</span>/255</small>
-                    </div>
-
-                    {{-- Link URL --}}
-                    <div class="mb-3">
-                        <label for="link_url" class="form-label">Link URL <small class="text-muted">(optional)</small></label>
-                        <input type="url" name="link_url" id="link_url" class="form-control @error('link_url') is-invalid @enderror"
-                               value="{{ old('link_url') }}" placeholder="https://example.com">
-                        @error('link_url')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
                     </div>
 
                     <div class="row">
@@ -153,15 +121,13 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    const dropZone      = $('#dropZone');
-    const imageInput     = $('#image');
-    const imagePreview   = $('#imagePreview');
-    const placeholder    = $('#dropPlaceholder');
-    const imageInfo      = $('#imageInfo');
-    const captionField   = $('#caption');
-    const captionCount   = $('#captionCount');
+    var dropZone     = $('#dropZone');
+    var imageInput   = $('#image');
+    var imagePreview = $('#imagePreview');
+    var placeholder  = $('#dropPlaceholder');
+    var imageInfo    = $('#imageInfo');
 
-    // ---- Drag & Drop styling ----
+    // Drag & Drop styling
     dropZone.on('dragover', function(e) {
         e.preventDefault();
         $(this).addClass('border-primary bg-light');
@@ -176,12 +142,11 @@ $(document).ready(function() {
         }
     });
 
-    // ---- Preview on file select ----
+    // Preview on file select
     imageInput.on('change', function() {
         var file = this.files[0];
         if (!file) return;
 
-        // Client-side validation
         var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
         if (!allowedTypes.includes(file.type)) {
             alert('Invalid file type. Allowed: JPEG, PNG, WebP, GIF.');
@@ -199,16 +164,15 @@ $(document).ready(function() {
             var img = new Image();
             img.onload = function() {
                 if (img.width < 600 || img.height < 200) {
-                    alert('Image too small. Minimum: 600×200 pixels. Yours: ' + img.width + '×' + img.height);
+                    alert('Image too small. Minimum: 600×200 pixels.\nYours: ' + img.width + '×' + img.height);
                     imageInput.val('');
                     return;
                 }
                 if (img.width > 3840 || img.height > 2160) {
-                    alert('Image too large. Maximum: 3840×2160 pixels. Yours: ' + img.width + '×' + img.height);
+                    alert('Image too large. Maximum: 3840×2160 pixels.\nYours: ' + img.width + '×' + img.height);
                     imageInput.val('');
                     return;
                 }
-
                 imagePreview.attr('src', e.target.result).removeClass('d-none');
                 placeholder.addClass('d-none');
                 imageInfo.html('<i class="fas fa-image me-1"></i>' + file.name + ' &middot; ' +
@@ -220,12 +184,7 @@ $(document).ready(function() {
         reader.readAsDataURL(file);
     });
 
-    // ---- Caption counter ----
-    captionField.on('input', function() {
-        captionCount.text($(this).val().length);
-    }).trigger('input');
-
-    // ---- Prevent double submit ----
+    // Prevent double submit
     $('#carouselForm').on('submit', function() {
         $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Uploading...');
     });

@@ -24,16 +24,13 @@ class CarouselImageRequest extends FormRequest
             : 'required';
 
         return [
-            'title'      => ['nullable', 'string', 'max:150'],
-            'caption'    => ['nullable', 'string', 'max:255'],
-            'image'      => [
+            'image' => [
                 $imageRule,
                 'image',
                 'mimes:jpeg,jpg,png,webp,gif',
                 'max:2048',            // 2 MB max
                 'dimensions:min_width=600,min_height=200,max_width=3840,max_height=2160',
             ],
-            'link_url'   => ['nullable', 'url', 'max:500'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:255'],
             'is_active'  => ['nullable', 'boolean'],
         ];
@@ -46,7 +43,6 @@ class CarouselImageRequest extends FormRequest
     {
         return [
             'image'      => 'carousel image',
-            'link_url'   => 'link URL',
             'sort_order' => 'display order',
             'is_active'  => 'active status',
         ];
@@ -58,14 +54,13 @@ class CarouselImageRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'image.required'       => 'Please upload a carousel image.',
-            'image.image'          => 'The file must be a valid image (JPEG, PNG, WebP, GIF).',
-            'image.mimes'          => 'Allowed formats: JPEG, JPG, PNG, WebP, GIF.',
-            'image.max'            => 'Image size must not exceed 2 MB.',
-            'image.dimensions'     => 'Image must be between 600×200 and 3840×2160 pixels.',
-            'link_url.url'         => 'Please enter a valid URL (e.g. https://example.com).',
-            'sort_order.integer'   => 'Display order must be a whole number.',
-            'sort_order.min'       => 'Display order cannot be negative.',
+            'image.required'     => 'Please upload a carousel image.',
+            'image.image'        => 'The file must be a valid image (JPEG, PNG, WebP, GIF).',
+            'image.mimes'        => 'Allowed formats: JPEG, JPG, PNG, WebP, GIF.',
+            'image.max'          => 'Image size must not exceed 2 MB.',
+            'image.dimensions'   => 'Image must be between 600×200 and 3840×2160 pixels.',
+            'sort_order.integer' => 'Display order must be a whole number.',
+            'sort_order.min'     => 'Display order cannot be negative.',
         ];
     }
 }

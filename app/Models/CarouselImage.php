@@ -11,10 +11,7 @@ class CarouselImage extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title',
-        'caption',
         'image_path',
-        'link_url',
         'sort_order',
         'is_active',
         'created_by',
@@ -22,10 +19,10 @@ class CarouselImage extends Model
     ];
 
     protected $casts = [
-        'sort_order'  => 'integer',
-        'is_active'   => 'boolean',
-        'created_at'  => 'datetime',
-        'updated_at'  => 'datetime',
+        'sort_order' => 'integer',
+        'is_active'  => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /* ------------------------------------------------------------------ */
@@ -70,7 +67,6 @@ class CarouselImage extends Model
             return null;
         }
 
-        // Check if file actually exists on the public disk
         if (Storage::disk('public')->exists($this->image_path)) {
             return asset('storage/' . $this->image_path);
         }

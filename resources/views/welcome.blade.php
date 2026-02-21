@@ -123,32 +123,66 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    @php
+        $carouselImages = \App\Models\CarouselImage::active()->ordered()->get();
+    @endphp
+
+    @if($carouselImages->count() > 0)
+    <section id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+        @if($carouselImages->count() > 1)
+        <div class="carousel-indicators">
+            @foreach($carouselImages as $index => $slide)
+                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $index }}"
+                        class="{{ $index === 0 ? 'active' : '' }}"
+                        aria-label="Slide {{ $index + 1 }}"></button>
+            @endforeach
+        </div>
+        @endif
+
+        <div class="carousel-inner">
+            @foreach($carouselImages as $index => $slide)
+            <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                @if($slide->image_url)
+                    <img src="{{ $slide->image_url }}" class="d-block w-100"
+                         alt="Banner {{ $index + 1 }}"
+                         style="height:500px; object-fit:cover;">
+                @endif
+            </div>
+            @endforeach
+        </div>
+
+        @if($carouselImages->count() > 1)
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+        @endif
+    </section>
+    @else
+    {{-- Fallback: Original hero section when no carousel images exist --}}
     <section class="hero-section">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6">
-                    <h1 class="display-3 fw-bold mb-4">
-                        Excellence in Education
-                    </h1>
-                    <p class="lead mb-4">
-                        Comprehensive tuition management system designed to enhance learning experiences and streamline educational operations.
-                    </p>
+                    <h1 class="display-4 fw-bold mb-4">Welcome to Arena Matriks Edu Group</h1>
+                    <p class="lead mb-4">Empowering students with quality education.</p>
                     <div class="d-flex gap-3 flex-wrap">
-                        <a href="{{ route('register') }}" class="btn btn-white btn-custom">
-                            <i class="fas fa-user-plus me-2"></i>Register Now
-                        </a>
-                        <a href="{{ route('login') }}" class="btn btn-outline-light btn-custom">
+                        <a href="{{ route('login') }}" class="btn btn-custom btn-white btn-lg">
                             <i class="fas fa-sign-in-alt me-2"></i>Login
                         </a>
+                        <a href="{{ route('register') }}" class="btn btn-custom btn-outline-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </a>
                     </div>
-                </div>
-                <div class="col-lg-6 d-none d-lg-block text-center">
-                    <i class="fas fa-graduation-cap" style="font-size: 15rem; opacity: 0.2;"></i>
                 </div>
             </div>
         </div>
     </section>
+    @endif
 
     <!-- Stats Section -->
     <section class="stats-section">

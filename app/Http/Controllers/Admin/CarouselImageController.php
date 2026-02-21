@@ -14,17 +14,11 @@ use Illuminate\Support\Str;
 class CarouselImageController extends Controller
 {
     /* ------------------------------------------------------------------ */
-    /*  INDEX – list all carousel images                                  */
+    /*  INDEX                                                             */
     /* ------------------------------------------------------------------ */
     public function index(Request $request)
     {
         $query = CarouselImage::with('createdBy')
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $q->where(function ($sub) use ($request) {
-                    $sub->where('title', 'like', '%' . $request->search . '%')
-                        ->orWhere('caption', 'like', '%' . $request->search . '%');
-                });
-            })
             ->when($request->filled('status'), function ($q) use ($request) {
                 $q->where('is_active', $request->status === 'active');
             })
@@ -36,7 +30,7 @@ class CarouselImageController extends Controller
     }
 
     /* ------------------------------------------------------------------ */
-    /*  CREATE – show upload form                                         */
+    /*  CREATE                                                            */
     /* ------------------------------------------------------------------ */
     public function create()
     {
@@ -46,7 +40,7 @@ class CarouselImageController extends Controller
     }
 
     /* ------------------------------------------------------------------ */
-    /*  STORE – validate & save new image                                 */
+    /*  STORE                                                             */
     /* ------------------------------------------------------------------ */
     public function store(CarouselImageRequest $request)
     {
@@ -60,24 +54,21 @@ class CarouselImageController extends Controller
                 $data['image_path'] = $this->uploadImage($request->file('image'));
             }
 
-            // Set defaults
             $data['sort_order'] = $data['sort_order'] ?? ((CarouselImage::max('sort_order') ?? 0) + 1);
             $data['is_active']  = $request->has('is_active') ? true : false;
             $data['created_by'] = auth()->id();
             $data['updated_by'] = auth()->id();
 
-            // Remove the raw 'image' key (we stored image_path)
             unset($data['image']);
 
             $carousel = CarouselImage::create($data);
 
-            // Activity log
             ActivityLog::create([
                 'user_id'     => auth()->id(),
                 'action'      => 'create',
                 'model_type'  => 'CarouselImage',
                 'model_id'    => $carousel->id,
-                'description' => "Created carousel image: {$carousel->title}",
+                'description' => "Uploaded carousel image #{$carousel->id}",
                 'ip_address'  => $request->ip(),
                 'user_agent'  => $request->userAgent(),
             ]);
@@ -95,7 +86,7 @@ class CarouselImageController extends Controller
     }
 
     /* ------------------------------------------------------------------ */
-    /*  EDIT – show edit form                                             */
+    /*  EDIT                                                              */
     /* ------------------------------------------------------------------ */
     public function edit(CarouselImage $carousel)
     {
@@ -103,7 +94,7 @@ class CarouselImageController extends Controller
     }
 
     /* ------------------------------------------------------------------ */
-    /*  UPDATE – validate & update existing image                         */
+    /*  UPDATE                                                            */
     /* ------------------------------------------------------------------ */
     public function update(CarouselImageRequest $request, CarouselImage $carousel)
     {
@@ -114,27 +105,23 @@ class CarouselImageController extends Controller
 
             // Handle new image upload (replace old one)
             if ($request->hasFile('image')) {
-                // Delete old image from storage
                 $this->deleteImage($carousel->image_path);
-
                 $data['image_path'] = $this->uploadImage($request->file('image'));
             }
 
             $data['is_active']  = $request->has('is_active') ? true : false;
             $data['updated_by'] = auth()->id();
 
-            // Remove raw 'image' key
             unset($data['image']);
 
             $carousel->update($data);
 
-            // Activity log
             ActivityLog::create([
                 'user_id'     => auth()->id(),
                 'action'      => 'update',
                 'model_type'  => 'CarouselImage',
                 'model_id'    => $carousel->id,
-                'description' => "Updated carousel image: {$carousel->title}",
+                'description' => "Updated carousel image #{$carousel->id}",
                 'ip_address'  => $request->ip(),
                 'user_agent'  => $request->userAgent(),
             ]);
@@ -152,25 +139,23 @@ class CarouselImageController extends Controller
     }
 
     /* ------------------------------------------------------------------ */
-    /*  DESTROY – delete image record & file                              */
+    /*  DESTROY                                                           */
     /* ------------------------------------------------------------------ */
     public function destroy(CarouselImage $carousel)
     {
         try {
             DB::beginTransaction();
 
-            $title = $carousel->title ?? 'Untitled';
+            $imageId = $carousel->id;
 
-            // Delete physical file
             $this->deleteImage($carousel->image_path);
 
-            // Activity log
             ActivityLog::create([
                 'user_id'     => auth()->id(),
                 'action'      => 'delete',
                 'model_type'  => 'CarouselImage',
-                'model_id'    => $carousel->id,
-                'description' => "Deleted carousel image: {$title}",
+                'model_id'    => $imageId,
+                'description' => "Deleted carousel image #{$imageId}",
                 'ip_address'  => request()->ip(),
                 'user_agent'  => request()->userAgent(),
             ]);
@@ -189,7 +174,7 @@ class CarouselImageController extends Controller
     }
 
     /* ------------------------------------------------------------------ */
-    /*  TOGGLE STATUS – AJAX or standard request                          */
+    /*  TOGGLE STATUS                                                     */
     /* ------------------------------------------------------------------ */
     public function toggleStatus(CarouselImage $carousel)
     {
@@ -206,7 +191,7 @@ class CarouselImageController extends Controller
                 'action'      => 'update',
                 'model_type'  => 'CarouselImage',
                 'model_id'    => $carousel->id,
-                'description' => "Carousel image {$status}: {$carousel->title}",
+                'description' => "Carousel image #{$carousel->id} {$status}",
                 'ip_address'  => request()->ip(),
                 'user_agent'  => request()->userAgent(),
             ]);
@@ -222,9 +207,6 @@ class CarouselImageController extends Controller
     /*  PRIVATE HELPERS                                                   */
     /* ================================================================== */
 
-    /**
-     * Upload image to storage/app/public/carousel
-     */
     private function uploadImage($file): string
     {
         $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
@@ -232,9 +214,6 @@ class CarouselImageController extends Controller
         return $file->storeAs('carousel', $filename, 'public');
     }
 
-    /**
-     * Delete image from public disk (safe – checks existence first).
-     */
     private function deleteImage(?string $path): void
     {
         if ($path && Storage::disk('public')->exists($path)) {

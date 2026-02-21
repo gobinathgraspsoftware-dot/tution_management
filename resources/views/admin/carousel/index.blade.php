@@ -26,21 +26,16 @@
 <div class="alert alert-warning alert-dismissible fade show" role="alert">
     <i class="fas fa-exclamation-triangle me-2"></i>
     <strong>Storage link not found!</strong> Images will not display until you run:
-    <code>php artisan storage:link</code> in your project terminal.
+    <code>php artisan storage:link</code>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
 
-{{-- Filters --}}
+{{-- Filter --}}
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('admin.carousel.index') }}" class="row g-3 align-items-end">
-            <div class="col-md-5">
-                <label for="search" class="form-label">Search</label>
-                <input type="text" name="search" id="search" class="form-control"
-                       placeholder="Search by title or caption..." value="{{ request('search') }}">
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label for="status" class="form-label">Status</label>
                 <select name="status" id="status" class="form-select">
                     <option value="">All</option>
@@ -50,7 +45,7 @@
             </div>
             <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-secondary">
-                    <i class="fas fa-search me-1"></i> Filter
+                    <i class="fas fa-filter me-1"></i> Filter
                 </button>
                 <a href="{{ route('admin.carousel.index') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-undo me-1"></i> Reset
@@ -97,8 +92,7 @@
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 position-relative">
             {{-- Status Badge --}}
-            <span class="badge {{ $image->is_active ? 'bg-success' : 'bg-secondary' }} position-absolute top-0 end-0 m-2"
-                  style="z-index:2;">
+            <span class="badge {{ $image->is_active ? 'bg-success' : 'bg-secondary' }} position-absolute top-0 end-0 m-2" style="z-index:2;">
                 {{ $image->is_active ? 'Active' : 'Inactive' }}
             </span>
 
@@ -111,7 +105,7 @@
             <div style="height:200px; overflow:hidden; background:#f0f0f0; border-radius:10px 10px 0 0; display:flex; align-items:center; justify-content:center;">
                 @if($image->image_url)
                     <img src="{{ $image->image_url }}"
-                         alt="{{ $image->title ?? 'Carousel Image' }}"
+                         alt="Carousel Image #{{ $image->id }}"
                          class="w-100 h-100"
                          style="object-fit:cover;">
                 @else
@@ -123,15 +117,11 @@
                 @endif
             </div>
 
-            <div class="card-body pb-2">
-                <h6 class="card-title mb-1">{{ $image->title ?? 'Untitled' }}</h6>
-                @if($image->caption)
-                    <p class="text-muted small mb-2">{{ Str::limit($image->caption, 80) }}</p>
-                @endif
+            <div class="card-body py-2">
                 <div class="small text-muted">
                     <i class="fas fa-user me-1"></i>{{ $image->createdBy->name ?? 'System' }}
                     &middot;
-                    <i class="fas fa-clock me-1"></i>{{ $image->created_at->format('d M Y') }}
+                    <i class="fas fa-clock me-1"></i>{{ $image->created_at->format('d M Y, h:i A') }}
                 </div>
             </div>
 
