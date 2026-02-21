@@ -129,16 +129,6 @@
 
     @if($carouselImages->count() > 0)
     <section id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
-        @if($carouselImages->count() > 1)
-        <div class="carousel-indicators">
-            @foreach($carouselImages as $index => $slide)
-                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $index }}"
-                        class="{{ $index === 0 ? 'active' : '' }}"
-                        aria-label="Slide {{ $index + 1 }}"></button>
-            @endforeach
-        </div>
-        @endif
-
         <div class="carousel-inner">
             @foreach($carouselImages as $index => $slide)
             <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
