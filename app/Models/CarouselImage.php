@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class CarouselImage extends Model
 {
@@ -58,8 +57,9 @@ class CarouselImage extends Model
     /* ------------------------------------------------------------------ */
 
     /**
-     * Get the full public URL for the image.
-     * Returns null if file does not exist or path is empty.
+     * Direct public URL — no symlink needed.
+     * Images stored in: public/uploads/carousel/
+     * URL becomes:      https://yourdomain.com/uploads/carousel/filename.jpg
      */
     public function getImageUrlAttribute(): ?string
     {
@@ -67,10 +67,14 @@ class CarouselImage extends Model
             return null;
         }
 
-        if (Storage::disk('public')->exists($this->image_path)) {
-            return asset('storage/' . $this->image_path);
+        // image_path = "carousel/filename.jpg" (stored in DB)
+        // File location = public/uploads/carousel/filename.jpg
+        $filePath = public_path('uploads/' . $this->image_path);
+
+        if (!file_exists($filePath)) {
+            return null;
         }
 
-        return null;
+        return asset('uploads/' . $this->image_path);
     }
 }

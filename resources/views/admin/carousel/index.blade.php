@@ -112,7 +112,6 @@
                     <div class="text-center text-muted">
                         <i class="fas fa-image fa-3x mb-2"></i>
                         <p class="small mb-0">Image not found</p>
-                        <p class="small text-danger mb-0">Run: php artisan storage:link</p>
                     </div>
                 @endif
             </div>

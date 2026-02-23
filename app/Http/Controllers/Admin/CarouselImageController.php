@@ -8,7 +8,7 @@ use App\Models\ActivityLog;
 use App\Models\CarouselImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class CarouselImageController extends Controller
@@ -49,7 +49,7 @@ class CarouselImageController extends Controller
 
             $data = $request->validated();
 
-            // Handle image upload
+            // Handle image upload — directly to public/uploads/carousel/
             if ($request->hasFile('image')) {
                 $data['image_path'] = $this->uploadImage($request->file('image'));
             }
@@ -207,17 +207,41 @@ class CarouselImageController extends Controller
     /*  PRIVATE HELPERS                                                   */
     /* ================================================================== */
 
+    /**
+     * Upload image directly to public/uploads/carousel/
+     * No symlink needed — works on ALL hosting environments.
+     */
     private function uploadImage($file): string
     {
+        $uploadDir = public_path('uploads/carousel');
+
+        // Create directory if it doesn't exist
+        if (!File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0755, true);
+        }
+
         $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
-        return $file->storeAs('carousel', $filename, 'public');
+        // Move file directly to public/uploads/carousel/
+        $file->move($uploadDir, $filename);
+
+        // Store as "carousel/filename.jpg" in DB (consistent with existing data)
+        return 'carousel/' . $filename;
     }
 
+    /**
+     * Delete image from public/uploads/carousel/
+     */
     private function deleteImage(?string $path): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        if (!$path) {
+            return;
+        }
+
+        $filePath = public_path('uploads/' . $path);
+
+        if (File::exists($filePath)) {
+            File::delete($filePath);
         }
     }
 }
