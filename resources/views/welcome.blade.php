@@ -11,10 +11,119 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    @php
+        $carouselImages = \App\Models\CarouselImage::active()->ordered()->get();
+        $hasCarousel = $carouselImages->count() > 0;
+    @endphp
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
+        /* ============================================================ */
+        /*  NAVBAR                                                      */
+        /* ============================================================ */
+
+        /* Solid navbar when carousel is active */
+        .navbar-carousel {
+            background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+            position: relative;
+            z-index: 10;
+            padding: 0.6rem 0;
+        }
+
+        /* Transparent overlay navbar when hero section is shown */
+        .navbar-hero {
+            background: transparent;
+            position: absolute;
+            width: 100%;
+            z-index: 10;
+            padding: 0.8rem 0;
+        }
+
+        .navbar .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .navbar .nav-link:hover {
+            color: #ffffff !important;
+        }
+
+        .btn-nav-login {
+            background: #ffffff;
+            color: #4c4c4c;
+            border: none;
+            border-radius: 50px;
+            padding: 0.4rem 1.4rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.3s;
+        }
+
+        .btn-nav-login:hover {
+            background: #f0f0f0;
+            color: #4c4c4c;
+            transform: scale(1.05);
+        }
+
+        .btn-nav-register {
+            background: transparent;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            border-radius: 50px;
+            padding: 0.35rem 1.4rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.3s;
+        }
+
+        .btn-nav-register:hover {
+            background: #ffffff;
+            color: #4c4c4c;
+            transform: scale(1.05);
+        }
+
+        /* ============================================================ */
+        /*  CAROUSEL                                                    */
+        /* ============================================================ */
+
+        .carousel-section .carousel-item img {
+            width: 100%;
+            height: 520px;
+            object-fit: cover;
+        }
+
+        .carousel-section .carousel-control-prev,
+        .carousel-section .carousel-control-next {
+            width: 5%;
+            opacity: 0.7;
+        }
+
+        .carousel-section .carousel-control-prev:hover,
+        .carousel-section .carousel-control-next:hover {
+            opacity: 1;
+        }
+
+        .carousel-section .carousel-indicators button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 5px;
+        }
+
+        @media (max-width: 768px) {
+            .carousel-section .carousel-item img {
+                height: 280px;
+            }
+        }
+
+        /* ============================================================ */
+        /*  HERO SECTION (fallback)                                     */
+        /* ============================================================ */
 
         .hero-section {
             background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
@@ -23,6 +132,10 @@
             align-items: center;
             color: white;
         }
+
+        /* ============================================================ */
+        /*  GENERAL                                                     */
+        /* ============================================================ */
 
         .feature-card {
             border: none;
@@ -84,26 +197,56 @@
             background-clip: text;
         }
 
+        /* ============================================================ */
+        /*  FOOTER — readable white text on gradient background         */
+        /* ============================================================ */
+
         .footer {
             background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%);
             color: white;
             padding: 40px 0 20px 0;
         }
+
+        .footer h5 {
+            color: #ffffff;
+        }
+
+        .footer p,
+        .footer small {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
+
+        .footer a {
+            color: rgba(255, 255, 255, 0.85) !important;
+            transition: color 0.3s;
+        }
+
+        .footer a:hover {
+            color: #ffffff !important;
+        }
+
+        .footer hr {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark position-absolute w-100" style="z-index: 10;">
+
+    {{-- ============================================================ --}}
+    {{-- NAVBAR                                                        --}}
+    {{-- ============================================================ --}}
+    <nav class="navbar navbar-expand-lg navbar-dark {{ $hasCarousel ? 'navbar-carousel' : 'navbar-hero' }}">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#">
                 <i class="fas fa-graduation-cap me-2"></i>
                 Arena Matriks Edu Group
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item">
                         <a class="nav-link" href="#features">Features</a>
                     </li>
@@ -113,9 +256,14 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#contact">Contact</a>
                     </li>
-                    <li class="nav-item ms-3">
-                        <a class="btn btn-white btn-sm" href="{{ route('login') }}">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                    <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                        <a class="btn btn-nav-register" href="{{ route('register') }}">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
+                    </li>
+                    <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                        <a class="btn btn-nav-login" href="{{ route('login') }}">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
                         </a>
                     </li>
                 </ul>
@@ -123,37 +271,52 @@
         </div>
     </nav>
 
-    @php
-        $carouselImages = \App\Models\CarouselImage::active()->ordered()->get();
-    @endphp
+    {{-- ============================================================ --}}
+    {{-- CAROUSEL or HERO SECTION                                      --}}
+    {{-- ============================================================ --}}
+    @if($hasCarousel)
+    <section class="carousel-section">
+        <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
 
-    @if($carouselImages->count() > 0)
-    <section id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
-        <div class="carousel-inner">
-            @foreach($carouselImages as $index => $slide)
-            <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                @if($slide->image_url)
-                    <img src="{{ $slide->image_url }}" class="d-block w-100"
-                         alt="Banner {{ $index + 1 }}"
-                         style="height:500px; object-fit:cover;">
-                @endif
+            {{-- Indicators --}}
+            {{-- @if($carouselImages->count() > 1)
+            <div class="carousel-indicators">
+                @foreach($carouselImages as $index => $slide)
+                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $index }}"
+                            class="{{ $index === 0 ? 'active' : '' }}"
+                            aria-label="Slide {{ $index + 1 }}"></button>
+                @endforeach
             </div>
-            @endforeach
-        </div>
+            @endif --}}
 
-        @if($carouselImages->count() > 1)
-        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-        </button>
-        @endif
+            {{-- Slides --}}
+            <div class="carousel-inner">
+                @foreach($carouselImages as $index => $slide)
+                <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                    @if($slide->image_url)
+                        <img src="{{ $slide->image_url }}" class="d-block w-100"
+                             alt="Banner {{ $index + 1 }}">
+                    @endif
+                </div>
+                @endforeach
+            </div>
+
+            {{-- Controls --}}
+            @if($carouselImages->count() > 1)
+            <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+            @endif
+
+        </div>
     </section>
     @else
-    {{-- Fallback: Original hero section when no carousel images exist --}}
+    {{-- Fallback: Original hero section --}}
     <section class="hero-section">
         <div class="container">
             <div class="row align-items-center">
@@ -352,8 +515,8 @@
                         <i class="fas fa-envelope fa-3x mb-3 text-primary"></i>
                         <h5>Email</h5>
                         <p class="text-muted">
-                            info@arenamatriks.com<br>
-                            support@arenamatriks.com
+                            govind@graspsoftwaresolutions.com<br>
+                            info@arenamatriks.com
                         </p>
                     </div>
                 </div>
@@ -370,7 +533,7 @@
                         <i class="fas fa-graduation-cap me-2"></i>
                         Arena Matriks Edu Group
                     </h5>
-                    <p class="text-muted">
+                    <p>
                         Excellence in education through quality teaching and comprehensive student support.
                     </p>
                 </div>
@@ -378,11 +541,11 @@
                 <div class="col-md-4 mb-4">
                     <h5 class="mb-3">Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#features" class="text-muted text-decoration-none">Features</a></li>
-                        <li><a href="#about" class="text-muted text-decoration-none">About Us</a></li>
-                        <li><a href="#contact" class="text-muted text-decoration-none">Contact</a></li>
-                        <li><a href="{{ route('login') }}" class="text-muted text-decoration-none">Login</a></li>
-                        <li><a href="{{ route('register') }}" class="text-muted text-decoration-none">Register</a></li>
+                        <li><a href="#features" class="text-decoration-none">Features</a></li>
+                        <li><a href="#about" class="text-decoration-none">About Us</a></li>
+                        <li><a href="#contact" class="text-decoration-none">Contact</a></li>
+                        <li><a href="{{ route('login') }}" class="text-decoration-none">Login</a></li>
+                        <li><a href="{{ route('register') }}" class="text-decoration-none">Register</a></li>
                     </ul>
                 </div>
 
@@ -396,10 +559,10 @@
                 </div>
             </div>
 
-            <hr class="my-4 bg-white">
+            <hr>
 
             <div class="text-center">
-                <p class="mb-0 text-muted">
+                <p class="mb-0">
                     &copy; {{ date('Y') }} Arena Matriks Edu Group. All rights reserved.
                     <br>
                     <small>Developed by GRASP Software Solutions</small>
