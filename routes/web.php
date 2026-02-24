@@ -112,6 +112,14 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+Route::get('/welcome-one', function () {
+    return view('welcome-one');
+})->name('home.one');
+
+Route::get('/welcome-two', function () {
+    return view('welcome-two');
+})->name('home.two');
+
 /*
 |--------------------------------------------------------------------------
 | Public Online Registration Routes (No Auth Required)
