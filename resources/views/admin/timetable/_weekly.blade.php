@@ -17,30 +17,23 @@
             </thead>
             <tbody>
                 @php
-                    // Get all unique time slots
+                    // Collect unique time slots — times are now plain "HH:mm" strings
                     $timeSlots = [];
 
-                    foreach($timetableData['timetable'] as $day => $schedules) {
-                        foreach($schedules as $schedule) {
+                    foreach ($timetableData['timetable'] as $day => $schedules) {
+                        foreach ($schedules as $schedule) {
+                            $start = (string) $schedule['start_time'];
+                            $end   = (string) $schedule['end_time'];
 
-                            // Convert Carbon / DateTime into string format
-                            $start = is_object($schedule['start_time'])
-                                        ? $schedule['start_time']->format('H:i')
-                                        : (string) $schedule['start_time'];
-
-                            $end = is_object($schedule['end_time'])
-                                        ? $schedule['end_time']->format('H:i')
-                                        : (string) $schedule['end_time'];
-
-                            // Use string-based array key to avoid "Illegal offset type"
-                            $timeSlots[$start] = [
-                                'start' => $start,
-                                'end'   => $end,
-                            ];
+                            if (!isset($timeSlots[$start])) {
+                                $timeSlots[$start] = [
+                                    'start' => $start,
+                                    'end'   => $end,
+                                ];
+                            }
                         }
                     }
 
-                    // Sort by time
                     ksort($timeSlots);
                 @endphp
 
@@ -57,8 +50,9 @@
                         @foreach(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as $day)
                             <td class="time-slot p-2">
                                 @php
+                                    // FIX: Simple string comparison now that service outputs plain strings
                                     $daySchedules = collect($timetableData['timetable'][$day] ?? [])
-                                        ->where('start_time', $timeSlot['start']);
+                                        ->filter(fn($s) => (string) $s['start_time'] === $timeSlot['start']);
                                 @endphp
 
                                 @foreach($daySchedules as $schedule)
@@ -67,12 +61,12 @@
                                         <div class="text-muted" style="font-size: 0.75rem;">
                                             {{ $schedule['subject'] }}
                                         </div>
-                                        @if($schedule['teacher_name'] != 'N/A')
+                                        @if(($schedule['teacher_name'] ?? 'N/A') != 'N/A')
                                             <div class="text-muted" style="font-size: 0.7rem;">
                                                 <i class="fas fa-user"></i> {{ $schedule['teacher_name'] }}
                                             </div>
                                         @endif
-                                        @if($schedule['location'])
+                                        @if(!empty($schedule['location']))
                                             <div class="text-muted" style="font-size: 0.7rem;">
                                                 <i class="fas fa-map-marker-alt"></i> {{ $schedule['location'] }}
                                             </div>

@@ -22,64 +22,82 @@ class TimetableController extends Controller
 
     /**
      * Display timetable dashboard.
+     * FIX: Added class_id / teacher_id server-side filtering support.
      */
     public function index(Request $request)
     {
-        $view = $request->get('view', 'weekly'); // daily, weekly, monthly
+        $view = $request->get('view', 'weekly');
         $date = $request->filled('date') ? $request->date : now()->format('Y-m-d');
 
         $user = auth()->user();
         $timetableData = [];
 
-        // Get timetable based on user role
+        // ── Admin / Staff view ──────────────────────────────────────
         if ($user->hasRole(['super-admin', 'admin', 'staff'])) {
-            // Admin view: all classes
-            $timetableData = $this->timetableService->getAllClassesTimetable($view, $date);
-            $classes = ClassModel::active()->with('subject', 'teacher.user')->get();
+
+            $classes  = ClassModel::active()->with('subject', 'teacher.user')->get();
             $teachers = Teacher::active()->with('user')->get();
-            // dd($timetableData['schedules']);
-            return view('admin.timetable.index', compact('timetableData', 'view', 'date', 'classes', 'teachers'));
+
+            // FIX: Combined class + teacher filter (AND logic, both optional)
+            $timetableData = $this->timetableService->getFilteredTimetable(
+                $request->class_id,    // null when "All Classes"
+                $request->teacher_id,  // null when "All Teachers"
+                $view,
+                $date
+            );
+
+            return view('admin.timetable.index', compact(
+                'timetableData', 'view', 'date', 'classes', 'teachers'
+            ));
         }
+
+        // ── Teacher view ────────────────────────────────────────────
         elseif ($user->hasRole('teacher')) {
-            // Teacher view: own classes
             $teacher = $user->teacher;
             $timetableData = $this->timetableService->getTeacherTimetable($teacher->id, $view, $date);
 
             return view('teacher.timetable.index', compact('timetableData', 'view', 'date'));
         }
+
+        // ── Student view ────────────────────────────────────────────
         elseif ($user->hasRole('student')) {
-            // Student view: enrolled classes
             $student = $user->student;
             $timetableData = $this->timetableService->getStudentTimetable($student->id, $view, $date);
 
             return view('student.timetable.index', compact('timetableData', 'view', 'date'));
         }
+
+        // ── Parent view ─────────────────────────────────────────────
         elseif ($user->hasRole('parent')) {
-            // Parent view: children's classes
-            $parent = $user->parent;
+            $parent   = $user->parent;
             $children = $parent->students;
+
             $selectedStudent = $request->filled('student_id')
                 ? $children->find($request->student_id)
                 : $children->first();
 
             if ($selectedStudent) {
-                $timetableData = $this->timetableService->getStudentTimetable($selectedStudent->id, $view, $date);
+                $timetableData = $this->timetableService->getStudentTimetable(
+                    $selectedStudent->id, $view, $date
+                );
             }
 
-            return view('parent.timetable.index', compact('timetableData', 'view', 'date', 'children', 'selectedStudent'));
+            return view('parent.timetable.index', compact(
+                'timetableData', 'view', 'date', 'children', 'selectedStudent'
+            ));
         }
 
         return redirect()->route('dashboard');
     }
 
     /**
-     * Filter timetable by class.
+     * Filter timetable by class (AJAX fallback).
      */
     public function filterByClass(Request $request)
     {
         $classId = $request->class_id;
-        $view = $request->get('view', 'weekly');
-        $date = $request->filled('date') ? $request->date : now()->format('Y-m-d');
+        $view    = $request->get('view', 'weekly');
+        $date    = $request->filled('date') ? $request->date : now()->format('Y-m-d');
 
         $timetableData = $this->timetableService->getClassTimetable($classId, $view, $date);
 
@@ -87,13 +105,13 @@ class TimetableController extends Controller
     }
 
     /**
-     * Filter timetable by teacher.
+     * Filter timetable by teacher (AJAX fallback).
      */
     public function filterByTeacher(Request $request)
     {
         $teacherId = $request->teacher_id;
-        $view = $request->get('view', 'weekly');
-        $date = $request->filled('date') ? $request->date : now()->format('Y-m-d');
+        $view      = $request->get('view', 'weekly');
+        $date      = $request->filled('date') ? $request->date : now()->format('Y-m-d');
 
         $timetableData = $this->timetableService->getTeacherTimetable($teacherId, $view, $date);
 
@@ -105,9 +123,9 @@ class TimetableController extends Controller
      */
     public function export(Request $request)
     {
-        $view = $request->get('view', 'weekly');
-        $date = $request->filled('date') ? $request->date : now()->format('Y-m-d');
-        $format = $request->get('format', 'pdf'); // pdf or csv
+        $view   = $request->get('view', 'weekly');
+        $date   = $request->filled('date') ? $request->date : now()->format('Y-m-d');
+        $format = $request->get('format', 'pdf');
 
         $user = auth()->user();
 
@@ -118,8 +136,14 @@ class TimetableController extends Controller
             $timetableData = $this->timetableService->getStudentTimetable($user->student->id, $view, $date);
             $filename = 'student_timetable_' . $date;
         } else {
-            $timetableData = $this->timetableService->getAllClassesTimetable($view, $date);
-            $filename = 'all_classes_timetable_' . $date;
+            // Admin: respect combined filters in export too
+            $timetableData = $this->timetableService->getFilteredTimetable(
+                $request->class_id,
+                $request->teacher_id,
+                $view,
+                $date
+            );
+            $filename = 'timetable_' . $date;
         }
 
         if ($format === 'pdf') {
@@ -144,7 +168,12 @@ class TimetableController extends Controller
         } elseif ($user->hasRole('student')) {
             $timetableData = $this->timetableService->getStudentTimetable($user->student->id, $view, $date);
         } else {
-            $timetableData = $this->timetableService->getAllClassesTimetable($view, $date);
+            $timetableData = $this->timetableService->getFilteredTimetable(
+                $request->class_id,
+                $request->teacher_id,
+                $view,
+                $date
+            );
         }
 
         return view('admin.timetable.print', compact('timetableData', 'view', 'date'));
