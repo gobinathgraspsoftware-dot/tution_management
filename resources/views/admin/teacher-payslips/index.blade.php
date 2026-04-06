@@ -99,7 +99,7 @@
                         <option value="">All Teachers</option>
                         @foreach($teachers as $teacher)
                             <option value="{{ $teacher->id }}" {{ request('teacher_id') == $teacher->id ? 'selected' : '' }}>
-                                {{ $teacher->user->name }}
+                                {{ $teacher->user->name ?? 'Unknown Teacher' }}
                             </option>
                         @endforeach
                     </select>
@@ -187,15 +187,27 @@
                                 </a>
                             </td>
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
-                                        {{ strtoupper(substr($payslip->teacher->user->name, 0, 1)) }}
+                                @if($payslip->teacher && $payslip->teacher->user)
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-sm me-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                                            {{ strtoupper(substr($payslip->teacher->user->name, 0, 1)) }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">{{ $payslip->teacher->user->name }}</div>
+                                            <small class="text-muted">{{ $payslip->teacher->teacher_id }}</small>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="fw-medium">{{ $payslip->teacher->user->name }}</div>
-                                        <small class="text-muted">{{ $payslip->teacher->teacher_id }}</small>
+                                @else
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-sm me-2 bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                                            <i class="fas fa-user-slash" style="font-size: 0.7rem;"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium text-muted">Deleted Teacher</div>
+                                            <small class="text-danger">ID: {{ $payslip->teacher_id }}</small>
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                             </td>
                             <td>
                                 <small>{{ $payslip->period_start->format('d M') }} - {{ $payslip->period_end->format('d M Y') }}</small>
