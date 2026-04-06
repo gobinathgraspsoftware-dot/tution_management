@@ -32,22 +32,35 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label fw-semibold">Grade Level</label>
+                    <select name="grade_level" class="form-select">
+                        <option value="">All Grades</option>
+                        @foreach($gradeLevels as $grade)
+                            <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>
+                                {{ $grade }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary" title="Filter">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+                    <a href="{{ route('admin.exams.index') }}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="fas fa-redo me-1"></i> Reset
+                    </a>
+                </div>
+            </div>
+
+            {{-- Row 2: Date range --}}
+            <div class="row g-3 mt-1">
+                <div class="col-md-2">
                     <label class="form-label fw-semibold">From Date</label>
                     <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">To Date</label>
                     <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
-                </div>
-                <div class="col-md-1">
-                    <div class="d-flex gap-1">
-                        <button type="submit" class="btn btn-primary btn-sm" title="Filter">
-                            <i class="fas fa-filter"></i>
-                        </button>
-                        <a href="{{ route('admin.exams.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset">
-                            <i class="fas fa-redo"></i>
-                        </a>
-                    </div>
                 </div>
             </div>
         </form>

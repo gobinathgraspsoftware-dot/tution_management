@@ -7,6 +7,7 @@ use App\Http\Requests\ExamRequest;
 use App\Models\Exam;
 use App\Models\ClassModel;
 use App\Models\Subject;
+use App\Models\Student;
 use App\Models\ActivityLog;
 use App\Services\ExamService;
 use Illuminate\Http\Request;
@@ -52,6 +53,13 @@ class ExamController extends Controller
             $query->where('subject_id', $request->subject_id);
         }
 
+        // Filter by grade level (via class)
+        if ($request->filled('grade_level')) {
+            $query->whereHas('class', function ($q) use ($request) {
+                $q->where('grade_level', $request->grade_level);
+            });
+        }
+
         // Filter by date range
         if ($request->filled('date_from')) {
             $query->where('exam_date', '>=', $request->date_from);
@@ -74,7 +82,15 @@ class ExamController extends Controller
         $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
         $subjects = Subject::active()->orderBy('name')->get();
 
-        return view('admin.exams.index', compact('exams', 'stats', 'classes', 'subjects'));
+        // Get unique grade levels from students for filter dropdown
+        $gradeLevels = Student::distinct()
+            ->whereNotNull('grade_level')
+            ->pluck('grade_level')
+            ->filter()
+            ->sort()
+            ->values();
+
+        return view('admin.exams.index', compact('exams', 'stats', 'classes', 'subjects', 'gradeLevels'));
     }
 
     /**
@@ -175,7 +191,6 @@ class ExamController extends Controller
     public function destroy(Exam $exam)
     {
         try {
-            // Check if results exist
             if ($exam->results()->count() > 0) {
                 return back()->with('error', 'Cannot delete exam with existing results!');
             }

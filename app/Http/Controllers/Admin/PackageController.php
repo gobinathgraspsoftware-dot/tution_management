@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PackageRequest;
 use App\Models\Package;
 use App\Models\Subject;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -60,10 +61,10 @@ class PackageController extends Controller
 
         $packages = $query->latest()->paginate(15)->withQueryString();
 
-        // Get unique grade levels from all subjects for the filter dropdown
-        $allGradeLevels = Subject::pluck('grade_levels')
-            ->flatten()
-            ->unique()
+        // Get unique grade levels from students for filter dropdown
+        $allGradeLevels = Student::distinct()
+            ->whereNotNull('grade_level')
+            ->pluck('grade_level')
             ->filter()
             ->sort()
             ->values();
@@ -216,7 +217,6 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        // Check if package has active enrollments
         if ($package->enrollments()->where('status', 'active')->exists()) {
             return back()->with('error', 'Cannot delete package with active enrollments.');
         }
