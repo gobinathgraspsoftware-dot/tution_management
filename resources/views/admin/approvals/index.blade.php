@@ -191,8 +191,9 @@
                                 {{ $student->registration_date ? \Carbon\Carbon::parse($student->registration_date)->format('d M Y') : $student->created_at->format('d M Y') }}
                             </td>
                             <td>
-                                <span class="badge {{ $student->waiting_status['badge'] }}">
-                                    {{ $student->waiting_status['value'] }}
+                                {{-- FIX: Changed waiting_status → waiting_time to match Student model accessor --}}
+                                <span class="badge {{ $student->waiting_time['badge'] }}">
+                                    {{ $student->waiting_time['value'] }}
                                 </span>
                             </td>
                             <td>
@@ -201,11 +202,11 @@
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <button type="button" class="btn btn-success" title="Quick Approve"
-                                            onclick="quickApprove({{ $student->id }}, '{{ $student->user->name }}')">
+                                            onclick="quickApprove({{ $student->id }}, '{{ addslashes($student->user->name) }}')">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     <button type="button" class="btn btn-danger" title="Quick Reject"
-                                            onclick="quickReject({{ $student->id }}, '{{ $student->user->name }}')">
+                                            onclick="quickReject({{ $student->id }}, '{{ addslashes($student->user->name) }}')">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
