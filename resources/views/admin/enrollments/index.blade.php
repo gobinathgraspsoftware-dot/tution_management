@@ -107,7 +107,7 @@
                             <option value="trial" {{ request('status') == 'trial' ? 'selected' : '' }}>Trial</option>
                         </select>
                     </div>
-                    <div class="col-md-2 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label for="class_id" class="form-label">Class</label>
                         <select class="form-select" id="class_id" name="class_id">
                             <option value="">All Classes</option>
@@ -129,7 +129,18 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-2 mb-3">
+                        <label for="grade_level" class="form-label">Grade Level</label>
+                        <select class="form-select" id="grade_level" name="grade_level">
+                            <option value="">All Grades</option>
+                            @foreach($gradeLevels as $grade)
+                                <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>
+                                    {{ $grade }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">&nbsp;</label>
                         <div>
                             <button type="submit" class="btn btn-primary">
@@ -263,7 +274,7 @@
                 </table>
             </div>
 
-            <!-- Pagination - Fixed Bootstrap 5 -->
+            <!-- Pagination -->
             @if($enrollments->hasPages())
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="text-muted small">
@@ -271,7 +282,6 @@
                     </div>
                     <nav aria-label="Enrollment pagination">
                         <ul class="pagination pagination-sm mb-0">
-                            {{-- Previous Page Link --}}
                             @if($enrollments->onFirstPage())
                                 <li class="page-item disabled">
                                     <span class="page-link">&laquo; Previous</span>
@@ -282,7 +292,6 @@
                                 </li>
                             @endif
 
-                            {{-- Page Numbers --}}
                             @php
                                 $currentPage = $enrollments->currentPage();
                                 $lastPage = $enrollments->lastPage();
@@ -314,7 +323,6 @@
                                 </li>
                             @endif
 
-                            {{-- Next Page Link --}}
                             @if($enrollments->hasMorePages())
                                 <li class="page-item">
                                     <a class="page-link" href="{{ $enrollments->appends(request()->query())->nextPageUrl() }}">Next &raquo;</a>

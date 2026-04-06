@@ -54,6 +54,13 @@ class EnrollmentController extends Controller
             $query->where('package_id', $request->package_id);
         }
 
+        // Filter by grade level (via student)
+        if ($request->filled('grade_level')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('grade_level', $request->grade_level);
+            });
+        }
+
         // Filter by date range
         if ($request->filled('date_from')) {
             $query->whereDate('start_date', '>=', $request->date_from);
@@ -68,10 +75,18 @@ class EnrollmentController extends Controller
         $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
         $packages = Package::active()->orderBy('name')->get();
 
+        // Get unique grade levels from students for filter
+        $gradeLevels = Student::distinct()
+            ->whereNotNull('grade_level')
+            ->pluck('grade_level')
+            ->filter()
+            ->sort()
+            ->values();
+
         // Get statistics
         $stats = $this->enrollmentService->getEnrollmentStats();
 
-        return view('admin.enrollments.index', compact('enrollments', 'classes', 'packages', 'stats'));
+        return view('admin.enrollments.index', compact('enrollments', 'classes', 'packages', 'gradeLevels', 'stats'));
     }
 
     /**
@@ -99,7 +114,6 @@ class EnrollmentController extends Controller
 
     /**
      * Search students via AJAX for Select2
-     * Searches by: student name or student ID
      */
     public function searchStudents(Request $request)
     {
@@ -147,15 +161,12 @@ class EnrollmentController extends Controller
             $data = $request->validated();
             $enrollmentType = $request->input('enrollment_type', 'package');
 
-            // Check if enrolling in package
             if ($enrollmentType === 'package' && $request->filled('package_id')) {
                 $student = Student::findOrFail($data['student_id']);
                 $package = Package::with('subjects')->findOrFail($data['package_id']);
 
-                // Get selected classes for each subject
                 $subjectClasses = $request->input('subject_classes', []);
 
-                // Create enrollments with selected classes
                 $result = $this->enrollmentService->enrollInPackageWithClasses(
                     $student,
                     $package,
@@ -172,10 +183,8 @@ class EnrollmentController extends Controller
                     'user_agent' => $request->userAgent(),
                 ]);
 
-                // Build success message
                 $message = "Student successfully enrolled in {$package->name} package with " . count($result['created']) . " class(es)!";
 
-                // Add info about skipped classes
                 if (!empty($result['skipped'])) {
                     $skippedNames = array_map(fn($s) => $s['class_name'] ?? 'Unknown', $result['skipped']);
                     $message .= " Skipped " . count($result['skipped']) . " class(es) (already enrolled): " . implode(', ', $skippedNames);
@@ -185,7 +194,6 @@ class EnrollmentController extends Controller
                     ->with('success', $message);
 
             } else {
-                // Single class enrollment - check for existing enrollment first
                 $existingEnrollment = Enrollment::where('student_id', $data['student_id'])
                     ->where('class_id', $data['class_id'])
                     ->whereIn('status', ['active', 'trial', 'suspended'])
@@ -233,7 +241,6 @@ class EnrollmentController extends Controller
             'feeHistory',
         ]);
 
-        // Get attendance summary
         $attendanceSummary = null;
         if ($enrollment->class_id) {
             $attendanceSummary = \App\Models\StudentAttendance::whereHas('classSession', function ($q) use ($enrollment) {
@@ -249,7 +256,6 @@ class EnrollmentController extends Controller
                 ->first();
         }
 
-        // Get related enrollments if this is a package enrollment
         $relatedEnrollments = [];
         if ($enrollment->package_id) {
             $relatedEnrollments = Enrollment::where('student_id', $enrollment->student_id)
@@ -417,7 +423,6 @@ class EnrollmentController extends Controller
     public function destroy(Enrollment $enrollment)
     {
         try {
-            // Check if there are payments
             if ($enrollment->invoices()->where('paid_amount', '>', 0)->exists()) {
                 return back()->with('error', 'Cannot delete enrollment with payment history!');
             }
@@ -444,21 +449,20 @@ class EnrollmentController extends Controller
 
     /**
      * Get class fee via AJAX
-     * Returns both the class default price and any additional info
      */
     public function getClassFee($classId)
     {
         $class = ClassModel::findOrFail($classId);
         return response()->json([
             'price' => $class->price,
-            'monthly_fee' => $class->price, // For backward compatibility
+            'monthly_fee' => $class->price,
             'class_name' => $class->name,
             'subject_name' => $class->subject->name ?? null,
         ]);
     }
 
     /**
-     * Get package details via AJAX (legacy - kept for backward compatibility)
+     * Get package details via AJAX (legacy)
      */
     public function getPackageDetails($packageId)
     {
@@ -484,7 +488,6 @@ class EnrollmentController extends Controller
 
     /**
      * Get package subjects with their available classes via AJAX
-     * NOTE: Does NOT include sessions_per_month in response (removed as per requirement)
      */
     public function getPackageSubjectsWithClasses(Request $request, $packageId)
     {
@@ -492,7 +495,6 @@ class EnrollmentController extends Controller
             $query->orderBy('name');
         }])->findOrFail($packageId);
 
-        // Get student's existing enrollments if student_id is provided
         $studentId = $request->query('student_id');
         $existingEnrollments = [];
 
@@ -532,7 +534,6 @@ class EnrollmentController extends Controller
                 'id' => $subject->id,
                 'name' => $subject->name,
                 'code' => $subject->code,
-                // Removed 'sessions_per_month' - no longer shown in UI
                 'classes' => $classes,
             ];
         });
