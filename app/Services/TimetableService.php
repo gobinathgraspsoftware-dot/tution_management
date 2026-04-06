@@ -11,12 +11,14 @@ class TimetableService
 {
     /**
      * Get all classes timetable.
+     * FIX: Added whereHas('class') to exclude orphaned schedules
      */
     public function getAllClassesTimetable($view = 'weekly', $date = null)
     {
         $date = $date ? Carbon::parse($date) : now();
 
         $schedules = ClassSchedule::with(['class.subject', 'class.teacher.user'])
+            ->whereHas('class') // FIX: Only schedules with existing (non-deleted) classes
             ->where('is_active', true)
             ->orderBy('day_of_week')
             ->orderBy('start_time')
@@ -47,6 +49,7 @@ class TimetableService
 
     /**
      * Get student's timetable.
+     * FIX: Added whereHas('class') to exclude orphaned schedules
      */
     public function getStudentTimetable($studentId, $view = 'weekly', $date = null)
     {
@@ -59,6 +62,7 @@ class TimetableService
 
         $schedules = ClassSchedule::with(['class.subject', 'class.teacher.user'])
             ->whereIn('class_id', $enrolledClassIds)
+            ->whereHas('class') // FIX: Only schedules with existing (non-deleted) classes
             ->where('is_active', true)
             ->orderBy('day_of_week')
             ->orderBy('start_time')
@@ -69,6 +73,7 @@ class TimetableService
 
     /**
      * Get class timetable.
+     * FIX: Added whereHas('class') to exclude orphaned schedules
      */
     public function getClassTimetable($classId, $view = 'weekly', $date = null)
     {
@@ -76,6 +81,7 @@ class TimetableService
 
         $schedules = ClassSchedule::with(['class.subject', 'class.teacher.user'])
             ->where('class_id', $classId)
+            ->whereHas('class') // FIX: Only schedules with existing (non-deleted) classes
             ->where('is_active', true)
             ->orderBy('day_of_week')
             ->orderBy('start_time')
@@ -103,6 +109,7 @@ class TimetableService
 
     /**
      * Format daily view.
+     * FIX: Added ->filter() to skip schedules with null class/subject
      */
     protected function formatDailyView($schedules, $date)
     {
@@ -110,6 +117,9 @@ class TimetableService
 
         $todaySchedules = $schedules->filter(function($schedule) use ($dayOfWeek) {
             return $schedule->day_of_week === $dayOfWeek;
+        })->filter(function($schedule) {
+            // FIX: Skip schedules where class or subject is null
+            return $schedule->class && $schedule->class->subject;
         })->map(function($schedule) use ($date) {
             return [
                 'class_name' => $schedule->class->name,
@@ -133,6 +143,7 @@ class TimetableService
 
     /**
      * Format weekly view.
+     * FIX: Added ->filter() to skip schedules where class or subject is null
      */
     protected function formatWeeklyView($schedules, $date)
     {
@@ -145,6 +156,9 @@ class TimetableService
         foreach ($weekDays as $day) {
             $daySchedules = $schedules->filter(function($schedule) use ($day) {
                 return $schedule->day_of_week === $day;
+            })->filter(function($schedule) {
+                // FIX: Skip schedules where class or subject is null
+                return $schedule->class && $schedule->class->subject;
             })->map(function($schedule) {
                 return [
                     'class_name' => $schedule->class->name,
@@ -172,6 +186,7 @@ class TimetableService
 
     /**
      * Format monthly view.
+     * FIX: Added ->filter() to skip schedules where class or subject is null
      */
     protected function formatMonthlyView($schedules, $date)
     {
@@ -186,6 +201,9 @@ class TimetableService
 
             $daySchedules = $schedules->filter(function($schedule) use ($dayOfWeek) {
                 return $schedule->day_of_week === $dayOfWeek;
+            })->filter(function($schedule) {
+                // FIX: Skip schedules where class or subject is null
+                return $schedule->class && $schedule->class->subject;
             })->map(function($schedule) {
                 return [
                     'class_name' => $schedule->class->name,
