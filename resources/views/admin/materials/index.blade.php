@@ -128,7 +128,7 @@
                     <option value="">All Classes</option>
                     @foreach($classes as $class)
                         <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                            {{ $class->name }} ({{ $class->subject->name }})
+                            {{ $class->name }} ({{ $class->subject->name ?? 'N/A' }})
                         </option>
                     @endforeach
                 </select>
@@ -174,9 +174,25 @@
                                     {{ $material->publish_date ? $material->publish_date->format('M d, Y') : 'Not published' }}
                                 </small>
                             </td>
-                            <td>{{ $material->class->name }}</td>
-                            <td>{{ $material->subject->name }}</td>
-                            <td>{{ $material->teacher->user->name }}</td>
+                            {{-- FIX: Null-safe access for soft-deleted class/subject/teacher --}}
+                            <td>
+                                {{ $material->class?->name ?? 'N/A' }}
+                                @if($material->class && $material->class->trashed())
+                                    <span class="badge bg-danger bg-opacity-10 text-danger ms-1" style="font-size: 0.65rem;">Deleted</span>
+                                @endif
+                            </td>
+                            <td>
+                                {{ $material->subject?->name ?? 'N/A' }}
+                                @if($material->subject && $material->subject->trashed())
+                                    <span class="badge bg-danger bg-opacity-10 text-danger ms-1" style="font-size: 0.65rem;">Deleted</span>
+                                @endif
+                            </td>
+                            <td>
+                                {{ $material->teacher?->user?->name ?? 'N/A' }}
+                                @if($material->teacher && $material->teacher->trashed())
+                                    <span class="badge bg-danger bg-opacity-10 text-danger ms-1" style="font-size: 0.65rem;">Deleted</span>
+                                @endif
+                            </td>
                             <td>
                                 <span class="badge bg-secondary">{{ ucfirst($material->type) }}</span>
                             </td>

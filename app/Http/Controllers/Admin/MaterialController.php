@@ -24,10 +24,21 @@ class MaterialController extends Controller
 
     /**
      * Display a listing of materials.
+     *
+     * FIX: Teacher, ClassModel, Subject all use SoftDeletes.
+     * Using withTrashed() on eager loads so admin sees ALL materials
+     * even when the related teacher/class/subject was soft-deleted.
      */
     public function index(Request $request)
     {
-        $query = Material::with(['class', 'subject', 'teacher.user', 'approvedBy']);
+        $query = Material::with([
+            'class' => fn($q) => $q->withTrashed(),
+            'class.subject' => fn($q) => $q->withTrashed(),
+            'subject' => fn($q) => $q->withTrashed(),
+            'teacher' => fn($q) => $q->withTrashed(),
+            'teacher.user',
+            'approvedBy',
+        ]);
 
         // Search
         if ($request->filled('search')) {
@@ -35,9 +46,9 @@ class MaterialController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('class', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('subject', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('teacher.user', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('class', fn($q2) => $q2->withTrashed()->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('subject', fn($q2) => $q2->withTrashed()->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('teacher', fn($q2) => $q2->withTrashed()->whereHas('user', fn($q3) => $q3->where('name', 'like', "%{$search}%")));
             });
         }
 
@@ -81,7 +92,7 @@ class MaterialController extends Controller
             'draft' => Material::where('status', 'draft')->count(),
         ];
 
-        // Get filter options
+        // Get filter options (active only for filters — this is correct)
         $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
         $subjects = Subject::active()->orderBy('name')->get();
         $teachers = Teacher::active()->with('user')->get();
@@ -122,10 +133,22 @@ class MaterialController extends Controller
 
     /**
      * Display the specified material.
+     *
+     * FIX: withTrashed() on show() too, so viewing a material
+     * with a deleted teacher/class/subject doesn't crash.
      */
     public function show(Material $material)
     {
-        $material->load(['class', 'subject', 'teacher.user', 'approvedBy', 'materialAccess', 'views']);
+        $material->load([
+            'class' => fn($q) => $q->withTrashed(),
+            'class.subject' => fn($q) => $q->withTrashed(),
+            'subject' => fn($q) => $q->withTrashed(),
+            'teacher' => fn($q) => $q->withTrashed(),
+            'teacher.user',
+            'approvedBy',
+            'materialAccess',
+            'views',
+        ]);
 
         // Get access statistics
         $accessStats = [
