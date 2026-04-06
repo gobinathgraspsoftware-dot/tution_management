@@ -21,10 +21,14 @@ class TeacherPayslipExport implements FromCollection, WithHeadings, WithMapping,
 
     /**
      * Get collection for export.
+     * FIX: Exclude payslips whose teacher or user has been deleted.
      */
     public function collection()
     {
-        $query = TeacherPayslip::with('teacher.user');
+        $query = TeacherPayslip::with('teacher.user')
+            ->whereHas('teacher', function ($q) {
+                $q->whereHas('user');
+            });
 
         // Apply filters
         if (!empty($this->filters['teacher_id'])) {
@@ -74,15 +78,16 @@ class TeacherPayslipExport implements FromCollection, WithHeadings, WithMapping,
 
     /**
      * Map data for each row.
+     * FIX: Null-safe access for teacher/user.
      */
     public function map($payslip): array
     {
         return [
             $payslip->payslip_number,
-            $payslip->teacher->user->name,
+            $payslip->teacher?->user?->name ?? 'Deleted Teacher',
             $payslip->period_start->format('d/m/Y'),
             $payslip->period_end->format('d/m/Y'),
-            ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)),
+            $payslip->teacher ? ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) : 'N/A',
             number_format($payslip->total_hours, 2),
             $payslip->total_classes,
             number_format($payslip->basic_pay, 2),
@@ -95,23 +100,23 @@ class TeacherPayslipExport implements FromCollection, WithHeadings, WithMapping,
             number_format($payslip->net_pay, 2),
             ucfirst($payslip->status),
             $payslip->payment_date ? $payslip->payment_date->format('d/m/Y') : '-',
-            $payslip->payment_method ?? '-',
+            $payslip->payment_method ? ucfirst(str_replace('_', ' ', $payslip->payment_method)) : '-',
             $payslip->reference_number ?? '-',
-            $payslip->created_at->format('d/m/Y'),
+            $payslip->created_at->format('d/m/Y H:i'),
         ];
     }
 
     /**
-     * Apply styles to the worksheet.
+     * Style the worksheet.
      */
     public function styles(Worksheet $sheet)
     {
         return [
             1 => [
-                'font' => ['bold' => true],
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E8EAF6']
+                    'startColor' => ['rgb' => '333333'],
                 ],
             ],
         ];

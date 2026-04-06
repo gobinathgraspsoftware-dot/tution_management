@@ -25,10 +25,14 @@ class TeacherPayslipController extends Controller
 
     /**
      * Display a listing of payslips.
+     * FIX: Exclude payslips whose teacher or teacher's user has been deleted.
      */
     public function index(Request $request)
     {
-        $query = TeacherPayslip::with('teacher.user');
+        $query = TeacherPayslip::with('teacher.user')
+            ->whereHas('teacher', function ($q) {
+                $q->whereHas('user'); // teacher exists AND user exists
+            });
 
         // Filter by teacher
         if ($request->filled('teacher_id')) {
@@ -58,16 +62,23 @@ class TeacherPayslipController extends Controller
 
         $payslips = $query->paginate(20)->withQueryString();
 
-        // Get teachers for filter
-        $teachers = Teacher::with('user')->active()->get();
+        // Get teachers for filter — only active teachers with user
+        $teachers = Teacher::with('user')
+            ->active()
+            ->whereHas('user')
+            ->get();
 
-        // Get statistics
+        // Stats: also scoped to existing teachers only
+        $existsScope = function ($q) {
+            $q->whereHas('teacher', fn($t) => $t->whereHas('user'));
+        };
+
         $stats = [
-            'total_payslips' => TeacherPayslip::count(),
-            'draft' => TeacherPayslip::draft()->count(),
-            'approved' => TeacherPayslip::approved()->count(),
-            'paid' => TeacherPayslip::paid()->count(),
-            'total_amount' => TeacherPayslip::paid()->sum('net_pay'),
+            'total_payslips' => TeacherPayslip::where($existsScope)->count(),
+            'draft'          => TeacherPayslip::draft()->where($existsScope)->count(),
+            'approved'       => TeacherPayslip::approved()->where($existsScope)->count(),
+            'paid'           => TeacherPayslip::paid()->where($existsScope)->count(),
+            'total_amount'   => TeacherPayslip::paid()->where($existsScope)->sum('net_pay'),
         ];
 
         return view('admin.teacher-payslips.index', compact('payslips', 'teachers', 'stats'));
@@ -78,7 +89,7 @@ class TeacherPayslipController extends Controller
      */
     public function create(Request $request)
     {
-        $teachers = Teacher::with('user')->active()->get();
+        $teachers = Teacher::with('user')->active()->whereHas('user')->get();
 
         $teacher = null;
         $calculation = null;
@@ -109,10 +120,10 @@ class TeacherPayslipController extends Controller
         }
 
         return view('admin.teacher-payslips.create', compact(
-            'teachers', 
-            'teacher', 
-            'calculation', 
-            'periodStart', 
+            'teachers',
+            'teacher',
+            'calculation',
+            'periodStart',
             'periodEnd',
             'statutorySettings'
         ));
@@ -318,7 +329,6 @@ class TeacherPayslipController extends Controller
 
     /**
      * Calculate salary preview (AJAX).
-     * Now supports custom statutory flags for real-time preview.
      */
     public function calculatePreview(Request $request)
     {
@@ -334,7 +344,6 @@ class TeacherPayslipController extends Controller
         try {
             $teacher = Teacher::with('user')->findOrFail($request->teacher_id);
 
-            // Build override flags if custom settings provided
             $overrideFlags = null;
             if ($request->has('epf_enabled') || $request->has('socso_enabled') || $request->has('socso_type')) {
                 $overrideFlags = [
@@ -366,7 +375,6 @@ class TeacherPayslipController extends Controller
 
     /**
      * Get teacher statutory settings (AJAX).
-     * Returns the EPF/SOCSO settings for a specific teacher.
      */
     public function getTeacherStatutorySettings(Request $request)
     {

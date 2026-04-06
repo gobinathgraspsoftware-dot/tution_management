@@ -2,6 +2,16 @@
 
 @section('title', 'Payslip Details - ' . $payslip->payslip_number)
 
+@php
+    // Resolve teacher/user safely once — reuse everywhere
+    $teacherUser   = $payslip->teacher?->user;
+    $teacherName   = $teacherUser?->name   ?? 'Deleted Teacher';
+    $teacherId     = $payslip->teacher?->teacher_id ?? 'N/A';
+    $teacherIc     = $payslip->teacher?->formatted_ic_number ?? 'N/A';
+    $teacherPayType = $payslip->teacher ? ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) : 'N/A';
+    $isDeletedTeacher = !$payslip->teacher || !$teacherUser;
+@endphp
+
 @section('content')
 <div class="container-fluid">
     <!-- Page Header -->
@@ -40,6 +50,15 @@
         </div>
     @endif
 
+    {{-- Deleted teacher warning --}}
+    @if($isDeletedTeacher)
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Warning:</strong> The teacher associated with this payslip has been deleted.
+            Some details may be unavailable. Teacher ID on record: <strong>{{ $payslip->teacher_id }}</strong>
+        </div>
+    @endif
+
     <div class="row">
         <!-- Main Payslip Details -->
         <div class="col-lg-8">
@@ -64,10 +83,10 @@
                     <div class="row">
                         <div class="col-md-6">
                             <h6 class="text-muted mb-2">Teacher Information</h6>
-                            <p class="mb-1"><strong>Name:</strong> {{ $payslip->teacher->user->name }}</p>
-                            <p class="mb-1"><strong>Teacher ID:</strong> {{ $payslip->teacher->teacher_id }}</p>
-                            <p class="mb-1"><strong>Pay Type:</strong> {{ ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) }}</p>
-                            <p class="mb-0"><strong>IC Number:</strong> {{ $payslip->teacher->formatted_ic_number ?? 'N/A' }}</p>
+                            <p class="mb-1"><strong>Name:</strong> {{ $teacherName }}</p>
+                            <p class="mb-1"><strong>Teacher ID:</strong> {{ $teacherId }}</p>
+                            <p class="mb-1"><strong>Pay Type:</strong> {{ $teacherPayType }}</p>
+                            <p class="mb-0"><strong>IC Number:</strong> {{ $teacherIc }}</p>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-muted mb-2">Period Information</h6>
@@ -218,7 +237,7 @@
                 <div class="card-body">
                     <form action="{{ route('admin.teacher-payslips.update-status', $payslip) }}" method="POST">
                         @csrf
-                        @method('PATCH')
+                        @method('PUT')
 
                         <div class="mb-3">
                             <label class="form-label">Status</label>
@@ -278,11 +297,15 @@
                     <i class="fas fa-university me-2"></i> Bank Details
                 </div>
                 <div class="card-body">
-                    <p class="mb-2"><strong>Bank:</strong> {{ $payslip->teacher->bank_name ?? 'Not provided' }}</p>
-                    <p class="mb-2"><strong>Account:</strong> {{ $payslip->teacher->bank_account ?? 'Not provided' }}</p>
-                    <hr>
-                    <p class="mb-2"><strong>EPF No:</strong> {{ $payslip->teacher->epf_number ?? 'Not provided' }}</p>
-                    <p class="mb-0"><strong>SOCSO No:</strong> {{ $payslip->teacher->socso_number ?? 'Not provided' }}</p>
+                    @if(!$isDeletedTeacher)
+                        <p class="mb-2"><strong>Bank:</strong> {{ $payslip->teacher->bank_name ?? 'Not provided' }}</p>
+                        <p class="mb-2"><strong>Account:</strong> {{ $payslip->teacher->bank_account ?? 'Not provided' }}</p>
+                        <hr>
+                        <p class="mb-2"><strong>EPF No:</strong> {{ $payslip->teacher->epf_number ?? 'Not provided' }}</p>
+                        <p class="mb-0"><strong>SOCSO No:</strong> {{ $payslip->teacher->socso_number ?? 'Not provided' }}</p>
+                    @else
+                        <p class="text-muted mb-0"><i class="fas fa-exclamation-circle me-1"></i> Teacher record unavailable.</p>
+                    @endif
                 </div>
             </div>
 
@@ -295,9 +318,11 @@
                     <a href="{{ route('admin.teacher-payslips.print', $payslip) }}" class="btn btn-outline-primary" target="_blank">
                         <i class="fas fa-print me-1"></i> Print Payslip
                     </a>
-                    <a href="{{ route('admin.teachers.show', $payslip->teacher) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-user me-1"></i> View Teacher Profile
-                    </a>
+                    @if(!$isDeletedTeacher)
+                        <a href="{{ route('admin.teachers.show', $payslip->teacher) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user me-1"></i> View Teacher Profile
+                        </a>
+                    @endif
                     @if($payslip->status == 'draft')
                     <form action="{{ route('admin.teacher-payslips.destroy', $payslip) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this draft payslip?');">
                         @csrf
@@ -317,12 +342,8 @@
 @push('scripts')
 <script>
 document.getElementById('statusSelect').addEventListener('change', function() {
-    const paymentFields = document.getElementById('paymentFields');
-    if (this.value === 'paid') {
-        paymentFields.style.display = 'block';
-    } else {
-        paymentFields.style.display = 'none';
-    }
+    var paymentFields = document.getElementById('paymentFields');
+    paymentFields.style.display = this.value === 'paid' ? 'block' : 'none';
 });
 </script>
 @endpush

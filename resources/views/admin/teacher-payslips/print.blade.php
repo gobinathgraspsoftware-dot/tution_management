@@ -187,6 +187,14 @@
         .status-draft { background: #fff3cd; color: #856404; }
         .status-approved { background: #cce5ff; color: #004085; }
         .status-paid { background: #d4edda; color: #155724; }
+        .deleted-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            font-size: 11px;
+            color: #856404;
+        }
         @media print {
             body { padding: 0; }
             .payslip { border: none; }
@@ -195,12 +203,23 @@
     </style>
 </head>
 <body>
+
+    @php
+        // Resolve teacher/user safely once
+        $teacherUser    = $payslip->teacher?->user;
+        $teacherName    = $teacherUser?->name ?? 'Deleted Teacher';
+        $teacherId      = $payslip->teacher?->teacher_id ?? 'N/A';
+        $teacherIc      = $payslip->teacher?->formatted_ic_number ?? 'N/A';
+        $teacherPayType = $payslip->teacher ? ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) : 'N/A';
+        $isDeleted      = !$payslip->teacher || !$teacherUser;
+    @endphp
+
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 10px 30px; cursor: pointer; font-size: 14px;">
-            🖨️ Print Payslip
+            &#128438; Print Payslip
         </button>
         <button onclick="window.close()" style="padding: 10px 30px; cursor: pointer; font-size: 14px; margin-left: 10px;">
-            ✕ Close
+            &#10005; Close
         </button>
     </div>
 
@@ -217,6 +236,12 @@
             <span class="status-badge status-{{ $payslip->status }}">{{ strtoupper($payslip->status) }}</span>
         </div>
 
+        @if($isDeleted)
+            <div class="deleted-warning">
+                &#9888; The teacher associated with this payslip has been deleted. Teacher ID on record: <strong>{{ $payslip->teacher_id }}</strong>
+            </div>
+        @endif
+
         <!-- Employee & Period Info -->
         <div class="info-section">
             <div class="info-box">
@@ -224,19 +249,19 @@
                 <table>
                     <tr>
                         <td>Name</td>
-                        <td><strong>{{ $payslip->teacher->user->name }}</strong></td>
+                        <td><strong>{{ $teacherName }}</strong></td>
                     </tr>
                     <tr>
                         <td>Employee ID</td>
-                        <td>{{ $payslip->teacher->teacher_id }}</td>
+                        <td>{{ $teacherId }}</td>
                     </tr>
                     <tr>
                         <td>IC Number</td>
-                        <td>{{ $payslip->teacher->formatted_ic_number ?? 'N/A' }}</td>
+                        <td>{{ $teacherIc }}</td>
                     </tr>
                     <tr>
                         <td>Pay Type</td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $payslip->teacher->pay_type)) }}</td>
+                        <td>{{ $teacherPayType }}</td>
                     </tr>
                 </table>
             </div>
@@ -357,11 +382,11 @@
                 <table>
                     <tr>
                         <td>Bank Name</td>
-                        <td>{{ $payslip->teacher->bank_name ?? 'Not provided' }}</td>
+                        <td>{{ $payslip->teacher?->bank_name ?? 'Not available' }}</td>
                     </tr>
                     <tr>
                         <td>Account No</td>
-                        <td>{{ $payslip->teacher->bank_account ?? 'Not provided' }}</td>
+                        <td>{{ $payslip->teacher?->bank_account ?? 'Not available' }}</td>
                     </tr>
                 </table>
             </div>
@@ -370,11 +395,11 @@
                 <table>
                     <tr>
                         <td>EPF Number</td>
-                        <td>{{ $payslip->teacher->epf_number ?? 'Not registered' }}</td>
+                        <td>{{ $payslip->teacher?->epf_number ?? 'Not available' }}</td>
                     </tr>
                     <tr>
                         <td>SOCSO Number</td>
-                        <td>{{ $payslip->teacher->socso_number ?? 'Not registered' }}</td>
+                        <td>{{ $payslip->teacher?->socso_number ?? 'Not available' }}</td>
                     </tr>
                 </table>
             </div>
@@ -382,8 +407,8 @@
 
         @if($payslip->status == 'paid')
         <div style="background: #d4edda; padding: 10px; margin-top: 15px; border: 1px solid #c3e6cb;">
-            <strong>Payment Info:</strong> 
-            Paid on {{ $payslip->payment_date?->format('d M Y') ?? 'N/A' }} 
+            <strong>Payment Info:</strong>
+            Paid on {{ $payslip->payment_date?->format('d M Y') ?? 'N/A' }}
             via {{ ucfirst(str_replace('_', ' ', $payslip->payment_method ?? 'N/A')) }}
             @if($payslip->reference_number)
                 (Ref: {{ $payslip->reference_number }})
