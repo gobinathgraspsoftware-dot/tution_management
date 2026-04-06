@@ -88,42 +88,75 @@
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <form action="{{ route('admin.packages.index') }}" method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control"
-                       placeholder="Name, code, description..." value="{{ request('search') }}">
+        <form action="{{ route('admin.packages.index') }}" method="GET" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Name, code, description..." value="{{ request('search') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Type</label>
+                    <select name="type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="online" {{ request('type') == 'online' ? 'selected' : '' }}>Online</option>
+                        <option value="offline" {{ request('type') == 'offline' ? 'selected' : '' }}>Offline</option>
+                        <option value="hybrid" {{ request('type') == 'hybrid' ? 'selected' : '' }}>Hybrid</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Grade Level</label>
+                    <select name="grade_level" class="form-select">
+                        <option value="">All Grades</option>
+                        @foreach($allGradeLevels as $grade)
+                            <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>
+                                {{ $grade }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Filter
+                    </button>
+                    <a href="{{ route('admin.packages.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i> Clear
+                    </a>
+                </div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Type</label>
-                <select name="type" class="form-select">
-                    <option value="">All Types</option>
-                    <option value="online" {{ request('type') == 'online' ? 'selected' : '' }}>Online</option>
-                    <option value="offline" {{ request('type') == 'offline' ? 'selected' : '' }}>Offline</option>
-                    <option value="hybrid" {{ request('type') == 'hybrid' ? 'selected' : '' }}>Hybrid</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Min Price (RM)</label>
-                <input type="number" name="min_price" class="form-control"
-                       placeholder="Min" value="{{ request('min_price') }}" min="0" step="0.01">
-            </div>
-            <div class="col-md-3 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search me-1"></i> Filter
-                </button>
-                <a href="{{ route('admin.packages.index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times me-1"></i> Clear
-                </a>
-            </div>
+
+            {{-- Active filter badges --}}
+            @if(request('search') || request('status') || request('type') || request('grade_level') || request('min_price') || request('max_price'))
+                <div class="mt-3 d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-muted small"><i class="fas fa-filter"></i> Active:</span>
+                    @if(request('search'))
+                        <span class="badge bg-secondary">Search: {{ request('search') }}</span>
+                    @endif
+                    @if(request('status'))
+                        <span class="badge bg-info">Status: {{ ucfirst(request('status')) }}</span>
+                    @endif
+                    @if(request('type'))
+                        <span class="badge bg-primary">Type: {{ ucfirst(request('type')) }}</span>
+                    @endif
+                    @if(request('grade_level'))
+                        <span class="badge bg-warning text-dark">Grade: {{ request('grade_level') }}</span>
+                    @endif
+                    @if(request('min_price'))
+                        <span class="badge bg-success">Min: RM {{ request('min_price') }}</span>
+                    @endif
+                    @if(request('max_price'))
+                        <span class="badge bg-success">Max: RM {{ request('max_price') }}</span>
+                    @endif
+                </div>
+            @endif
         </form>
     </div>
 </div>

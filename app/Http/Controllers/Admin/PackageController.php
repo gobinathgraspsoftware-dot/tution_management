@@ -43,6 +43,13 @@ class PackageController extends Controller
             $query->where('type', $request->type);
         }
 
+        // Filter by grade level — packages whose subjects include this grade
+        if ($request->filled('grade_level')) {
+            $query->whereHas('subjects', function ($q) use ($request) {
+                $q->whereJsonContains('grade_levels', $request->grade_level);
+            });
+        }
+
         // Filter by price range
         if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->min_price);
@@ -53,7 +60,15 @@ class PackageController extends Controller
 
         $packages = $query->latest()->paginate(15)->withQueryString();
 
-        return view('admin.packages.index', compact('packages'));
+        // Get unique grade levels from all subjects for the filter dropdown
+        $allGradeLevels = Subject::pluck('grade_levels')
+            ->flatten()
+            ->unique()
+            ->filter()
+            ->sort()
+            ->values();
+
+        return view('admin.packages.index', compact('packages', 'allGradeLevels'));
     }
 
     /**
