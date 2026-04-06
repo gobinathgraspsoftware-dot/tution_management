@@ -123,14 +123,19 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search me-1"></i> Filter
-                    </button>
-                    <a href="{{ route('admin.packages.index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times me-1"></i> Clear
-                    </a>
+                <div class="col-md-3">
+                    <label class="form-label">Min Price (RM)</label>
+                    <input type="number" name="min_price" class="form-control"
+                           placeholder="Min" value="{{ request('min_price') }}" min="0" step="0.01">
                 </div>
+            </div>
+            <div class="mt-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+                <a href="{{ route('admin.packages.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i> Clear
+                </a>
             </div>
 
             {{-- Active filter badges --}}
