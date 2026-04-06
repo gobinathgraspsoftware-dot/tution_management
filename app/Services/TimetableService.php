@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ClassSchedule;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
 class TimetableService
@@ -301,14 +302,25 @@ class TimetableService
     }
 
     /**
-     * Export timetable to PDF.
+     * Export timetable to PDF using DomPDF.
      */
     public function exportToPdf($timetableData, $view, $filename)
     {
-        return response()->json([
-            'message' => 'PDF export feature - to be implemented with DomPDF',
-            'data'    => $timetableData,
+        $date = now()->format('Y-m-d');
+
+        // Determine orientation: landscape for weekly, portrait for daily
+        $orientation = ($view === 'weekly') ? 'landscape' : 'portrait';
+
+        $pdf = Pdf::loadView('admin.timetable.pdf', [
+            'timetableData' => $timetableData,
+            'view'          => $view,
+            'date'          => $date,
+            'generatedAt'   => now()->format('F j, Y h:i A'),
         ]);
+
+        $pdf->setPaper('A4', $orientation);
+
+        return $pdf->download($filename . '.pdf');
     }
 
     /**

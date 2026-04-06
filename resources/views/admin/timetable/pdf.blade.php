@@ -1,91 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timetable - Arena Matriks Edu Group</title>
     <style>
-        /* ── Reset & Base ──────────────────────────────── */
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ── Base ──────────────────────────────────────── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            font-size: 13px;
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+            font-size: 10px;
             color: #333;
-            background: #fff;
-            line-height: 1.5;
-            padding: 20px 30px;
+            line-height: 1.4;
         }
 
-        /* ── Print-specific ────────────────────────────── */
-        @media print {
-            body { padding: 0; font-size: 11px; }
-            .no-print { display: none !important; }
-            .page-header { border-bottom-color: #333 !important; }
-            .class-block { page-break-inside: avoid; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; }
-            @page { margin: 15mm 10mm; }
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        /* ── Page Header ───────────────────────────────── */
-        .page-header {
+        /* ── Header ────────────────────────────────────── */
+        .header {
             text-align: center;
             border-bottom: 3px solid #2563eb;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
         }
-        .page-header h1 {
-            font-size: 22px;
+        .header h1 {
+            font-size: 18px;
             color: #1e40af;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
-        .page-header h2 {
-            font-size: 16px;
-            font-weight: 400;
+        .header h2 {
+            font-size: 14px;
+            font-weight: normal;
             color: #555;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
-        .page-header .period {
-            font-size: 15px;
-            font-weight: 600;
+        .header .period {
+            font-size: 12px;
             color: #2563eb;
+            font-weight: bold;
         }
-        .page-header .meta {
-            font-size: 11px;
+        .header .meta {
+            font-size: 8px;
             color: #999;
             margin-top: 4px;
         }
-
-        /* ── Print Controls ────────────────────────────── */
-        .print-controls {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 12px;
-            background: #f0f9ff;
-            border-radius: 8px;
-            border: 1px solid #bfdbfe;
-        }
-        .print-controls button {
-            padding: 8px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 0 5px;
-        }
-        .btn-print {
-            background: #2563eb;
-            color: #fff;
-        }
-        .btn-print:hover { background: #1d4ed8; }
-        .btn-close-page {
-            background: #e5e7eb;
-            color: #333;
-        }
-        .btn-close-page:hover { background: #d1d5db; }
 
         /* ── Tables ────────────────────────────────────── */
         table {
@@ -96,131 +51,126 @@
         th {
             background-color: #2563eb;
             color: #fff;
-            font-weight: 600;
+            font-weight: bold;
             text-align: center;
-            padding: 8px 5px;
-            font-size: 12px;
+            padding: 6px 4px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         td {
             border: 1px solid #d1d5db;
-            padding: 5px;
+            padding: 4px;
             vertical-align: top;
+            font-size: 9px;
+        }
+        tr:nth-child(even) td {
+            background-color: #f9fafb;
         }
 
         /* ── Time column ───────────────────────────────── */
         .time-cell {
             text-align: center;
-            font-weight: 600;
+            font-weight: bold;
             background-color: #f3f4f6 !important;
-            width: 100px;
-            font-size: 11px;
-            vertical-align: middle;
+            width: 80px;
             white-space: nowrap;
+            font-size: 8px;
+            vertical-align: middle;
         }
 
-        /* ── Class block ───────────────────────────────── */
+        /* ── Class block inside cell ───────────────────── */
         .class-block {
-            border-left: 4px solid;
-            padding: 5px 7px;
-            margin-bottom: 5px;
-            border-radius: 3px;
-            background-color: #fafbfc;
+            border-left: 3px solid;
+            padding: 3px 5px;
+            margin-bottom: 3px;
+            border-radius: 2px;
+            background-color: #f0f9ff;
         }
         .class-block:last-child { margin-bottom: 0; }
         .class-name {
-            font-weight: 700;
-            font-size: 12px;
+            font-weight: bold;
+            font-size: 9px;
             margin-bottom: 1px;
         }
         .class-detail {
-            font-size: 10px;
+            font-size: 7.5px;
             color: #666;
         }
-        .badge {
+        .badge-online {
             display: inline-block;
-            font-size: 9px;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            margin-top: 2px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 7px;
+            padding: 1px 4px;
+            border-radius: 3px;
         }
-        .badge-online  { background: #dbeafe; color: #1d4ed8; }
-        .badge-offline { background: #dcfce7; color: #16a34a; }
+        .badge-offline {
+            display: inline-block;
+            background: #16a34a;
+            color: #fff;
+            font-size: 7px;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
 
         /* ── Daily view ────────────────────────────────── */
-        .daily-table td { padding: 10px 8px; font-size: 12px; }
+        .daily-table th { text-align: left; }
+        .daily-table td { padding: 8px 6px; }
 
         /* ── Monthly calendar ──────────────────────────── */
         .month-cell {
-            height: 80px;
+            height: 60px;
             width: 14.28%;
         }
         .month-cell .day-num {
-            font-weight: 700;
-            font-size: 13px;
-            margin-bottom: 3px;
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 2px;
         }
         .month-cell.other-month {
-            background-color: #f9fafb;
+            background-color: #f3f4f6;
+            color: #aaa;
         }
-        .month-cell.other-month .day-num { color: #ccc; }
         .month-event {
-            font-size: 9px;
-            border-left: 3px solid;
-            padding-left: 3px;
-            margin-bottom: 2px;
+            font-size: 7px;
+            border-left: 2px solid;
+            padding-left: 2px;
+            margin-bottom: 1px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .month-badge {
-            display: inline-block;
-            font-size: 9px;
-            background: #2563eb;
-            color: #fff;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            text-align: center;
-            line-height: 18px;
-            float: right;
         }
 
         /* ── Empty state ───────────────────────────────── */
         .empty-state {
             text-align: center;
-            padding: 40px;
+            padding: 30px;
             color: #999;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         /* ── Footer ────────────────────────────────────── */
-        .page-footer {
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 10px;
-            color: #aaa;
+            font-size: 8px;
+            color: #999;
             border-top: 1px solid #e5e7eb;
-            padding-top: 10px;
-            margin-top: 25px;
+            padding-top: 5px;
         }
+
+        /* ── Page break control ────────────────────────── */
+        .page-break { page-break-after: always; }
     </style>
 </head>
 <body>
 
-    {{-- ── Print Controls (hidden on print) ──────────── --}}
-    <div class="print-controls no-print">
-        <button class="btn-print" onclick="window.print()">
-            &#128438; Print Timetable
-        </button>
-        <button class="btn-close-page" onclick="window.close()">
-            &#10005; Close
-        </button>
-    </div>
-
-    {{-- ── Page Header ───────────────────────────────── --}}
-    <div class="page-header">
+    {{-- ── PDF Header ───────────────────────────────── --}}
+    <div class="header">
         <h1>Arena Matriks Edu Group</h1>
         <h2>Class Timetable</h2>
         <div class="period">
@@ -228,37 +178,35 @@
                 {{ \Carbon\Carbon::parse($timetableData['date'])->format('l, F j, Y') }}
             @elseif($view == 'weekly')
                 Week {{ $timetableData['week_number'] }}
-                &mdash;
-                {{ \Carbon\Carbon::parse($timetableData['start_date'])->format('M j') }}
-                to
-                {{ \Carbon\Carbon::parse($timetableData['end_date'])->format('M j, Y') }}
+                ({{ \Carbon\Carbon::parse($timetableData['start_date'])->format('M j') }} &ndash;
+                {{ \Carbon\Carbon::parse($timetableData['end_date'])->format('M j, Y') }})
             @else
                 {{ $timetableData['month'] ?? \Carbon\Carbon::parse($date)->format('F Y') }}
             @endif
         </div>
-        <div class="meta">Generated on: {{ now()->format('F j, Y h:i A') }}</div>
+        <div class="meta">Generated on: {{ $generatedAt }}</div>
     </div>
 
-    {{-- ══════════════════════════════════════════════════ --}}
-    {{-- DAILY VIEW                                         --}}
-    {{-- ══════════════════════════════════════════════════ --}}
+    {{-- ══════════════════════════════════════════════ --}}
+    {{-- DAILY VIEW                                     --}}
+    {{-- ══════════════════════════════════════════════ --}}
     @if($view == 'daily')
         @if(isset($timetableData['schedules']) && count($timetableData['schedules']) > 0)
             <table class="daily-table">
                 <thead>
                     <tr>
-                        <th style="width:18%;">Time</th>
-                        <th style="width:18%;">Class</th>
+                        <th style="width:15%;">Time</th>
+                        <th style="width:20%;">Class</th>
                         <th style="width:15%;">Subject</th>
                         <th style="width:18%;">Teacher</th>
-                        <th style="width:18%;">Location</th>
-                        <th style="width:10%;">Type</th>
+                        <th style="width:15%;">Location</th>
+                        <th style="width:9%;">Type</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($timetableData['schedules'] as $schedule)
                         <tr>
-                            <td style="white-space:nowrap; font-weight:600;">
+                            <td style="white-space:nowrap;">
                                 {{ date('h:i A', strtotime($schedule['start_time'])) }}
                                 &ndash;
                                 {{ date('h:i A', strtotime($schedule['end_time'])) }}
@@ -268,7 +216,7 @@
                             <td>{{ $schedule['teacher_name'] ?? $schedule['teacher'] ?? 'N/A' }}</td>
                             <td>{{ $schedule['location'] ?? '-' }}</td>
                             <td>
-                                <span class="badge {{ $schedule['type'] == 'online' ? 'badge-online' : 'badge-offline' }}">
+                                <span class="{{ $schedule['type'] == 'online' ? 'badge-online' : 'badge-offline' }}">
                                     {{ ucfirst($schedule['type']) }}
                                 </span>
                             </td>
@@ -280,9 +228,9 @@
             <div class="empty-state">No classes scheduled for this day.</div>
         @endif
 
-    {{-- ══════════════════════════════════════════════════ --}}
-    {{-- WEEKLY VIEW                                        --}}
-    {{-- ══════════════════════════════════════════════════ --}}
+    {{-- ══════════════════════════════════════════════ --}}
+    {{-- WEEKLY VIEW                                    --}}
+    {{-- ══════════════════════════════════════════════ --}}
     @elseif($view == 'weekly')
         @php
             $timeSlots = [];
@@ -297,14 +245,14 @@
             }
             ksort($timeSlots);
             $dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            $dayKeys    = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+            $dayKeys    = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         @endphp
 
         @if(count($timeSlots) > 0)
             <table>
                 <thead>
                     <tr>
-                        <th style="width:100px;">Time</th>
+                        <th style="width:80px;">Time</th>
                         @foreach($dayHeaders as $dh)
                             <th>{{ $dh }}</th>
                         @endforeach
@@ -315,7 +263,7 @@
                         <tr>
                             <td class="time-cell">
                                 {{ date('h:i A', strtotime($timeSlot['start'])) }}<br>
-                                &#8595;<br>
+                                &darr;<br>
                                 {{ date('h:i A', strtotime($timeSlot['end'])) }}
                             </td>
                             @foreach($dayKeys as $day)
@@ -334,7 +282,7 @@
                                             @if(!empty($schedule['location']))
                                                 <div class="class-detail">{{ $schedule['location'] }}</div>
                                             @endif
-                                            <span class="badge {{ $schedule['type'] == 'online' ? 'badge-online' : 'badge-offline' }}">
+                                            <span class="{{ $schedule['type'] == 'online' ? 'badge-online' : 'badge-offline' }}">
                                                 {{ ucfirst($schedule['type']) }}
                                             </span>
                                         </div>
@@ -349,9 +297,9 @@
             <div class="empty-state">No classes scheduled for this week.</div>
         @endif
 
-    {{-- ══════════════════════════════════════════════════ --}}
-    {{-- MONTHLY VIEW                                       --}}
-    {{-- ══════════════════════════════════════════════════ --}}
+    {{-- ══════════════════════════════════════════════ --}}
+    {{-- MONTHLY VIEW                                   --}}
+    {{-- ══════════════════════════════════════════════ --}}
     @else
         @php
             $startDate  = \Carbon\Carbon::parse($timetableData['start_date']);
@@ -386,22 +334,17 @@
                                 $isCurrentMonth = $dateObj->month == $startDate->month;
                             @endphp
                             <td class="month-cell {{ !$isCurrentMonth ? 'other-month' : '' }}">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span class="day-num">{{ $dateObj->format('j') }}</span>
-                                    @if(count($schedules) > 0)
-                                        <span class="month-badge">{{ count($schedules) }}</span>
-                                    @endif
-                                </div>
+                                <div class="day-num">{{ $dateObj->format('j') }}</div>
                                 @if($isCurrentMonth && count($schedules) > 0)
-                                    @foreach(collect($schedules)->take(2) as $schedule)
+                                    @foreach(collect($schedules)->take(3) as $schedule)
                                         <div class="month-event" style="border-left-color: {{ $schedule['color'] }};">
                                             {{ date('h:iA', strtotime($schedule['start_time'])) }}
                                             {{ $schedule['class_name'] }}
                                         </div>
                                     @endforeach
-                                    @if(count($schedules) > 2)
-                                        <div style="font-size:9px; color:#666; text-align:center;">
-                                            +{{ count($schedules) - 2 }} more
+                                    @if(count($schedules) > 3)
+                                        <div style="font-size:7px; color:#666; text-align:center;">
+                                            +{{ count($schedules) - 3 }} more
                                         </div>
                                     @endif
                                 @endif
@@ -413,8 +356,8 @@
         </table>
     @endif
 
-    {{-- ── Footer ────────────────────────────────────── --}}
-    <div class="page-footer">
+    {{-- ── Footer ───────────────────────────────────── --}}
+    <div class="footer">
         &copy; {{ date('Y') }} Arena Matriks Edu Group. All rights reserved.
     </div>
 
