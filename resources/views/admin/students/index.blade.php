@@ -75,13 +75,18 @@
 
             <!-- Second Row Filters -->
             <div class="col-md-2">
+                {{-- ═══ GRADE LEVEL filter — changed from distinct varchar to DB objects with id ═══ --}}
                 <label class="form-label">Grade Level</label>
                 <select name="grade_level" class="form-select">
                     <option value="">All Grades</option>
                     @foreach($gradeLevels as $grade)
-                        <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>{{ $grade }}</option>
+                        <option value="{{ $grade->id }}"
+                            {{ request('grade_level') == $grade->id ? 'selected' : '' }}>
+                            {{ $grade->name }}
+                        </option>
                     @endforeach
                 </select>
+                {{-- ══════════════════════════════════════════════════════════════════════════════ --}}
             </div>
             <div class="col-md-2">
                 <label class="form-label">Gender</label>
@@ -122,7 +127,9 @@
             </span>
         @endif
         @if(request('grade_level'))
-            <span class="badge bg-dark">Grade: {{ request('grade_level') }}
+            {{-- ← CHANGED: look up name from collection by id --}}
+            @php $selectedGrade = $gradeLevels->firstWhere('id', request('grade_level')); @endphp
+            <span class="badge bg-dark">Grade: {{ $selectedGrade?->name ?? request('grade_level') }}
                 <a href="{{ request()->fullUrlWithQuery(['grade_level' => null]) }}" class="text-white ms-1"><i class="fas fa-times"></i></a>
             </span>
         @endif
@@ -195,7 +202,11 @@
                                 @endif
                             </td>
                             <td>{{ $student->school_name ? Str::limit($student->school_name, 20) : '-' }}</td>
-                            <td>{{ $student->grade_level ?? '-' }}</td>
+
+                            {{-- ═══ GRADE LEVEL display — changed from $student->grade_level to relationship ═══ --}}
+                            <td>{{ $student->gradeLevel->name ?? '-' }}</td>
+                            {{-- ════════════════════════════════════════════════════════════════════════════════ --}}
+
                             <td>
                                 @if($student->registration_type == 'online')
                                     <span class="badge bg-info"><i class="fas fa-globe me-1"></i>Online</span>

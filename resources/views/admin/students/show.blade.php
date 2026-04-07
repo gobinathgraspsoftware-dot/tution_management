@@ -36,15 +36,15 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-body text-center">
-                <div class="user-avatar mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2.5rem; background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);">
+                <div class="user-avatar mx-auto mb-3" style="width:100px;height:100px;font-size:2.5rem;background:linear-gradient(135deg,#2196f3 0%,#1976d2 100%);">
                     {{ substr($student->user->name, 0, 1) }}
                 </div>
                 <h4>{{ $student->user->name }}</h4>
-                <p class="text-muted mb-2">{{ $student->grade_level ?? 'Student' }}</p>
+                {{-- ─── Grade name via relationship ─────────────────── --}}
+                <p class="text-muted mb-2">{{ $student->gradeLevel->name ?? 'Student' }}</p>
+                {{-- ───────────────────────────────────────────────────── --}}
                 <span class="badge bg-primary">{{ $student->student_id }}</span>
-
                 <hr>
-
                 <div class="d-flex justify-content-center gap-2">
                     @if($student->approval_status == 'approved')
                         <span class="badge bg-success">Approved</span>
@@ -53,7 +53,6 @@
                     @else
                         <span class="badge bg-danger">Rejected</span>
                     @endif
-
                     @if($student->user->status == 'active')
                         <span class="badge bg-success">Active</span>
                     @else
@@ -71,9 +70,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Email</label>
-                    <p class="mb-0">
-                        <a href="mailto:{{ $student->user->email }}">{{ $student->user->email }}</a>
-                    </p>
+                    <p class="mb-0"><a href="mailto:{{ $student->user->email }}">{{ $student->user->email }}</a></p>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Password</label>
@@ -156,9 +153,7 @@
                         </div>
                     @endif
                 </div>
-                <small class="text-muted d-block mt-2 text-center">
-                    Send login credentials to student's WhatsApp
-                </small>
+                <small class="text-muted d-block mt-2 text-center">Send login credentials to student's WhatsApp</small>
             </div>
         </div>
         @endif
@@ -176,12 +171,10 @@
                         <label class="form-label text-muted small mb-1">IC Number</label>
                         <p class="mb-0"><strong>
                             @php
-                                $icNumber = $student->ic_number;
-                                if (strlen($icNumber) === 12) {
-                                    echo substr($icNumber, 0, 6) . '-' . substr($icNumber, 6, 2) . '-' . substr($icNumber, 8, 4);
-                                } else {
-                                    echo $icNumber;
-                                }
+                                $ic = $student->ic_number;
+                                echo strlen($ic) === 12
+                                    ? substr($ic,0,6).'-'.substr($ic,6,2).'-'.substr($ic,8,4)
+                                    : $ic;
                             @endphp
                         </strong></p>
                     </div>
@@ -197,6 +190,14 @@
                         <label class="form-label text-muted small mb-1">School</label>
                         <p class="mb-0">{{ $student->school_name ?? 'N/A' }}</p>
                     </div>
+
+                    {{-- ─── Grade name via relationship ─────────────────── --}}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small mb-1">Grade Level</label>
+                        <p class="mb-0">{{ $student->gradeLevel->name ?? 'N/A' }}</p>
+                    </div>
+                    {{-- ───────────────────────────────────────────────────── --}}
+
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Registration Type</label>
                         <p class="mb-0">
@@ -259,9 +260,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small mb-1">Email</label>
-                        <p class="mb-0">
-                            <a href="mailto:{{ $student->parent->user->email }}">{{ $student->parent->user->email }}</a>
-                        </p>
+                        <p class="mb-0"><a href="mailto:{{ $student->parent->user->email }}">{{ $student->parent->user->email }}</a></p>
                     </div>
                 </div>
                 @else
@@ -270,7 +269,7 @@
             </div>
         </div>
 
-        <!-- Active Enrollments -->
+        <!-- Enrollments -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-graduation-cap me-2"></i> Enrollments</span>
@@ -281,12 +280,7 @@
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
-                            <tr>
-                                <th>Package</th>
-                                <th>Class</th>
-                                <th>Status</th>
-                                <th>Start Date</th>
-                            </tr>
+                            <tr><th>Package</th><th>Class</th><th>Status</th><th>Start Date</th></tr>
                         </thead>
                         <tbody>
                             @foreach($student->enrollments as $enrollment)
@@ -294,12 +288,8 @@
                                 <td>{{ $enrollment->package->name ?? 'N/A' }}</td>
                                 <td>{{ $enrollment->class->name ?? 'N/A' }}</td>
                                 <td>
-                                    @php
-                                        $statusBadge = ['active' => 'bg-success', 'suspended' => 'bg-warning text-dark', 'cancelled' => 'bg-danger', 'expired' => 'bg-secondary'];
-                                    @endphp
-                                    <span class="badge {{ $statusBadge[$enrollment->status] ?? 'bg-secondary' }}">
-                                        {{ ucfirst($enrollment->status) }}
-                                    </span>
+                                    @php $sb = ['active'=>'bg-success','suspended'=>'bg-warning text-dark','cancelled'=>'bg-danger','expired'=>'bg-secondary']; @endphp
+                                    <span class="badge {{ $sb[$enrollment->status] ?? 'bg-secondary' }}">{{ ucfirst($enrollment->status) }}</span>
                                 </td>
                                 <td>{{ $enrollment->start_date?->format('d M Y') ?? 'N/A' }}</td>
                             </tr>
@@ -315,21 +305,12 @@
 
         <!-- Recent Payments -->
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-money-bill-wave me-2"></i> Recent Payments
-            </div>
+            <div class="card-header"><i class="fas fa-money-bill-wave me-2"></i> Recent Payments</div>
             <div class="card-body">
                 @if($student->payments->count() > 0)
                 <div class="table-responsive">
                     <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Method</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
                         <tbody>
                             @foreach($student->payments as $payment)
                             <tr>
@@ -337,12 +318,8 @@
                                 <td>RM {{ number_format($payment->amount, 2) }}</td>
                                 <td>{{ ucfirst($payment->payment_method ?? 'N/A') }}</td>
                                 <td>
-                                    @php
-                                        $pStatusBadge = ['completed' => 'bg-success', 'pending' => 'bg-warning text-dark', 'failed' => 'bg-danger'];
-                                    @endphp
-                                    <span class="badge {{ $pStatusBadge[$payment->status] ?? 'bg-secondary' }}">
-                                        {{ ucfirst($payment->status) }}
-                                    </span>
+                                    @php $pb = ['completed'=>'bg-success','pending'=>'bg-warning text-dark','failed'=>'bg-danger']; @endphp
+                                    <span class="badge {{ $pb[$payment->status] ?? 'bg-secondary' }}">{{ ucfirst($payment->status) }}</span>
                                 </td>
                             </tr>
                             @endforeach
@@ -357,32 +334,20 @@
 
         <!-- Recent Attendance -->
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-calendar-check me-2"></i> Recent Attendance
-            </div>
+            <div class="card-header"><i class="fas fa-calendar-check me-2"></i> Recent Attendance</div>
             <div class="card-body">
                 @if($student->attendance->count() > 0)
                 <div class="table-responsive">
                     <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Class</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Date</th><th>Class</th><th>Status</th></tr></thead>
                         <tbody>
                             @foreach($student->attendance as $att)
                             <tr>
                                 <td>{{ $att->created_at->format('d M Y') }}</td>
                                 <td>{{ $att->classSession->class->name ?? 'N/A' }}</td>
                                 <td>
-                                    @php
-                                        $attBadge = ['present' => 'bg-success', 'absent' => 'bg-danger', 'late' => 'bg-warning text-dark', 'excused' => 'bg-info'];
-                                    @endphp
-                                    <span class="badge {{ $attBadge[$att->status] ?? 'bg-secondary' }}">
-                                        {{ ucfirst($att->status) }}
-                                    </span>
+                                    @php $ab = ['present'=>'bg-success','absent'=>'bg-danger','late'=>'bg-warning text-dark','excused'=>'bg-info']; @endphp
+                                    <span class="badge {{ $ab[$att->status] ?? 'bg-secondary' }}">{{ ucfirst($att->status) }}</span>
                                 </td>
                             </tr>
                             @endforeach
@@ -406,71 +371,31 @@
 
 @push('scripts')
 <script>
-let passwordShowing = false;
-const storedPassword = '{{ $student->user->password_view ?? "" }}';
+let pwShowing = false;
+const storedPw = '{{ $student->user->password_view ?? "" }}';
 
 function togglePasswordView() {
-    const passwordInput = document.getElementById('passwordView');
-    const toggleIcon = document.getElementById('passwordToggleIcon');
-
-    if (!passwordShowing && storedPassword) {
-        passwordInput.type = 'text';
-        passwordInput.value = storedPassword;
-        toggleIcon.classList.remove('fa-eye');
-        toggleIcon.classList.add('fa-eye-slash');
-        passwordShowing = true;
+    const el   = document.getElementById('passwordView');
+    const icon = document.getElementById('passwordToggleIcon');
+    if (!pwShowing && storedPw) {
+        el.type = 'text'; el.value = storedPw;
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+        pwShowing = true;
     } else {
-        passwordInput.type = 'password';
-        passwordInput.value = '••••••••';
-        toggleIcon.classList.remove('fa-eye-slash');
-        toggleIcon.classList.add('fa-eye');
-        passwordShowing = false;
+        el.type = 'password'; el.value = '••••••••';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+        pwShowing = false;
     }
 }
 </script>
-
 <style>
-/* WhatsApp themed elements */
-.border-success {
-    border-color: #25D366 !important;
-}
-
-.bg-success {
-    background-color: #25D366 !important;
-}
-
-.btn-success {
-    background-color: #25D366;
-    border-color: #25D366;
-}
-
-.btn-success:hover {
-    background-color: #1da851;
-    border-color: #1da851;
-}
-
-.btn-outline-success {
-    color: #25D366;
-    border-color: #25D366;
-}
-
-.btn-outline-success:hover {
-    background-color: #25D366;
-    border-color: #25D366;
-    color: white;
-}
-
-.text-success {
-    color: #25D366 !important;
-}
-
-.user-avatar {
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-}
+.border-success { border-color: #25D366 !important; }
+.bg-success     { background-color: #25D366 !important; }
+.btn-success    { background-color: #25D366; border-color: #25D366; }
+.btn-success:hover { background-color: #1da851; border-color: #1da851; }
+.btn-outline-success { color: #25D366; border-color: #25D366; }
+.btn-outline-success:hover { background-color: #25D366; color: white; }
+.text-success   { color: #25D366 !important; }
+.user-avatar    { border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
 </style>
 @endpush

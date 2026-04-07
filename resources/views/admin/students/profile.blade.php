@@ -37,10 +37,8 @@
     <div class="card-body">
         <div class="row align-items-center">
             <div class="col-md-2 text-center">
-                <div class="avatar-circle" style="width: 120px; height: 120px; background: linear-gradient(135deg, #fda530 0%, #4c4c4c 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-                    <span style="font-size: 48px; color: white; font-weight: bold;">
-                        {{ strtoupper(substr($student->user->name, 0, 2)) }}
-                    </span>
+                <div class="avatar-circle" style="width:120px;height:120px;background:linear-gradient(135deg,#fda530 0%,#4c4c4c 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+                    <span style="font-size:48px;color:white;font-weight:bold;">{{ strtoupper(substr($student->user->name, 0, 2)) }}</span>
                 </div>
             </div>
             <div class="col-md-6">
@@ -56,9 +54,7 @@
                     @endif
                     <span class="badge bg-info">{{ ucfirst($student->registration_type) }}</span>
                 </p>
-                <p class="mb-1">
-                    <i class="fas fa-envelope me-2"></i> {{ $student->user->email }}
-                </p>
+                <p class="mb-1"><i class="fas fa-envelope me-2"></i> {{ $student->user->email }}</p>
                 <p class="mb-1">
                     <i class="fas fa-phone me-2"></i> {{ $student->user->phone ?? 'N/A' }}
                     @if(($whatsappEnabled ?? config('notification.whatsapp.enabled', false)) && $student->user->phone)
@@ -68,10 +64,15 @@
                         </a>
                     @endif
                 </p>
-                <p class="mb-0"><i class="fas fa-school me-2"></i> {{ $student->school_name ?? 'N/A' }} - {{ $student->grade_level ?? 'N/A' }}</p>
+                {{-- ─── Grade name via relationship ─────────────────── --}}
+                <p class="mb-0">
+                    <i class="fas fa-school me-2"></i>
+                    {{ $student->school_name ?? 'N/A' }} - {{ $student->gradeLevel->name ?? 'N/A' }}
+                </p>
+                {{-- ───────────────────────────────────────────────────── --}}
             </div>
             <div class="col-md-4">
-                <div class="referral-card p-3 rounded" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                <div class="referral-card p-3 rounded" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:white;">
                     <h6 class="mb-2"><i class="fas fa-gift me-1"></i> Referral Code</h6>
                     <h3 class="mb-2">{{ $student->referral_code ?? 'Not Generated' }}</h3>
                     @if($student->referral_code)
@@ -93,9 +94,7 @@
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-icon" style="background-color: #e3f2fd; color: #2196f3;">
-                <i class="fas fa-book"></i>
-            </div>
+            <div class="stat-icon" style="background-color:#e3f2fd;color:#2196f3;"><i class="fas fa-book"></i></div>
             <div class="stat-details">
                 <h3 class="mb-0">{{ $stats['active_enrollments'] }}/{{ $stats['total_enrollments'] }}</h3>
                 <p class="text-muted mb-0">Active Enrollments</p>
@@ -104,9 +103,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-icon" style="background-color: #e8f5e9; color: #4caf50;">
-                <i class="fas fa-money-bill-wave"></i>
-            </div>
+            <div class="stat-icon" style="background-color:#e8f5e9;color:#4caf50;"><i class="fas fa-money-bill-wave"></i></div>
             <div class="stat-details">
                 <h3 class="mb-0">RM {{ number_format($stats['total_paid'], 2) }}</h3>
                 <p class="text-muted mb-0">Total Paid</p>
@@ -115,9 +112,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-icon" style="background-color: #fff3e0; color: #ff9800;">
-                <i class="fas fa-chart-line"></i>
-            </div>
+            <div class="stat-icon" style="background-color:#fff3e0;color:#ff9800;"><i class="fas fa-chart-line"></i></div>
             <div class="stat-details">
                 <h3 class="mb-0">{{ $stats['attendance_rate'] }}%</h3>
                 <p class="text-muted mb-0">Attendance Rate</p>
@@ -126,9 +121,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-icon" style="background-color: #f3e5f5; color: #9c27b0;">
-                <i class="fas fa-users"></i>
-            </div>
+            <div class="stat-icon" style="background-color:#f3e5f5;color:#9c27b0;"><i class="fas fa-users"></i></div>
             <div class="stat-details">
                 <h3 class="mb-0">{{ $stats['total_referrals'] }}</h3>
                 <p class="text-muted mb-0">Successful Referrals</p>
@@ -141,9 +134,7 @@
     <!-- Personal Information -->
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-info-circle me-2"></i> Personal Information
-            </div>
+            <div class="card-header"><i class="fas fa-info-circle me-2"></i> Personal Information</div>
             <div class="card-body">
                 <table class="table table-borderless">
                     <tr>
@@ -151,11 +142,9 @@
                         <td><strong>
                             @php
                                 $ic = $student->ic_number ?? '';
-                                if (strlen($ic) === 12) {
-                                    echo substr($ic, 0, 6) . '-' . substr($ic, 6, 2) . '-' . substr($ic, 8, 4);
-                                } else {
-                                    echo $ic ?: 'N/A';
-                                }
+                                echo strlen($ic) === 12
+                                    ? substr($ic,0,6).'-'.substr($ic,6,2).'-'.substr($ic,8,4)
+                                    : ($ic ?: 'N/A');
                             @endphp
                         </strong></td>
                     </tr>
@@ -167,6 +156,12 @@
                         <td class="text-muted">Gender</td>
                         <td><strong>{{ ucfirst($student->gender ?? 'N/A') }}</strong></td>
                     </tr>
+                    {{-- ─── Grade name via relationship ─────────────────── --}}
+                    <tr>
+                        <td class="text-muted">Grade Level</td>
+                        <td><strong>{{ $student->gradeLevel->name ?? 'N/A' }}</strong></td>
+                    </tr>
+                    {{-- ───────────────────────────────────────────────────── --}}
                     <tr>
                         <td class="text-muted">Address</td>
                         <td><strong>{{ $student->address ?? 'N/A' }}</strong></td>
@@ -241,7 +236,7 @@
                     <a href="{{ route('admin.students.resend-whatsapp', $student) }}"
                        class="btn btn-outline-success"
                        onclick="return confirm('Send registration details with login credentials via WhatsApp?');">
-                        <i class="fab fa-whatsapp me-1"></i> Send Credentials to Parent
+                        <i class="fab fa-whatsapp me-1"></i> Send Credentials to Student
                     </a>
                     @if($student->parent && $student->parent->user->phone)
                         <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $student->parent->user->phone) }}"
@@ -250,9 +245,7 @@
                         </a>
                     @endif
                 </div>
-                <small class="text-muted d-block mt-2 text-center">
-                    Send login credentials or chat directly with parent
-                </small>
+                <small class="text-muted d-block mt-2 text-center">Send login credentials or chat directly with parent</small>
             </div>
         </div>
         @endif
@@ -262,9 +255,7 @@
     <div class="col-md-6">
         <!-- Referral & Voucher Info -->
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-gift me-2"></i> Referral & Voucher Summary
-            </div>
+            <div class="card-header"><i class="fas fa-gift me-2"></i> Referral & Voucher Summary</div>
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col-4">
@@ -280,18 +271,16 @@
                         <small class="text-muted">Active Vouchers</small>
                     </div>
                 </div>
-
                 @if($student->referrer)
                 <hr>
                 <p class="mb-1"><small class="text-muted">Referred by:</small></p>
                 <p><strong>{{ $student->referrer->user->name }}</strong> ({{ $student->referrer->student_id }})</p>
                 @endif
-
                 @if(isset($referredStudents) && $referredStudents->count() > 0)
                 <hr>
                 <p class="mb-2"><small class="text-muted">Students Referred:</small></p>
-                @foreach($referredStudents as $referred)
-                <span class="badge bg-secondary me-1">{{ $referred->user->name }}</span>
+                @foreach($referredStudents as $ref)
+                    <span class="badge bg-secondary me-1">{{ $ref->user->name }}</span>
                 @endforeach
                 @endif
             </div>
@@ -299,9 +288,7 @@
 
         <!-- Active Enrollments -->
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-graduation-cap me-2"></i> Active Enrollments
-            </div>
+            <div class="card-header"><i class="fas fa-graduation-cap me-2"></i> Active Enrollments</div>
             <div class="card-body">
                 @forelse($student->enrollments->where('status', 'active') as $enrollment)
                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
@@ -324,11 +311,7 @@
                 @if(($stats['average_rating'] ?? 0) > 0)
                 <span class="float-end">
                     @for($i = 1; $i <= 5; $i++)
-                        @if($i <= round($stats['average_rating']))
-                            <i class="fas fa-star text-warning"></i>
-                        @else
-                            <i class="far fa-star text-warning"></i>
-                        @endif
+                        <i class="{{ $i <= round($stats['average_rating']) ? 'fas' : 'far' }} fa-star text-warning"></i>
                     @endfor
                     ({{ number_format($stats['average_rating'], 1) }})
                 </span>
@@ -340,11 +323,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             @for($i = 1; $i <= 5; $i++)
-                                @if($i <= $review->rating)
-                                    <i class="fas fa-star text-warning"></i>
-                                @else
-                                    <i class="far fa-star text-warning"></i>
-                                @endif
+                                <i class="{{ $i <= $review->rating ? 'fas' : 'far' }} fa-star text-warning"></i>
                             @endfor
                         </div>
                         <small class="text-muted">{{ $review->created_at->format('d M Y') }}</small>
@@ -365,20 +344,12 @@
 
 <!-- Recent Invoices -->
 <div class="card mb-4">
-    <div class="card-header">
-        <i class="fas fa-file-invoice me-2"></i> Recent Invoices
-    </div>
+    <div class="card-header"><i class="fas fa-file-invoice me-2"></i> Recent Invoices</div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
-                    <tr>
-                        <th>Invoice #</th>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                    </tr>
+                    <tr><th>Invoice #</th><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                     @forelse($student->invoices as $invoice)
@@ -388,21 +359,12 @@
                         <td>{{ Str::limit($invoice->description, 50) }}</td>
                         <td>RM {{ number_format($invoice->total_amount, 2) }}</td>
                         <td>
-                            @if($invoice->status === 'paid')
-                                <span class="badge bg-success">Paid</span>
-                            @elseif($invoice->status === 'pending')
-                                <span class="badge bg-warning">Pending</span>
-                            @elseif($invoice->status === 'overdue')
-                                <span class="badge bg-danger">Overdue</span>
-                            @else
-                                <span class="badge bg-secondary">{{ ucfirst($invoice->status) }}</span>
-                            @endif
+                            @php $ib = ['paid'=>'bg-success','pending'=>'bg-warning','overdue'=>'bg-danger']; @endphp
+                            <span class="badge {{ $ib[$invoice->status] ?? 'bg-secondary' }}">{{ ucfirst($invoice->status) }}</span>
                         </td>
                     </tr>
                     @empty
-                    <tr>
-                        <td colspan="5" class="text-center text-muted">No invoices found</td>
-                    </tr>
+                    <tr><td colspan="5" class="text-center text-muted">No invoices found</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -413,19 +375,12 @@
 <!-- Trial Classes -->
 @if($student->trialClasses->count() > 0)
 <div class="card mb-4">
-    <div class="card-header">
-        <i class="fas fa-chalkboard me-2"></i> Trial Classes
-    </div>
+    <div class="card-header"><i class="fas fa-chalkboard me-2"></i> Trial Classes</div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
-                    <tr>
-                        <th>Class</th>
-                        <th>Scheduled Date</th>
-                        <th>Status</th>
-                        <th>Conversion</th>
-                    </tr>
+                    <tr><th>Class</th><th>Scheduled Date</th><th>Status</th><th>Conversion</th></tr>
                 </thead>
                 <tbody>
                     @foreach($student->trialClasses as $trial)
@@ -433,24 +388,12 @@
                         <td>{{ $trial->class->name ?? 'N/A' }}</td>
                         <td>{{ $trial->scheduled_date->format('d M Y') }} {{ $trial->scheduled_time?->format('h:i A') }}</td>
                         <td>
-                            @if($trial->status === 'attended')
-                                <span class="badge bg-success">Attended</span>
-                            @elseif($trial->status === 'no_show')
-                                <span class="badge bg-danger">No Show</span>
-                            @elseif($trial->status === 'converted')
-                                <span class="badge bg-primary">Converted</span>
-                            @else
-                                <span class="badge bg-secondary">{{ ucfirst($trial->status) }}</span>
-                            @endif
+                            @php $tb = ['attended'=>'bg-success','no_show'=>'bg-danger','converted'=>'bg-primary']; @endphp
+                            <span class="badge {{ $tb[$trial->status] ?? 'bg-secondary' }}">{{ ucfirst(str_replace('_',' ',$trial->status)) }}</span>
                         </td>
                         <td>
-                            @if($trial->conversion_status === 'converted')
-                                <span class="badge bg-success">Converted</span>
-                            @elseif($trial->conversion_status === 'declined')
-                                <span class="badge bg-danger">Declined</span>
-                            @else
-                                <span class="badge bg-warning">Pending</span>
-                            @endif
+                            @php $cb = ['converted'=>'bg-success','declined'=>'bg-danger']; @endphp
+                            <span class="badge {{ $cb[$trial->conversion_status] ?? 'bg-warning' }}">{{ ucfirst($trial->conversion_status ?? 'Pending') }}</span>
                         </td>
                     </tr>
                     @endforeach
@@ -464,64 +407,15 @@
 
 @push('styles')
 <style>
-/* WhatsApp themed elements */
-.border-success {
-    border-color: #25D366 !important;
-}
-
-.bg-success {
-    background-color: #25D366 !important;
-}
-
-.btn-success {
-    background-color: #25D366;
-    border-color: #25D366;
-}
-
-.btn-success:hover {
-    background-color: #1da851;
-    border-color: #1da851;
-}
-
-.btn-outline-success {
-    color: #25D366;
-    border-color: #25D366;
-}
-
-.btn-outline-success:hover {
-    background-color: #25D366;
-    border-color: #25D366;
-    color: white;
-}
-
-.text-success {
-    color: #25D366 !important;
-}
-
-/* Stat card styling */
-.stat-card {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    display: flex;
-    align-items: center;
-}
-
-.stat-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    margin-right: 15px;
-}
-
-.stat-details h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-}
+.border-success { border-color: #25D366 !important; }
+.bg-success     { background-color: #25D366 !important; }
+.btn-success    { background-color: #25D366; border-color: #25D366; }
+.btn-success:hover { background-color: #1da851; border-color: #1da851; }
+.btn-outline-success { color: #25D366; border-color: #25D366; }
+.btn-outline-success:hover { background-color: #25D366; color: white; }
+.text-success   { color: #25D366 !important; }
+.stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.05); display: flex; align-items: center; }
+.stat-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
+.stat-details h3 { font-size: 1.5rem; font-weight: 700; }
 </style>
 @endpush

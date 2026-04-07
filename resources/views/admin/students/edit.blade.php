@@ -168,18 +168,23 @@
                         @enderror
                     </div>
 
+                    {{-- ═══ GRADE LEVEL — changed from static array to dynamic DB records ═══ --}}
                     <div class="mb-3">
                         <label class="form-label">Grade Level <span class="text-danger">*</span></label>
-                        <select name="grade_level" class="form-select @error('grade_level') is-invalid @enderror" required>
+                        <select name="grade_level_id" class="form-select @error('grade_level_id') is-invalid @enderror" required>
                             <option value="">Select Grade</option>
-                            @foreach(['Standard 1', 'Standard 2', 'Standard 3', 'Standard 4', 'Standard 5', 'Standard 6', 'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5'] as $grade)
-                                <option value="{{ $grade }}" {{ old('grade_level', $student->grade_level) == $grade ? 'selected' : '' }}>{{ $grade }}</option>
+                            @foreach($gradeLevels as $grade)
+                                <option value="{{ $grade->id }}"
+                                    {{ old('grade_level_id', $student->grade_level_id) == $grade->id ? 'selected' : '' }}>
+                                    {{ $grade->name }}
+                                </option>
                             @endforeach
                         </select>
-                        @error('grade_level')
+                        @error('grade_level_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
+                    {{-- ══════════════════════════════════════════════════════════════════════ --}}
                 </div>
             </div>
         </div>

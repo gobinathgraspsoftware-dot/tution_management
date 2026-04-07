@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Parents;
 use App\Models\User;
+use App\Models\GradeLevel;          // ← ADDED: for dynamic grade levels
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
 use App\Services\WhatsAppService;
@@ -35,7 +36,7 @@ class StudentController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Student::with(['user', 'parent.user']);
+        $query = Student::with(['user', 'parent.user', 'gradeLevel']); // ← ADDED 'gradeLevel' eager load
 
         // Search
         if ($request->filled('search')) {
@@ -66,9 +67,9 @@ class StudentController extends Controller
             $query->where('registration_type', $request->registration_type);
         }
 
-        // Filter by grade level
+        // Filter by grade level — ← CHANGED: now filters by grade_level_id (FK)
         if ($request->filled('grade_level')) {
-            $query->where('grade_level', $request->grade_level);
+            $query->where('grade_level_id', $request->grade_level);
         }
 
         // Filter by gender
@@ -78,8 +79,8 @@ class StudentController extends Controller
 
         $students = $query->latest()->paginate(15)->withQueryString();
 
-        // Get unique grade levels for filter
-        $gradeLevels = Student::distinct()->pluck('grade_level')->filter()->values();
+        // ← CHANGED: get GradeLevel objects from DB instead of distinct varchar strings
+        $gradeLevels = GradeLevel::ordered()->get();
 
         return view('admin.students.index', compact('students', 'gradeLevels'));
     }
@@ -148,13 +149,16 @@ class StudentController extends Controller
             $q->where('status', 'active');
         })->take(10)->get();
 
+        // ← CHANGED: load from DB instead of static array
+        $gradeLevels = GradeLevel::ordered()->get();
+
         $countries = CountryCodeHelper::getAllCountries();
         $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
 
         // Check if WhatsApp is enabled
         $whatsappEnabled = config('notification.whatsapp.enabled', false);
 
-        return view('admin.students.create', compact('parents', 'countries', 'defaultCountryCode', 'whatsappEnabled'));
+        return view('admin.students.create', compact('parents', 'gradeLevels', 'countries', 'defaultCountryCode', 'whatsappEnabled'));
     }
 
     /**
@@ -163,13 +167,13 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'country_code' => 'nullable|string|max:5',
-            'phone' => 'nullable|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
-            'parent_id' => 'required|exists:parents,id',
-            'ic_number' => [
+            'name'               => 'required|string|max:255',
+            'email'              => 'required|email|unique:users,email',
+            'country_code'       => 'nullable|string|max:5',
+            'phone'              => 'nullable|string|max:20',
+            'password'           => 'required|string|min:8|confirmed',
+            'parent_id'          => 'required|exists:parents,id',
+            'ic_number'          => [
                 'required',
                 'string',
                 function ($attribute, $value, $fail) {
@@ -186,16 +190,16 @@ class StudentController extends Controller
                     return $query->where('ic_number', $cleaned);
                 })
             ],
-            'date_of_birth' => 'required|date|before:today',
-            'gender' => 'required|in:male,female',
-            'school_name' => 'required|string|max:255',
-            'grade_level' => 'required|string|max:50',
-            'address' => 'nullable|string|max:500',
+            'date_of_birth'      => 'required|date|before:today',
+            'gender'             => 'required|in:male,female',
+            'school_name'        => 'required|string|max:255',
+            'grade_level_id'     => 'required|exists:grade_levels,id',  // ← CHANGED: was 'grade_level' string
+            'address'            => 'nullable|string|max:500',
             'medical_conditions' => 'nullable|string|max:500',
-            'registration_type' => 'required|in:online,offline',
-            'notes' => 'nullable|string|max:1000',
-            'status' => 'required|in:active,inactive',
-            'send_whatsapp' => 'nullable|in:on,1,true', // WhatsApp notification checkbox
+            'registration_type'  => 'required|in:online,offline',
+            'notes'              => 'nullable|string|max:1000',
+            'status'             => 'required|in:active,inactive',
+            'send_whatsapp'      => 'nullable|in:on,1,true',
         ]);
 
         DB::beginTransaction();
@@ -215,12 +219,12 @@ class StudentController extends Controller
 
             // Create User account
             $user = User::create([
-                'name' => $name,
-                'email' => $validated['email'],
-                'phone' => $phoneNumber,
-                'password' => Hash::make($validated['password']),
-                'password_view' => $validated['password'],
-                'status' => $validated['status'],
+                'name'              => $name,
+                'email'             => $validated['email'],
+                'phone'             => $phoneNumber,
+                'password'          => Hash::make($validated['password']),
+                'password_view'     => $validated['password'],
+                'status'            => $validated['status'],
                 'email_verified_at' => now(),
             ]);
 
@@ -235,35 +239,35 @@ class StudentController extends Controller
 
             // Create Student profile (auto-approved when created by admin)
             $student = Student::create([
-                'user_id' => $user->id,
-                'parent_id' => $validated['parent_id'],
-                'student_id' => $studentId,
-                'ic_number' => $cleanedIcNumber,
-                'date_of_birth' => $validated['date_of_birth'],
-                'gender' => $validated['gender'],
-                'school_name' => $validated['school_name'],
-                'grade_level' => $validated['grade_level'],
-                'address' => $validated['address'],
+                'user_id'            => $user->id,
+                'parent_id'          => $validated['parent_id'],
+                'student_id'         => $studentId,
+                'ic_number'          => $cleanedIcNumber,
+                'date_of_birth'      => $validated['date_of_birth'],
+                'gender'             => $validated['gender'],
+                'school_name'        => $validated['school_name'],
+                'grade_level_id'     => $validated['grade_level_id'],  // ← CHANGED: was 'grade_level'
+                'address'            => $validated['address'],
                 'medical_conditions' => $validated['medical_conditions'],
-                'registration_type' => $validated['registration_type'],
-                'registration_date' => now(),
-                'enrollment_date' => now(),
-                'referral_code' => $referralCode,
-                'notes' => $validated['notes'],
-                'approval_status' => 'approved',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
+                'registration_type'  => $validated['registration_type'],
+                'registration_date'  => now(),
+                'enrollment_date'    => now(),
+                'referral_code'      => $referralCode,
+                'notes'              => $validated['notes'],
+                'approval_status'    => 'approved',
+                'approved_by'        => auth()->id(),
+                'approved_at'        => now(),
             ]);
 
             // Log activity
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'create',
-                'model_type' => 'Student',
-                'model_id' => $student->id,
+                'user_id'     => auth()->id(),
+                'action'      => 'create',
+                'model_type'  => 'Student',
+                'model_id'    => $student->id,
                 'description' => 'Created student: ' . $name,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
             ]);
 
             DB::commit();
@@ -298,7 +302,7 @@ class StudentController extends Controller
      */
     protected function sendStudentRegistrationWhatsApp(Student $student, string $password): array
     {
-        $student->load(['user', 'parent.user']);
+        $student->load(['user', 'parent.user', 'gradeLevel']); // ← ADDED 'gradeLevel'
 
         // Send to student's phone number
         $recipientPhone = $student->user->phone;
@@ -331,29 +335,29 @@ class StudentController extends Controller
 
             // Log notification
             NotificationLog::create([
-                'user_id' => $student->user_id,
-                'channel' => 'whatsapp',
-                'type' => 'student_registration',
-                'recipient' => $whatsappPhone,
-                'subject' => 'Student Registration Notification',
-                'message' => $message,
-                'status' => $result['success'] ? 'sent' : 'failed',
+                'user_id'       => $student->user_id,
+                'channel'       => 'whatsapp',
+                'type'          => 'student_registration',
+                'recipient'     => $whatsappPhone,
+                'subject'       => 'Student Registration Notification',
+                'message'       => $message,
+                'status'        => $result['success'] ? 'sent' : 'failed',
                 'error_message' => $result['error'] ?? null,
-                'sent_at' => $result['success'] ? now() : null,
+                'sent_at'       => $result['success'] ? now() : null,
             ]);
 
             // Log activity
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'send_whatsapp',
-                'model_type' => 'Student',
-                'model_id' => $student->id,
+                'user_id'     => auth()->id(),
+                'action'      => 'send_whatsapp',
+                'model_type'  => 'Student',
+                'model_id'    => $student->id,
                 'description' => 'Sent WhatsApp registration notification for student: ' . $student->user->name,
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'changes' => json_encode([
+                'ip_address'  => request()->ip(),
+                'user_agent'  => request()->userAgent(),
+                'changes'     => json_encode([
                     'recipient' => $whatsappPhone,
-                    'status' => $result['success'] ? 'sent' : 'failed',
+                    'status'    => $result['success'] ? 'sent' : 'failed',
                 ]),
             ]);
 
@@ -373,34 +377,30 @@ class StudentController extends Controller
      */
     protected function buildStudentRegistrationMessage(Student $student, string $password): string
     {
-        $loginUrl = url('/login');
-        $centreName = config('app.name', 'Arena Matriks Edu Group');
+        $loginUrl    = url('/login');
+        $centreName  = config('app.name', 'Arena Matriks Edu Group');
         $centrePhone = config('app.centre_phone', '03-7972 3663');
 
-        $message = "🎓 *{$centreName}*\n";
+        // ← CHANGED: use relationship name instead of varchar field
+        $gradeName = $student->gradeLevel->name ?? 'N/A';
+
+        $message  = "🎓 *{$centreName}*\n";
         $message .= "*Student Registration Confirmation*\n";
         $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
-
         $message .= "Dear *{$student->user->name}*,\n\n";
-
         $message .= "Welcome! Your registration has been successfully completed.\n\n";
-
         $message .= "📋 *Your Details:*\n";
         $message .= "• Student ID: *{$student->student_id}*\n";
-        $message .= "• Grade: {$student->grade_level}\n";
+        $message .= "• Grade: {$gradeName}\n";  // ← CHANGED
         $message .= "• School: {$student->school_name}\n";
         $message .= "• Referral Code: `{$student->referral_code}`\n\n";
-
         $message .= "🔐 *Login Credentials:*\n";
         $message .= "• Email: {$student->user->email}\n";
         $message .= "• Password: {$password}\n";
         $message .= "• Portal: {$loginUrl}\n\n";
-
         $message .= "⚠️ *Important:* Please keep these credentials safe and do not share them with others.\n\n";
-
         $message .= "For any enquiries, contact us at:\n";
         $message .= "📞 {$centrePhone}\n\n";
-
         $message .= "Thank you for choosing {$centreName}!\n";
         $message .= "━━━━━━━━━━━━━━━━━━━━━";
 
@@ -415,6 +415,7 @@ class StudentController extends Controller
         $student->load([
             'user',
             'parent.user',
+            'gradeLevel',               // ← ADDED
             'enrollments.package',
             'enrollments.class.subject',
             'invoices' => function ($q) {
@@ -430,9 +431,9 @@ class StudentController extends Controller
 
         // Get statistics
         $stats = [
-            'total_paid' => $student->payments()->where('status', 'completed')->sum('amount'),
-            'pending_amount' => $student->invoices()->whereIn('status', ['pending', 'partial'])->sum('total_amount'),
-            'attendance_rate' => $this->calculateAttendanceRate($student),
+            'total_paid'         => $student->payments()->where('status', 'completed')->sum('amount'),
+            'pending_amount'     => $student->invoices()->whereIn('status', ['pending', 'partial'])->sum('total_amount'),
+            'attendance_rate'    => $this->calculateAttendanceRate($student),
             'active_enrollments' => $student->enrollments()->where('status', 'active')->count(),
         ];
 
@@ -447,11 +448,14 @@ class StudentController extends Controller
      */
     public function edit(Student $student)
     {
-        $student->load(['user', 'parent.user']);
+        $student->load(['user', 'parent.user', 'gradeLevel']); // ← ADDED 'gradeLevel'
 
         $parents = Parents::with('user')->whereHas('user', function ($q) {
             $q->where('status', 'active');
         })->take(10)->get();
+
+        // ← CHANGED: load from DB instead of static array
+        $gradeLevels = GradeLevel::ordered()->get();
 
         $countries = CountryCodeHelper::getAllCountries();
         $defaultCountryCode = CountryCodeHelper::getDefaultCountryCode();
@@ -462,7 +466,7 @@ class StudentController extends Controller
         // Check if WhatsApp is enabled
         $whatsappEnabled = config('notification.whatsapp.enabled', false);
 
-        return view('admin.students.edit', compact('student', 'parents', 'countries', 'defaultCountryCode', 'phoneData', 'whatsappEnabled'));
+        return view('admin.students.edit', compact('student', 'parents', 'gradeLevels', 'countries', 'defaultCountryCode', 'phoneData', 'whatsappEnabled'));
     }
 
     /**
@@ -471,13 +475,13 @@ class StudentController extends Controller
     public function update(Request $request, Student $student)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($student->user_id)],
-            'country_code' => 'nullable|string|max:5',
-            'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
-            'parent_id' => 'required|exists:parents,id',
-            'ic_number' => [
+            'name'               => 'required|string|max:255',
+            'email'              => ['required', 'email', Rule::unique('users', 'email')->ignore($student->user_id)],
+            'country_code'       => 'nullable|string|max:5',
+            'phone'              => 'nullable|string|max:20',
+            'password'           => 'nullable|string|min:8|confirmed',
+            'parent_id'          => 'required|exists:parents,id',
+            'ic_number'          => [
                 'required',
                 'string',
                 function ($attribute, $value, $fail) {
@@ -494,15 +498,15 @@ class StudentController extends Controller
                     return $query->where('ic_number', $cleaned);
                 })->ignore($student->id)
             ],
-            'date_of_birth' => 'required|date|before:today',
-            'gender' => 'required|in:male,female',
-            'school_name' => 'required|string|max:255',
-            'grade_level' => 'required|string|max:50',
-            'address' => 'nullable|string|max:500',
+            'date_of_birth'      => 'required|date|before:today',
+            'gender'             => 'required|in:male,female',
+            'school_name'        => 'required|string|max:255',
+            'grade_level_id'     => 'required|exists:grade_levels,id',  // ← CHANGED: was 'grade_level' string
+            'address'            => 'nullable|string|max:500',
             'medical_conditions' => 'nullable|string|max:500',
-            'notes' => 'nullable|string|max:1000',
-            'status' => 'required|in:active,inactive',
-            'send_whatsapp' => 'nullable|in:on,1,true', // WhatsApp notification checkbox for password update
+            'notes'              => 'nullable|string|max:1000',
+            'status'             => 'required|in:active,inactive',
+            'send_whatsapp'      => 'nullable|in:on,1,true',
         ]);
 
         DB::beginTransaction();
@@ -518,15 +522,15 @@ class StudentController extends Controller
             $name = strtoupper($validated['name']);
 
             $userData = [
-                'name' => $name,
-                'email' => $validated['email'],
-                'phone' => $phoneNumber,
+                'name'   => $name,
+                'email'  => $validated['email'],
+                'phone'  => $phoneNumber,
                 'status' => $validated['status'],
             ];
 
             $passwordChanged = false;
             if (!empty($validated['password'])) {
-                $userData['password'] = Hash::make($validated['password']);
+                $userData['password']      = Hash::make($validated['password']);
                 $userData['password_view'] = $validated['password'];
                 $passwordChanged = true;
             }
@@ -534,26 +538,26 @@ class StudentController extends Controller
             $student->user->update($userData);
 
             $student->update([
-                'parent_id' => $validated['parent_id'],
-                'ic_number' => $cleanedIcNumber,
-                'date_of_birth' => $validated['date_of_birth'],
-                'gender' => $validated['gender'],
-                'school_name' => $validated['school_name'],
-                'grade_level' => $validated['grade_level'],
-                'address' => $validated['address'],
+                'parent_id'          => $validated['parent_id'],
+                'ic_number'          => $cleanedIcNumber,
+                'date_of_birth'      => $validated['date_of_birth'],
+                'gender'             => $validated['gender'],
+                'school_name'        => $validated['school_name'],
+                'grade_level_id'     => $validated['grade_level_id'],  // ← CHANGED: was 'grade_level'
+                'address'            => $validated['address'],
                 'medical_conditions' => $validated['medical_conditions'],
-                'notes' => $validated['notes'],
+                'notes'              => $validated['notes'],
             ]);
 
             // Log activity
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'update',
-                'model_type' => 'Student',
-                'model_id' => $student->id,
+                'user_id'     => auth()->id(),
+                'action'      => 'update',
+                'model_type'  => 'Student',
+                'model_id'    => $student->id,
                 'description' => 'Updated student: ' . $name,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
             ]);
 
             DB::commit();
@@ -592,7 +596,7 @@ class StudentController extends Controller
 
         // Send to student's phone number
         $recipientPhone = $student->user->phone;
-        $recipientName = $student->user->name;
+        $recipientName  = $student->user->name;
 
         if (!$recipientPhone) {
             return [
@@ -609,24 +613,19 @@ class StudentController extends Controller
         }
 
         try {
-            $centreName = config('app.name', 'Arena Matriks Edu Group');
-            $loginUrl = url('/login');
+            $centreName    = config('app.name', 'Arena Matriks Edu Group');
+            $loginUrl      = url('/login');
 
-            $message = "🔐 *{$centreName}*\n";
+            $message  = "🔐 *{$centreName}*\n";
             $message .= "*Password Update Notification*\n";
             $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
-
             $message .= "Dear *{$recipientName}*,\n\n";
-
             $message .= "Your password has been updated.\n\n";
-
             $message .= "🔐 *New Login Credentials:*\n";
             $message .= "• Email: {$student->user->email}\n";
             $message .= "• Password: {$newPassword}\n";
             $message .= "• Portal: {$loginUrl}\n\n";
-
             $message .= "⚠️ *Important:* Please keep these credentials safe.\n\n";
-
             $message .= "Thank you,\n{$centreName}";
 
             $whatsappPhone = str_replace('+', '', $recipientPhone);
@@ -635,15 +634,15 @@ class StudentController extends Controller
 
             // Log notification
             NotificationLog::create([
-                'user_id' => $student->user_id,
-                'channel' => 'whatsapp',
-                'type' => 'password_update',
-                'recipient' => $whatsappPhone,
-                'subject' => 'Password Update Notification',
-                'message' => $message,
-                'status' => $result['success'] ? 'sent' : 'failed',
+                'user_id'       => $student->user_id,
+                'channel'       => 'whatsapp',
+                'type'          => 'password_update',
+                'recipient'     => $whatsappPhone,
+                'subject'       => 'Password Update Notification',
+                'message'       => $message,
+                'status'        => $result['success'] ? 'sent' : 'failed',
                 'error_message' => $result['error'] ?? null,
-                'sent_at' => $result['success'] ? now() : null,
+                'sent_at'       => $result['success'] ? now() : null,
             ]);
 
             return $result;
@@ -662,7 +661,7 @@ class StudentController extends Controller
      */
     public function resendWhatsApp(Student $student)
     {
-        $student->load(['user', 'parent.user']);
+        $student->load(['user', 'parent.user', 'gradeLevel']); // ← ADDED 'gradeLevel'
 
         // Send to student's phone number
         $recipientPhone = $student->user->phone;
@@ -716,13 +715,13 @@ class StudentController extends Controller
 
             // Log activity
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'delete',
-                'model_type' => 'Student',
-                'model_id' => $student->id,
+                'user_id'     => auth()->id(),
+                'action'      => 'delete',
+                'model_type'  => 'Student',
+                'model_id'    => $student->id,
                 'description' => 'Deleted student: ' . $studentName,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
             ]);
 
             DB::commit();
@@ -743,6 +742,7 @@ class StudentController extends Controller
         $student->load([
             'user',
             'parent.user',
+            'gradeLevel',               // ← ADDED
             'enrollments.package',
             'enrollments.class.subject',
             'invoices' => function ($q) {
@@ -763,15 +763,15 @@ class StudentController extends Controller
 
         // Get statistics
         $stats = [
-            'total_paid' => $student->payments()->where('status', 'completed')->sum('amount'),
-            'pending_amount' => $student->invoices()->whereIn('status', ['pending', 'partial'])->sum('total_amount'),
-            'attendance_rate' => $this->calculateAttendanceRate($student),
+            'total_paid'         => $student->payments()->where('status', 'completed')->sum('amount'),
+            'pending_amount'     => $student->invoices()->whereIn('status', ['pending', 'partial'])->sum('total_amount'),
+            'attendance_rate'    => $this->calculateAttendanceRate($student),
             'active_enrollments' => $student->enrollments()->where('status', 'active')->count(),
-            'total_enrollments' => $student->enrollments()->count(),
-            'total_referrals' => $student->referrals()->where('status', 'completed')->count(),
-            'voucher_balance' => $student->referralVouchers()->where('status', 'active')->sum('amount'),
-            'reviews_count' => $student->reviews()->count(),
-            'average_rating' => $student->reviews()->avg('rating') ?? 0,
+            'total_enrollments'  => $student->enrollments()->count(),
+            'total_referrals'    => $student->referrals()->where('status', 'completed')->count(),
+            'voucher_balance'    => $student->referralVouchers()->where('status', 'active')->sum('amount'),
+            'reviews_count'      => $student->reviews()->count(),
+            'average_rating'     => $student->reviews()->avg('rating') ?? 0,
         ];
 
         // Get referred students
@@ -802,8 +802,8 @@ class StudentController extends Controller
         // Get attendance summary
         $attendanceSummary = [
             'present' => $student->attendance()->where('status', 'present')->count(),
-            'absent' => $student->attendance()->where('status', 'absent')->count(),
-            'late' => $student->attendance()->where('status', 'late')->count(),
+            'absent'  => $student->attendance()->where('status', 'absent')->count(),
+            'late'    => $student->attendance()->where('status', 'late')->count(),
             'excused' => $student->attendance()->where('status', 'excused')->count(),
         ];
 
@@ -857,14 +857,14 @@ class StudentController extends Controller
 
         // Log activity
         ActivityLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'update',
-            'model_type' => 'Student',
-            'model_id' => $student->id,
+            'user_id'     => auth()->id(),
+            'action'      => 'update',
+            'model_type'  => 'Student',
+            'model_id'    => $student->id,
             'description' => 'Regenerated referral code for student: ' . $student->user->name,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'changes' => json_encode([
+            'ip_address'  => $request->ip(),
+            'user_agent'  => $request->userAgent(),
+            'changes'     => json_encode([
                 'old' => ['referral_code' => $oldCode],
                 'new' => ['referral_code' => $newCode],
             ]),
@@ -878,11 +878,12 @@ class StudentController extends Controller
      */
     public function export(Request $request)
     {
-        $students = Student::with(['user', 'parent.user'])->get();
+        // ← ADDED 'gradeLevel' to eager load
+        $students = Student::with(['user', 'parent.user', 'gradeLevel'])->get();
 
         $filename = 'students_export_' . date('Y-m-d_His') . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
+        $headers  = [
+            'Content-Type'        => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
@@ -904,7 +905,7 @@ class StudentController extends Controller
                     $this->formatIcNumber($s->ic_number),
                     $s->gender,
                     $s->school_name,
-                    $s->grade_level,
+                    $s->gradeLevel->name ?? 'N/A',  // ← CHANGED: was $s->grade_level
                     $s->parent?->user->name ?? 'N/A',
                     $s->registration_type,
                     $s->approval_status,

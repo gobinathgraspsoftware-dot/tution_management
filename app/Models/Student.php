@@ -19,7 +19,7 @@ class Student extends Model
         'date_of_birth',
         'gender',
         'school_name',
-        'grade_level',
+        'grade_level_id',    // ← CHANGED: was 'grade_level' (varchar), now FK to grade_levels
         'address',
         'medical_conditions',
         'registration_type',
@@ -35,10 +35,10 @@ class Student extends Model
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date',
+        'date_of_birth'     => 'date',
         'registration_date' => 'date',
-        'enrollment_date' => 'date',
-        'approved_at' => 'datetime',
+        'enrollment_date'   => 'date',
+        'approved_at'       => 'datetime',
     ];
 
     /**
@@ -123,6 +123,14 @@ class Student extends Model
     public function parent()
     {
         return $this->belongsTo(Parents::class, 'parent_id');
+    }
+
+    /**
+     * Grade level record — NEW relationship after switching from varchar to FK.
+     */
+    public function gradeLevel()
+    {
+        return $this->belongsTo(GradeLevel::class, 'grade_level_id');
     }
 
     public function referrer()
