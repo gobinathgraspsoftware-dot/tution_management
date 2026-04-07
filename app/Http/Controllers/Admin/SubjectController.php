@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubjectRequest;
+use App\Models\GradeLevel;
 use App\Models\Subject;
 use Illuminate\Http\Request;
 
@@ -31,20 +32,15 @@ class SubjectController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter by grade level
+        // CHANGED: Filter by grade level ID (integer) instead of name (string)
         if ($request->filled('grade_level')) {
-            $query->whereJsonContains('grade_levels', $request->grade_level);
+            $query->whereJsonContains('grade_levels', (int) $request->grade_level);
         }
 
         $subjects = $query->latest()->paginate(15)->withQueryString();
 
-        // Get unique grade levels for filter
-        $allGradeLevels = Subject::pluck('grade_levels')
-            ->flatten()
-            ->unique()
-            ->filter()
-            ->sort()
-            ->values();
+        // CHANGED: Get grade levels as objects (id + name) for filter dropdown
+        $allGradeLevels = GradeLevel::ordered()->get();
 
         return view('admin.subjects.index', compact('subjects', 'allGradeLevels'));
     }
@@ -64,7 +60,9 @@ class SubjectController extends Controller
     public function store(SubjectRequest $request)
     {
         $validated = $request->validated();
-        $validated['grade_levels'] = $request->grade_levels ?? [];
+
+        // CHANGED: Cast grade level values to integers before saving
+        $validated['grade_levels'] = array_map('intval', $request->grade_levels ?? []);
 
         Subject::create($validated);
 
@@ -97,7 +95,9 @@ class SubjectController extends Controller
     public function update(SubjectRequest $request, Subject $subject)
     {
         $validated = $request->validated();
-        $validated['grade_levels'] = $request->grade_levels ?? [];
+
+        // CHANGED: Cast grade level values to integers before saving
+        $validated['grade_levels'] = array_map('intval', $request->grade_levels ?? []);
 
         $subject->update($validated);
 
@@ -150,23 +150,18 @@ class SubjectController extends Controller
     }
 
     /**
-     * Get predefined grade level options.
+     * CHANGED: Get grade level options dynamically — returns [id => name].
+     *
+     * BEFORE: Static array ['Standard 1' => 'Standard 1', ...]
+     * AFTER:  Dynamic DB query [1 => 'Standard 1', 2 => 'Standard 2', ...]
+     *
+     * Blade views iterate as @foreach($gradeLevels as $key => $label)
+     * where $key = grade_level ID, $label = grade_level name.
      */
     private function getGradeLevelOptions(): array
     {
-        return [
-            'Standard 1' => 'Standard 1',
-            'Standard 2' => 'Standard 2',
-            'Standard 3' => 'Standard 3',
-            'Standard 4' => 'Standard 4',
-            'Standard 5' => 'Standard 5',
-            'Standard 6' => 'Standard 6',
-            'Form 1' => 'Form 1',
-            'Form 2' => 'Form 2',
-            'Form 3' => 'Form 3',
-            'Form 4' => 'Form 4',
-            'Form 5' => 'Form 5',
-            'Pre-University' => 'Pre-University',
-        ];
+        return GradeLevel::ordered()
+            ->pluck('name', 'id')
+            ->toArray();
     }
 }

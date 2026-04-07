@@ -69,21 +69,23 @@
                     @enderror
                 </div>
 
-                <!-- Grade Levels -->
+                <!-- Grade Levels — CHANGED: $id = grade_level ID, compares IDs -->
                 <div class="col-md-8 mb-3">
                     <label class="form-label">Grade Levels</label>
                     <div class="row">
                         @php
                             $selectedGrades = old('grade_levels', $subject->grade_levels ?? []);
+                            // Ensure all values are comparable (cast to int for consistent matching)
+                            $selectedGrades = array_map('intval', $selectedGrades);
                         @endphp
-                        @foreach($gradeLevels as $key => $label)
+                        @foreach($gradeLevels as $id => $label)
                             <div class="col-md-4 col-6">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox"
-                                           name="grade_levels[]" value="{{ $key }}"
-                                           id="grade_{{ Str::slug($key) }}"
-                                           {{ in_array($key, $selectedGrades) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="grade_{{ Str::slug($key) }}">
+                                           name="grade_levels[]" value="{{ $id }}"
+                                           id="grade_{{ $id }}"
+                                           {{ in_array((int) $id, $selectedGrades) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="grade_{{ $id }}">
                                         {{ $label }}
                                     </label>
                                 </div>

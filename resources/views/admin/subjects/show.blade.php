@@ -58,12 +58,16 @@
                             @endif
                         </td>
                     </tr>
+                    <!-- CHANGED: Use grade_level_names accessor to resolve IDs → names -->
                     <tr>
                         <th>Grade Levels:</th>
                         <td>
-                            @if($subject->grade_levels && count($subject->grade_levels) > 0)
-                                @foreach($subject->grade_levels as $grade)
-                                    <span class="badge bg-info mb-1">{{ $grade }}</span>
+                            @php
+                                $gradeNames = $subject->grade_level_names;
+                            @endphp
+                            @if(count($gradeNames) > 0)
+                                @foreach($gradeNames as $name)
+                                    <span class="badge bg-info mb-1">{{ $name }}</span>
                                 @endforeach
                             @else
                                 <span class="text-muted">No grade levels assigned</span>

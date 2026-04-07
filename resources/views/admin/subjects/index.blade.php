@@ -96,12 +96,13 @@
                     <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                 </select>
             </div>
+            <!-- CHANGED: Grade level filter now uses ID as value, name as display -->
             <div class="col-md-3">
                 <label class="form-label">Grade Level</label>
                 <select name="grade_level" class="form-select">
                     <option value="">All Grades</option>
                     @foreach($allGradeLevels as $grade)
-                        <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>{{ $grade }}</option>
+                        <option value="{{ $grade->id }}" {{ request('grade_level') == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -143,13 +144,17 @@
                                     <br><small class="text-muted">{{ Str::limit($subject->description, 50) }}</small>
                                 @endif
                             </td>
+                            <!-- CHANGED: Use grade_level_names accessor to display names from IDs -->
                             <td>
                                 @if($subject->grade_levels && count($subject->grade_levels) > 0)
-                                    @foreach(array_slice($subject->grade_levels, 0, 3) as $grade)
-                                        <span class="badge bg-info">{{ $grade }}</span>
+                                    @php
+                                        $gradeNames = $subject->grade_level_names;
+                                    @endphp
+                                    @foreach(array_slice($gradeNames, 0, 3) as $name)
+                                        <span class="badge bg-info">{{ $name }}</span>
                                     @endforeach
-                                    @if(count($subject->grade_levels) > 3)
-                                        <span class="badge bg-secondary">+{{ count($subject->grade_levels) - 3 }}</span>
+                                    @if(count($gradeNames) > 3)
+                                        <span class="badge bg-secondary">+{{ count($gradeNames) - 3 }}</span>
                                     @endif
                                 @else
                                     <span class="text-muted">-</span>
@@ -287,7 +292,6 @@ function confirmDelete(id, name) {
     document.getElementById('deleteForm').action = `/admin/subjects/${id}`;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
-
 
 function confirmToggle(id, name, currentStatus) {
     const action = currentStatus === 'active' ? 'deactivate' : 'activate';

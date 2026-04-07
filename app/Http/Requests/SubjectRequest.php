@@ -32,7 +32,8 @@ class SubjectRequest extends FormRequest
             ],
             'description' => 'nullable|string|max:500',
             'grade_levels' => 'nullable|array',
-            'grade_levels.*' => 'string|max:50',
+            // CHANGED: validate as integer IDs referencing grade_levels table
+            'grade_levels.*' => 'integer|exists:grade_levels,id',
             'status' => 'required|in:active,inactive',
         ];
     }
@@ -50,6 +51,8 @@ class SubjectRequest extends FormRequest
             'code.max' => 'Subject code cannot exceed 20 characters.',
             'description.max' => 'Description cannot exceed 500 characters.',
             'grade_levels.array' => 'Grade levels must be an array.',
+            'grade_levels.*.integer' => 'Each grade level must be a valid selection.',
+            'grade_levels.*.exists' => 'Selected grade level does not exist.',
             'status.required' => 'Status is required.',
             'status.in' => 'Invalid status selected.',
         ];

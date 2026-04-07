@@ -63,18 +63,18 @@
                     @enderror
                 </div>
 
-                <!-- Grade Levels -->
+                <!-- Grade Levels — CHANGED: $key = grade_level ID, $label = name -->
                 <div class="col-md-8 mb-3">
                     <label class="form-label">Grade Levels</label>
                     <div class="row">
-                        @foreach($gradeLevels as $key => $label)
+                        @foreach($gradeLevels as $id => $label)
                             <div class="col-md-4 col-6">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox"
-                                           name="grade_levels[]" value="{{ $key }}"
-                                           id="grade_{{ Str::slug($key) }}"
-                                           {{ in_array($key, old('grade_levels', [])) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="grade_{{ Str::slug($key) }}">
+                                           name="grade_levels[]" value="{{ $id }}"
+                                           id="grade_{{ $id }}"
+                                           {{ in_array($id, old('grade_levels', [])) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="grade_{{ $id }}">
                                         {{ $label }}
                                     </label>
                                 </div>
