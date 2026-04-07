@@ -38,16 +38,24 @@ class TimetableController extends Controller
             $classes  = ClassModel::active()->with('subject', 'teacher.user')->get();
             $teachers = Teacher::active()->with('user')->get();
 
-            // FIX: Combined class + teacher filter (AND logic, both optional)
+            // FIX: Combined class + teacher + grade filter (AND logic, all optional)
             $timetableData = $this->timetableService->getFilteredTimetable(
                 $request->class_id,    // null when "All Classes"
                 $request->teacher_id,  // null when "All Teachers"
                 $view,
-                $date
+                $date,
+                $request->grade_level  // null when "All Grades"
             );
 
+            // Grade levels for filter dropdown
+            $gradeLevels = collect([
+                'Standard 1', 'Standard 2', 'Standard 3',
+                'Standard 4', 'Standard 5', 'Standard 6',
+                'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5',
+            ]);
+
             return view('admin.timetable.index', compact(
-                'timetableData', 'view', 'date', 'classes', 'teachers'
+                'timetableData', 'view', 'date', 'classes', 'teachers', 'gradeLevels'
             ));
         }
 
@@ -141,7 +149,8 @@ class TimetableController extends Controller
                 $request->class_id,
                 $request->teacher_id,
                 $view,
-                $date
+                $date,
+                $request->grade_level
             );
             $filename = 'timetable_' . $date;
         }
@@ -172,7 +181,8 @@ class TimetableController extends Controller
                 $request->class_id,
                 $request->teacher_id,
                 $view,
-                $date
+                $date,
+                $request->grade_level
             );
         }
 

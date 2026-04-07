@@ -13,10 +13,11 @@
         <div>
             @php
                 $filterParams = array_filter([
-                    'view'       => $view,
-                    'date'       => $date,
-                    'class_id'   => request('class_id'),
-                    'teacher_id' => request('teacher_id'),
+                    'view'        => $view,
+                    'date'        => $date,
+                    'class_id'    => request('class_id'),
+                    'teacher_id'  => request('teacher_id'),
+                    'grade_level' => request('grade_level'),
                 ]);
             @endphp
             <a href="{{ route('timetable.print', $filterParams) }}"
@@ -49,7 +50,7 @@
             <form method="GET" action="{{ route('timetable.index') }}" id="filterForm">
                 <div class="row g-3">
                     {{-- View Type --}}
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-semibold">View Type</label>
                         <select name="view" class="form-select" onchange="submitFilter()">
                             <option value="daily"   {{ $view == 'daily'   ? 'selected' : '' }}>Daily</option>
@@ -59,7 +60,7 @@
                     </div>
 
                     {{-- Date Selector --}}
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-semibold">Date</label>
                         <input type="date" name="date" class="form-control"
                                value="{{ $date }}" onchange="submitFilter()">
@@ -92,6 +93,20 @@
                             @endforeach
                         </select>
                     </div>
+
+                    {{-- Grade Level Filter --}}
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Grade Level</label>
+                        <select name="grade_level" class="form-select" onchange="submitFilter()">
+                            <option value="">All Grades</option>
+                            @foreach($gradeLevels as $grade)
+                                <option value="{{ $grade }}"
+                                    {{ request('grade_level') == $grade ? 'selected' : '' }}>
+                                    {{ $grade }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
                 {{-- Navigation + Active Filters --}}
@@ -110,7 +125,7 @@
                     </div>
 
                     {{-- Active Filters Summary --}}
-                    @if(request('class_id') || request('teacher_id'))
+                    @if(request('class_id') || request('teacher_id') || request('grade_level'))
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span class="text-muted small"><i class="fas fa-filter"></i> Active:</span>
 
@@ -131,6 +146,17 @@
                                     {{ $teachers->firstWhere('id', request('teacher_id'))->user->name ?? 'Teacher' }}
                                     <a href="javascript:void(0)" onclick="clearSingleFilter('teacher_id')"
                                        class="text-white ms-1" style="text-decoration:none; font-size:0.85rem;">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </span>
+                            @endif
+
+                            @if(request('grade_level'))
+                                <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {{ request('grade_level') }}
+                                    <a href="javascript:void(0)" onclick="clearSingleFilter('grade_level')"
+                                       class="text-dark ms-1" style="text-decoration:none; font-size:0.85rem;">
                                         <i class="fas fa-times"></i>
                                     </a>
                                 </span>

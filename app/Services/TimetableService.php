@@ -88,40 +88,55 @@ class TimetableService
     }
 
     /**
-     * Get filtered timetable — supports class AND/OR teacher combined filtering.
+     * Get filtered timetable — supports class AND/OR teacher AND/OR grade combined filtering.
      *
-     * @param  int|null  $classId
-     * @param  int|null  $teacherId
-     * @param  string    $view      daily|weekly|monthly
-     * @param  mixed     $date
+     * @param  int|null    $classId
+     * @param  int|null    $teacherId
+     * @param  string      $view      daily|weekly|monthly
+     * @param  mixed       $date
+     * @param  string|null $gradeLevel
      * @return array
      */
-    public function getFilteredTimetable($classId = null, $teacherId = null, $view = 'weekly', $date = null)
+    public function getFilteredTimetable($classId = null, $teacherId = null, $view = 'weekly', $date = null, $gradeLevel = null)
     {
         // If no filters at all, return everything
-        if (!$classId && !$teacherId) {
+        if (!$classId && !$teacherId && !$gradeLevel) {
             return $this->getAllClassesTimetable($view, $date);
         }
 
-        // If only one filter, delegate to existing methods
-        if ($classId && !$teacherId) {
+        // If only single simple filter (no grade), delegate to existing methods
+        if ($classId && !$teacherId && !$gradeLevel) {
             return $this->getClassTimetable($classId, $view, $date);
         }
-        if ($teacherId && !$classId) {
+        if ($teacherId && !$classId && !$gradeLevel) {
             return $this->getTeacherTimetable($teacherId, $view, $date);
         }
 
-        // Both filters active — combined AND logic
+        // Combined filters — build query with all conditions
         $date = $date ? Carbon::parse($date) : now();
 
-        $schedules = ClassSchedule::with(['class.subject', 'class.teacher.user'])
-            ->where('class_id', $classId)
-            ->whereHas('class', function ($q) use ($teacherId) {
+        $query = ClassSchedule::with(['class.subject', 'class.teacher.user'])
+            ->whereHas('class')
+            ->where('is_active', true);
+
+        if ($classId) {
+            $query->where('class_id', $classId);
+        }
+
+        if ($teacherId) {
+            $query->whereHas('class', function ($q) use ($teacherId) {
                 $q->where('teacher_id', $teacherId)
                   ->where('status', 'active');
-            })
-            ->where('is_active', true)
-            ->orderBy('day_of_week')
+            });
+        }
+
+        if ($gradeLevel) {
+            $query->whereHas('class', function ($q) use ($gradeLevel) {
+                $q->where('grade_level', $gradeLevel);
+            });
+        }
+
+        $schedules = $query->orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();
 
