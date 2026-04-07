@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Middleware\CheckUserStatus;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -246,6 +247,16 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
         return redirect()->route('login');
     })->name('dashboard');
+
+    // Clear Cache Route — accessible by all authenticated roles
+    Route::get('/clear-cache', function () {
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        Artisan::call('config:clear');
+        Artisan::call('route:clear');
+        Artisan::call('optimize:clear');
+        return redirect()->back()->with('success', 'All caches cleared successfully!');
+    })->name('clear-cache');
 
     // Payment Checkout & Processing
     Route::middleware('auth')->group(function () {
