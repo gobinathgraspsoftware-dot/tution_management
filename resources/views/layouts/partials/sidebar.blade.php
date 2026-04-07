@@ -72,6 +72,22 @@
 {{-- ==================== END: ACADEMIC MANAGEMENT ==================== --}}
 
 
+{{-- ==================== SECTION: ACADEMIC CONFIGURATION ==================== --}}
+<div class="menu-dropdown">
+    <a href="#sectionAcademicConfig" class="menu-section-title" data-bs-toggle="collapse" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i> Academic Configuration
+    </a>
+    <div class="collapse" id="sectionAcademicConfig">
+        @if(Route::has('admin.grade-levels.index'))
+        <a href="{{ route('admin.grade-levels.index') }}"
+           class="menu-item {{ request()->routeIs('admin.grade-levels.*') ? 'active' : '' }}">
+            <i class="fas fa-layer-group"></i> Grade Levels
+        </a>
+        @endif
+    </div>
+</div>
+{{-- ==================== END: ACADEMIC CONFIGURATION ==================== --}}
+
 {{-- ==================== SECTION 4: CLASS MANAGEMENT ==================== --}}
 @canany(['view-classes', 'create-classes', 'manage-class-schedule'])
 <div class="menu-dropdown">

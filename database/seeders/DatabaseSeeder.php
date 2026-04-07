@@ -18,7 +18,8 @@ class DatabaseSeeder extends Seeder
             MessageTemplateSeeder::class,
             EpfSeeder::class,
             SocsoSeeder::class,
-            SocsoInsuranceSeeder::class
+            SocsoInsuranceSeeder::class,
+            GradeLevelSeeder::class,
         ]);
     }
 }

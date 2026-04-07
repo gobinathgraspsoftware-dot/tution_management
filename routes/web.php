@@ -100,6 +100,7 @@ use App\Http\Controllers\Student\ScheduleController as StudentScheduleController
 use App\Http\Controllers\Student\ReferralController as StudentReferralController;
 use App\Http\Controllers\Student\ReviewController as StudentsReviewController;
 use App\Http\Controllers\Admin\CarouselImageController as AdminCarouselImageController;
+use App\Http\Controllers\Admin\GradeLevelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1190,6 +1191,15 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::put('/{carousel}', [AdminCarouselImageController::class, 'update'])->name('update');
             Route::delete('/{carousel}', [AdminCarouselImageController::class, 'destroy'])->name('destroy');
             Route::patch('/{carousel}/toggle-status', [AdminCarouselImageController::class, 'toggleStatus'])->name('toggle-status');
+        });
+
+        // Grade Levels — create, store, edit, update only (no delete)
+        Route::prefix('grade-levels')->name('grade-levels.')->group(function () {
+            Route::get('/', [GradeLevelController::class, 'index'])->name('index');
+            Route::get('/create', [GradeLevelController::class, 'create'])->name('create');
+            Route::post('/', [GradeLevelController::class, 'store'])->name('store');
+            Route::get('/{gradeLevel}/edit', [GradeLevelController::class, 'edit'])->name('edit');
+            Route::put('/{gradeLevel}', [GradeLevelController::class, 'update'])->name('update');
         });
 
     });
