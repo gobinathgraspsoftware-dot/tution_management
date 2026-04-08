@@ -117,8 +117,8 @@
                     <select name="grade_level" class="form-select">
                         <option value="">All Grades</option>
                         @foreach($allGradeLevels as $grade)
-                            <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>
-                                {{ $grade }}
+                            <option value="{{ $grade->id }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>
+                                {{ $grade->name }}
                             </option>
                         @endforeach
                     </select>

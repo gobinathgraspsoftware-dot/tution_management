@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PackageRequest;
+use App\Models\GradeLevel;
 use App\Models\Package;
 use App\Models\Subject;
 use App\Models\Student;
@@ -22,6 +23,7 @@ class PackageController extends Controller
      */
     public function index(Request $request)
     {
+        // dd($request->all());
         $query = Package::withCount(['subjects', 'enrollments']);
 
         // Search
@@ -47,7 +49,7 @@ class PackageController extends Controller
         // Filter by grade level — packages whose subjects include this grade
         if ($request->filled('grade_level')) {
             $query->whereHas('subjects', function ($q) use ($request) {
-                $q->whereJsonContains('grade_levels', $request->grade_level);
+                $q->whereJsonContains('grade_levels', (int) $request->grade_level);
             });
         }
 
@@ -62,12 +64,7 @@ class PackageController extends Controller
         $packages = $query->latest()->paginate(15)->withQueryString();
 
         // Get unique grade levels from students for filter dropdown
-        $allGradeLevels = Student::distinct()
-            ->whereNotNull('grade_level')
-            ->pluck('grade_level')
-            ->filter()
-            ->sort()
-            ->values();
+        $allGradeLevels = GradeLevel::ordered()->get(['name', 'id']);
 
         return view('admin.packages.index', compact('packages', 'allGradeLevels'));
     }

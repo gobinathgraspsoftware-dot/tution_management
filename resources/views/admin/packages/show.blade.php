@@ -149,13 +149,18 @@
                                             <span class="badge bg-primary">{{ $subject->pivot->sessions_per_month }}</span> sessions
                                         </td>
                                         <td>
-                                            @if($subject->grade_levels && count($subject->grade_levels) > 0)
-                                                @foreach(array_slice($subject->grade_levels, 0, 2) as $grade)
-                                                    <span class="badge bg-info">{{ $grade }}</span>
+                                            @php
+                                                $gradeNames = $subject->grade_level_names;
+                                            @endphp
+                                            @if(count($gradeNames) > 0)
+                                                @foreach($gradeNames as $index => $name)
+                                                    @if($index < 2)
+                                                        <span class="badge bg-info mb-1">{{ $name }}</span>
+                                                    @elseif($index === 2)
+                                                        <span class="badge bg-secondary mb-1">+{{ count($gradeNames) - 2 }} more</span>
+                                                        @break
+                                                    @endif
                                                 @endforeach
-                                                @if(count($subject->grade_levels) > 2)
-                                                    <span class="badge bg-secondary">+{{ count($subject->grade_levels) - 2 }}</span>
-                                                @endif
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
