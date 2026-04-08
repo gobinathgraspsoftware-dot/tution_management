@@ -94,21 +94,21 @@ class TimetableService
      * @param  int|null    $teacherId
      * @param  string      $view      daily|weekly|monthly
      * @param  mixed       $date
-     * @param  string|null $gradeLevel
+     * @param  int|null    $gradeLevelId   CHANGED: was $gradeLevel (string) → now FK ID
      * @return array
      */
-    public function getFilteredTimetable($classId = null, $teacherId = null, $view = 'weekly', $date = null, $gradeLevel = null)
+    public function getFilteredTimetable($classId = null, $teacherId = null, $view = 'weekly', $date = null, $gradeLevelId = null)
     {
         // If no filters at all, return everything
-        if (!$classId && !$teacherId && !$gradeLevel) {
+        if (!$classId && !$teacherId && !$gradeLevelId) {
             return $this->getAllClassesTimetable($view, $date);
         }
 
         // If only single simple filter (no grade), delegate to existing methods
-        if ($classId && !$teacherId && !$gradeLevel) {
+        if ($classId && !$teacherId && !$gradeLevelId) {
             return $this->getClassTimetable($classId, $view, $date);
         }
-        if ($teacherId && !$classId && !$gradeLevel) {
+        if ($teacherId && !$classId && !$gradeLevelId) {
             return $this->getTeacherTimetable($teacherId, $view, $date);
         }
 
@@ -130,9 +130,10 @@ class TimetableService
             });
         }
 
-        if ($gradeLevel) {
-            $query->whereHas('class', function ($q) use ($gradeLevel) {
-                $q->where('grade_level', $gradeLevel);
+        // CHANGED: was ->where('grade_level', $gradeLevel) → now uses grade_level_id FK
+        if ($gradeLevelId) {
+            $query->whereHas('class', function ($q) use ($gradeLevelId) {
+                $q->where('grade_level_id', $gradeLevelId);
             });
         }
 
@@ -229,27 +230,25 @@ class TimetableService
         }
 
         return [
+            'week_number' => $date->weekOfYear,
             'start_date'  => $startOfWeek->format('Y-m-d'),
             'end_date'    => $endOfWeek->format('Y-m-d'),
-            'week_number' => $date->weekOfYear,
             'timetable'   => $timetable,
         ];
     }
 
     /**
      * Format monthly view.
-     * FIX: Times as plain strings, location from class.
      */
     protected function formatMonthlyView($schedules, $date)
     {
         $startOfMonth = $date->copy()->startOfMonth();
         $endOfMonth   = $date->copy()->endOfMonth();
-
         $monthSchedules = [];
-        $current = $startOfMonth->copy();
 
-        while ($current <= $endOfMonth) {
-            $dayOfWeek = strtolower($current->format('l'));
+        for ($d = $startOfMonth->copy(); $d <= $endOfMonth; $d->addDay()) {
+            $dayOfWeek = strtolower($d->format('l'));
+            $dateKey   = $d->format('Y-m-d');
 
             $daySchedules = $schedules->filter(function($schedule) use ($dayOfWeek) {
                 return $schedule->day_of_week === $dayOfWeek;
@@ -262,13 +261,15 @@ class TimetableService
                     'teacher_name' => $schedule->class->teacher->user->name ?? 'N/A',
                     'start_time'   => $this->formatTime($schedule->start_time),
                     'end_time'     => $this->formatTime($schedule->end_time),
+                    'location'     => $schedule->class->location,
                     'type'         => $schedule->class->type,
                     'color'        => $this->getSubjectColor($schedule->class->subject_id),
                 ];
             });
 
-            $monthSchedules[$current->format('Y-m-d')] = $daySchedules->values();
-            $current->addDay();
+            if ($daySchedules->isNotEmpty()) {
+                $monthSchedules[$dateKey] = $daySchedules->values();
+            }
         }
 
         return [
@@ -280,7 +281,7 @@ class TimetableService
     }
 
     /**
-     * Safely format a time value to H:i string.
+     * Safely format time values to "HH:mm" strings.
      * Handles Carbon objects, DateTime, and plain strings.
      */
     protected function formatTime($time)
@@ -363,21 +364,21 @@ class TimetableService
                             $schedule['start_time'],
                             $schedule['end_time'],
                             $schedule['type'],
-                            $schedule['location'] ?? '',
+                            $schedule['location'] ?? '-',
                         ]);
                     }
                 }
             } elseif ($view === 'daily' && isset($timetableData['schedules'])) {
                 foreach ($timetableData['schedules'] as $schedule) {
                     fputcsv($file, [
-                        $timetableData['day'],
+                        $timetableData['day'] ?? '',
                         $schedule['class_name'],
                         $schedule['subject'],
-                        $schedule['teacher'] ?? $schedule['teacher_name'] ?? 'N/A',
+                        $schedule['teacher_name'] ?? $schedule['teacher'] ?? 'N/A',
                         $schedule['start_time'],
                         $schedule['end_time'],
                         $schedule['type'],
-                        $schedule['location'] ?? '',
+                        $schedule['location'] ?? '-',
                     ]);
                 }
             } elseif ($view === 'monthly' && isset($timetableData['schedules'])) {
@@ -391,7 +392,7 @@ class TimetableService
                             $schedule['start_time'],
                             $schedule['end_time'],
                             $schedule['type'],
-                            '',
+                            $schedule['location'] ?? '-',
                         ]);
                     }
                 }
@@ -401,36 +402,5 @@ class TimetableService
         };
 
         return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Generate iCalendar export.
-     */
-    public function generateICalendar($classes, $type, $id)
-    {
-        $ical  = "BEGIN:VCALENDAR\r\n";
-        $ical .= "VERSION:2.0\r\n";
-        $ical .= "PRODID:-//Arena Matriks Edu Group//Timetable//EN\r\n";
-        $ical .= "CALSCALE:GREGORIAN\r\n";
-        $ical .= "METHOD:PUBLISH\r\n";
-
-        foreach ($classes as $class) {
-            if (!$class || !$class->subject) continue;
-
-            $schedules = $class->schedules()->where('is_active', true)->get();
-            foreach ($schedules as $schedule) {
-                $ical .= "BEGIN:VEVENT\r\n";
-                $ical .= "SUMMARY:" . $class->name . " - " . $class->subject->name . "\r\n";
-                $ical .= "DESCRIPTION:Teacher: " . ($class->teacher->user->name ?? 'N/A') . "\r\n";
-                if ($class->location) {
-                    $ical .= "LOCATION:" . $class->location . "\r\n";
-                }
-                $ical .= "RRULE:FREQ=WEEKLY;BYDAY=" . strtoupper(substr($schedule->day_of_week, 0, 2)) . "\r\n";
-                $ical .= "END:VEVENT\r\n";
-            }
-        }
-
-        $ical .= "END:VCALENDAR\r\n";
-        return $ical;
     }
 }

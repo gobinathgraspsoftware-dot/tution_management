@@ -7,6 +7,7 @@ use App\Models\ClassModel;
 use App\Models\ClassSchedule;
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\GradeLevel;              // ← ADDED: for dynamic grade levels
 use App\Services\TimetableService;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,7 @@ class TimetableController extends Controller
 
     /**
      * Display timetable dashboard.
-     * FIX: Added class_id / teacher_id server-side filtering support.
+     * FIX: Added class_id / teacher_id / grade_level_id server-side filtering support.
      */
     public function index(Request $request)
     {
@@ -39,20 +40,17 @@ class TimetableController extends Controller
             $teachers = Teacher::active()->with('user')->get();
 
             // FIX: Combined class + teacher + grade filter (AND logic, all optional)
+            // CHANGED: passes grade_level (which is now an ID) to the service
             $timetableData = $this->timetableService->getFilteredTimetable(
                 $request->class_id,    // null when "All Classes"
                 $request->teacher_id,  // null when "All Teachers"
                 $view,
                 $date,
-                $request->grade_level  // null when "All Grades"
+                $request->grade_level  // null when "All Grades" — now sends grade_level_id
             );
 
-            // Grade levels for filter dropdown
-            $gradeLevels = collect([
-                'Standard 1', 'Standard 2', 'Standard 3',
-                'Standard 4', 'Standard 5', 'Standard 6',
-                'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5',
-            ]);
+            // CHANGED: Get grade levels from DB instead of hardcoded list
+            $gradeLevels = GradeLevel::ordered()->get();
 
             return view('admin.timetable.index', compact(
                 'timetableData', 'view', 'date', 'classes', 'teachers', 'gradeLevels'
@@ -145,6 +143,7 @@ class TimetableController extends Controller
             $filename = 'student_timetable_' . $date;
         } else {
             // Admin: respect combined filters in export too
+            // CHANGED: grade_level now passes ID
             $timetableData = $this->timetableService->getFilteredTimetable(
                 $request->class_id,
                 $request->teacher_id,
@@ -177,6 +176,7 @@ class TimetableController extends Controller
         } elseif ($user->hasRole('student')) {
             $timetableData = $this->timetableService->getStudentTimetable($user->student->id, $view, $date);
         } else {
+            // CHANGED: grade_level now passes ID
             $timetableData = $this->timetableService->getFilteredTimetable(
                 $request->class_id,
                 $request->teacher_id,

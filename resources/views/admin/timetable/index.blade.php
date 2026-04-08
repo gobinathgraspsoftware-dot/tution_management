@@ -1,3 +1,4 @@
+{{-- resources/views/admin/timetable/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Timetable Management')
@@ -94,15 +95,15 @@
                         </select>
                     </div>
 
-                    {{-- Grade Level Filter --}}
+                    {{-- Grade Level Filter — CHANGED: uses grade_level_id from grade_levels table --}}
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">Grade Level</label>
                         <select name="grade_level" class="form-select" onchange="submitFilter()">
                             <option value="">All Grades</option>
                             @foreach($gradeLevels as $grade)
-                                <option value="{{ $grade }}"
-                                    {{ request('grade_level') == $grade ? 'selected' : '' }}>
-                                    {{ $grade }}
+                                <option value="{{ $grade->id }}"
+                                    {{ request('grade_level') == $grade->id ? 'selected' : '' }}>
+                                    {{ $grade->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -151,10 +152,11 @@
                                 </span>
                             @endif
 
+                            {{-- CHANGED: display grade level name from the collection --}}
                             @if(request('grade_level'))
                                 <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1">
                                     <i class="fas fa-graduation-cap"></i>
-                                    {{ request('grade_level') }}
+                                    {{ $gradeLevels->firstWhere('id', request('grade_level'))->name ?? 'Grade' }}
                                     <a href="javascript:void(0)" onclick="clearSingleFilter('grade_level')"
                                        class="text-dark ms-1" style="text-decoration:none; font-size:0.85rem;">
                                         <i class="fas fa-times"></i>
