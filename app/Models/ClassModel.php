@@ -18,10 +18,10 @@ class ClassModel extends Model
         'subject_id',
         'teacher_id',
         'type',
-        'grade_level',
+        'grade_level_id',       // CHANGED: was 'grade_level' (varchar) → now FK to grade_levels
         'capacity',
         'current_enrollment',
-        'price', // Required individual class price field
+        'price',
         'description',
         'location',
         'meeting_link',
@@ -31,10 +31,13 @@ class ClassModel extends Model
     protected $casts = [
         'capacity' => 'integer',
         'current_enrollment' => 'integer',
-        'price' => 'decimal:2', // Cast price to decimal with 2 decimal places
+        'price' => 'decimal:2',
     ];
 
-    // Relationships
+    // ==========================================
+    // RELATIONSHIPS
+    // ==========================================
+
     public function subject()
     {
         return $this->belongsTo(Subject::class);
@@ -43,6 +46,15 @@ class ClassModel extends Model
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    /**
+     * Grade level record — NEW relationship after switching from varchar to FK.
+     * Mirrors the same pattern used in Student model.
+     */
+    public function gradeLevel()
+    {
+        return $this->belongsTo(GradeLevel::class, 'grade_level_id');
     }
 
     public function schedules()
@@ -95,7 +107,10 @@ class ClassModel extends Model
         return $this->hasMany(MaterialAccess::class, 'class_id');
     }
 
-    // Scopes
+    // ==========================================
+    // SCOPES
+    // ==========================================
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
@@ -116,7 +131,10 @@ class ClassModel extends Model
         return $query->where('status', 'full');
     }
 
-    // Helper Methods
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
+
     public function isFull()
     {
         return $this->current_enrollment >= $this->capacity;
@@ -128,18 +146,15 @@ class ClassModel extends Model
     }
 
     /**
-     * Get formatted price with currency symbol
-     * 
-     * @return string
+     * Get formatted price with currency symbol.
      */
     public function getFormattedPriceAttribute()
     {
         return 'RM ' . number_format($this->price, 2);
     }
-
     /**
      * Check if class has pricing set (non-zero)
-     * 
+     *
      * @return bool
      */
     public function hasPaidPrice()

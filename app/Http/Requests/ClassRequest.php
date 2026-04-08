@@ -28,9 +28,10 @@ class ClassRequest extends FormRequest
             'subject_id' => 'required|exists:subjects,id',
             'teacher_id' => 'nullable|exists:teachers,id',
             'type' => 'required|in:online,offline',
-            'grade_level' => 'nullable|string|max:50',
+            // CHANGED: was 'nullable|string|max:50' → now FK validation
+            'grade_level_id' => 'nullable|exists:grade_levels,id',
             'capacity' => 'required|integer|min:1|max:100',
-            'price' => 'required|numeric|min:0|max:99999.99', // REQUIRED
+            'price' => 'required|numeric|min:0|max:99999.99',
             'description' => 'nullable|string|max:2000',
             'location' => 'nullable|string|max:255',
             'meeting_link' => 'nullable|url|max:500',
@@ -76,7 +77,8 @@ class ClassRequest extends FormRequest
             'teacher_id.exists' => 'Selected teacher does not exist.',
             'type.required' => 'Class type is required.',
             'type.in' => 'Class type must be either online or offline.',
-            'grade_level.max' => 'Grade level cannot exceed 50 characters.',
+            // CHANGED: updated message for FK validation
+            'grade_level_id.exists' => 'Selected grade level does not exist.',
             'capacity.required' => 'Class capacity is required.',
             'capacity.integer' => 'Capacity must be a whole number.',
             'capacity.min' => 'Capacity must be at least :min.',
@@ -106,7 +108,7 @@ class ClassRequest extends FormRequest
             'subject_id' => 'subject',
             'teacher_id' => 'teacher',
             'type' => 'class type',
-            'grade_level' => 'grade level',
+            'grade_level_id' => 'grade level',   // CHANGED: was 'grade_level'
             'capacity' => 'class capacity',
             'price' => 'class price',
             'description' => 'description',

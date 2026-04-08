@@ -1,3 +1,4 @@
+{{-- resources/views/admin/classes/show.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Class Details')
@@ -63,8 +64,15 @@
                                     @endif
                                 </dd>
 
+                                {{-- CHANGED: display grade level name from relationship --}}
                                 <dt class="col-sm-5">Grade Level:</dt>
-                                <dd class="col-sm-7">{{ $class->grade_level ?? 'N/A' }}</dd>
+                                <dd class="col-sm-7">
+                                    @if($class->gradeLevel)
+                                        <span class="badge bg-secondary">{{ $class->gradeLevel->name }}</span>
+                                    @else
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </dd>
 
                                 <dt class="col-sm-5">Class Price:</dt>
                                 <dd class="col-sm-7">

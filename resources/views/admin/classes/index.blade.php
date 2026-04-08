@@ -1,3 +1,4 @@
+{{-- resources/views/admin/classes/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Classes Management')
@@ -94,6 +95,18 @@
                             @endforeach
                         </select>
                     </div>
+                    {{-- CHANGED: Grade Level filter — dynamic dropdown from grade_levels table --}}
+                    <div class="col-md-2">
+                        <label class="form-label">Grade Level</label>
+                        <select name="grade_level" class="form-select">
+                            <option value="">All Grade Levels</option>
+                            @foreach($gradeLevels as $gradeLevel)
+                                <option value="{{ $gradeLevel->id }}" {{ request('grade_level') == $gradeLevel->id ? 'selected' : '' }}>
+                                    {{ $gradeLevel->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label">Teacher</label>
                         <select name="teacher_id" class="form-select">
@@ -170,7 +183,8 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td>{{ $class->grade_level ?? 'N/A' }}</td>
+                                {{-- CHANGED: display grade level name from relationship --}}
+                                <td>{{ $class->gradeLevel->name ?? 'N/A' }}</td>
                                 <td>
                                     <span class="badge {{ $class->isFull() ? 'bg-danger' : 'bg-success' }}">
                                         {{ $class->current_enrollment }}/{{ $class->capacity }}

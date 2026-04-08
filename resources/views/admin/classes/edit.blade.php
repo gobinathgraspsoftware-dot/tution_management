@@ -112,13 +112,20 @@
                         @enderror
                     </div>
 
-                    {{-- Grade Level --}}
+                    {{-- Grade Level — CHANGED: dynamic dropdown from grade_levels table --}}
                     <div class="col-md-6 mb-3">
-                        <label for="grade_level" class="form-label">Grade Level</label>
-                        <input type="text" name="grade_level" id="grade_level"
-                               class="form-control @error('grade_level') is-invalid @enderror"
-                               value="{{ old('grade_level', $class->grade_level) }}" placeholder="e.g., FORM 2">
-                        @error('grade_level')
+                        <label for="grade_level_id" class="form-label">Grade Level</label>
+                        <select name="grade_level_id" id="grade_level_id"
+                                class="form-select @error('grade_level_id') is-invalid @enderror">
+                            <option value="">-- Select Grade Level --</option>
+                            @foreach($gradeLevels as $gradeLevel)
+                                <option value="{{ $gradeLevel->id }}"
+                                        {{ old('grade_level_id', $class->grade_level_id) == $gradeLevel->id ? 'selected' : '' }}>
+                                    {{ $gradeLevel->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('grade_level_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>

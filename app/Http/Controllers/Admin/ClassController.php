@@ -7,6 +7,7 @@ use App\Http\Requests\ClassRequest;
 use App\Models\ClassModel;
 use App\Models\Subject;
 use App\Models\Teacher;
+use App\Models\GradeLevel;          // ← ADDED: for dynamic grade levels
 use App\Services\ClassService;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class ClassController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ClassModel::with(['subject', 'teacher.user', 'schedules']);
+        $query = ClassModel::with(['subject', 'teacher.user', 'gradeLevel', 'schedules']); // ← ADDED 'gradeLevel' eager load
 
         // Search
         if ($request->filled('search')) {
@@ -34,7 +35,8 @@ class ClassController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('grade_level', 'like', "%{$search}%")
+                  // CHANGED: search by grade level name via relationship instead of varchar
+                  ->orWhereHas('gradeLevel', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
                   ->orWhereHas('subject', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
                   ->orWhereHas('teacher.user', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
             });
@@ -60,9 +62,9 @@ class ClassController extends Controller
             $query->where('teacher_id', $request->teacher_id);
         }
 
-        // Filter by grade level
+        // CHANGED: Filter by grade level ID instead of varchar string
         if ($request->filled('grade_level')) {
-            $query->where('grade_level', $request->grade_level);
+            $query->where('grade_level_id', $request->grade_level);
         }
 
         $classes = $query->latest()->paginate(15)->withQueryString();
@@ -77,11 +79,12 @@ class ClassController extends Controller
             'available_seats' => ClassModel::active()->sum(DB::raw('capacity - current_enrollment')),
         ];
 
-        // Get subjects and teachers for filters
+        // Get subjects, teachers, and grade levels for filters
         $subjects = Subject::active()->orderBy('name')->get();
         $teachers = Teacher::active()->with('user')->get();
+        $gradeLevels = GradeLevel::ordered()->get();   // ← ADDED
 
-        return view('admin.classes.index', compact('classes', 'stats', 'subjects', 'teachers'));
+        return view('admin.classes.index', compact('classes', 'stats', 'subjects', 'teachers', 'gradeLevels'));
     }
 
     /**
@@ -91,8 +94,9 @@ class ClassController extends Controller
     {
         $subjects = Subject::active()->orderBy('name')->get();
         $teachers = Teacher::active()->with('user')->get();
+        $gradeLevels = GradeLevel::ordered()->get();   // ← ADDED
 
-        return view('admin.classes.create', compact('subjects', 'teachers'));
+        return view('admin.classes.create', compact('subjects', 'teachers', 'gradeLevels'));
     }
 
     /**
@@ -129,6 +133,7 @@ class ClassController extends Controller
         $class->load([
             'subject',
             'teacher.user',
+            'gradeLevel',          // ← ADDED
             'schedules' => fn($q) => $q->active()->orderBy('day_of_week')->orderBy('start_time'),
             'enrollments.student.user',
             'sessions' => fn($q) => $q->upcoming()->take(10)
@@ -151,8 +156,9 @@ class ClassController extends Controller
     {
         $subjects = Subject::active()->orderBy('name')->get();
         $teachers = Teacher::active()->with('user')->get();
+        $gradeLevels = GradeLevel::ordered()->get();   // ← ADDED
 
-        return view('admin.classes.edit', compact('class', 'subjects', 'teachers'));
+        return view('admin.classes.edit', compact('class', 'subjects', 'teachers', 'gradeLevels'));
     }
 
     /**
@@ -192,7 +198,7 @@ class ClassController extends Controller
 
     /**
      * Remove the specified class (soft-delete).
-     * 
+     *
      * FIXED: Before soft-deleting, the class code is released by renaming it
      * (e.g., SEJ001 → SEJ001_del_1707465600). This prevents the
      * "Duplicate entry for key 'classes_code_unique'" error when a new class
@@ -210,7 +216,6 @@ class ClassController extends Controller
             $classCode = $class->code;
 
             // Release the class code BEFORE soft-deleting
-            // This frees up the code for reuse by new classes
             $this->classService->releaseClassCode($class);
 
             // Now soft-delete the class
@@ -260,8 +265,6 @@ class ClassController extends Controller
 
     /**
      * AJAX: Preview auto-generated class code based on selected subject.
-     * Called from the create form when subject dropdown changes.
-     * Returns JSON with the next available code.
      */
     public function generateCode(Request $request)
     {
@@ -292,7 +295,7 @@ class ClassController extends Controller
     public function timetable(Request $request)
     {
         $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        
+
         $query = \App\Models\ClassSchedule::with(['class.subject', 'class.teacher.user'])
             ->whereHas('class', function($q) {
                 $q->where('status', 'active');
@@ -334,7 +337,8 @@ class ClassController extends Controller
      */
     public function export(Request $request)
     {
-        $classes = ClassModel::with(['subject', 'teacher.user', 'schedules'])
+        // CHANGED: eager load 'gradeLevel' for export
+        $classes = ClassModel::with(['subject', 'teacher.user', 'gradeLevel', 'schedules'])
             ->when($request->type, fn($q, $t) => $q->where('type', $t))
             ->when($request->status, fn($q, $s) => $q->where('status', $s))
             ->get();
@@ -347,19 +351,18 @@ class ClassController extends Controller
 
         $callback = function() use ($classes) {
             $file = fopen('php://output', 'w');
-            // Header includes Price column
             fputcsv($file, [
-                'Code', 
-                'Name', 
-                'Subject', 
-                'Teacher', 
-                'Type', 
-                'Grade Level', 
-                'Capacity', 
-                'Enrolled', 
+                'Code',
+                'Name',
+                'Subject',
+                'Teacher',
+                'Type',
+                'Grade Level',
+                'Capacity',
+                'Enrolled',
                 'Price (RM)',
-                'Status', 
-                'Location', 
+                'Status',
+                'Location',
                 'Meeting Link'
             ]);
 
@@ -370,7 +373,7 @@ class ClassController extends Controller
                     $class->subject->name ?? 'N/A',
                     $class->teacher->user->name ?? 'N/A',
                     ucfirst($class->type),
-                    $class->grade_level ?? 'N/A',
+                    $class->gradeLevel->name ?? 'N/A',   // CHANGED: from $class->grade_level
                     $class->capacity,
                     $class->current_enrollment,
                     number_format($class->price, 2),
