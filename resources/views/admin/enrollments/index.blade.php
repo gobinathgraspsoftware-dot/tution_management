@@ -129,13 +129,27 @@
                             @endforeach
                         </select>
                     </div>
+                    {{--
+                    |--------------------------------------------------------------
+                    | CHANGED: Grade Level — Dynamic from grade_levels master table
+                    |--------------------------------------------------------------
+                    | BEFORE: @foreach($gradeLevels as $grade)
+                    |             <option value="{{ $grade }}">{{ $grade }}</option>
+                    |         → iterated plain strings from Student::distinct()
+                    |           which broke because grade_level column no longer exists
+                    |
+                    | AFTER:  @foreach($gradeLevels as $gl)
+                    |             <option value="{{ $gl->id }}">{{ $gl->name }}</option>
+                    |         → iterates GradeLevel model objects from master table
+                    |--------------------------------------------------------------
+                    --}}
                     <div class="col-md-2 mb-3">
                         <label for="grade_level" class="form-label">Grade Level</label>
                         <select class="form-select" id="grade_level" name="grade_level">
                             <option value="">All Grades</option>
-                            @foreach($gradeLevels as $grade)
-                                <option value="{{ $grade }}" {{ request('grade_level') == $grade ? 'selected' : '' }}>
-                                    {{ $grade }}
+                            @foreach($gradeLevels as $gl)
+                                <option value="{{ $gl->id }}" {{ request('grade_level') == $gl->id ? 'selected' : '' }}>
+                                    {{ $gl->name }}
                                 </option>
                             @endforeach
                         </select>

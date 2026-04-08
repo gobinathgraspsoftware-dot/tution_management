@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\Package;
 use App\Models\ClassModel;
 use App\Models\Subject;
+use App\Models\GradeLevel;          // ADDED: for dynamic grade levels from master table
 use App\Models\ActivityLog;
 use App\Services\EnrollmentService;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class EnrollmentController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Enrollment::with(['student.user', 'package', 'class.subject']);
+        $query = Enrollment::with(['student.user', 'student.gradeLevel', 'package', 'class.subject']);
 
         // Search
         if ($request->filled('search')) {
@@ -54,10 +55,22 @@ class EnrollmentController extends Controller
             $query->where('package_id', $request->package_id);
         }
 
-        // Filter by grade level (via student)
+        /*
+        |----------------------------------------------------------------------
+        | CHANGED: Filter by grade level using grade_level_id FK (integer)
+        |----------------------------------------------------------------------
+        | BEFORE: $q->where('grade_level', $request->grade_level)
+        |         → used old varchar column which no longer exists
+        |
+        | AFTER:  $q->where('grade_level_id', (int) $request->grade_level)
+        |         → uses FK column referencing grade_levels master table
+        |
+        | Same pattern as StudentController
+        |----------------------------------------------------------------------
+        */
         if ($request->filled('grade_level')) {
             $query->whereHas('student', function ($q) use ($request) {
-                $q->where('grade_level', $request->grade_level);
+                $q->where('grade_level_id', (int) $request->grade_level);
             });
         }
 
@@ -75,13 +88,19 @@ class EnrollmentController extends Controller
         $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
         $packages = Package::active()->orderBy('name')->get();
 
-        // Get unique grade levels from students for filter
-        $gradeLevels = Student::distinct()
-            ->whereNotNull('grade_level')
-            ->pluck('grade_level')
-            ->filter()
-            ->sort()
-            ->values();
+        /*
+        |----------------------------------------------------------------------
+        | CHANGED: Get grade levels from master table instead of Student model
+        |----------------------------------------------------------------------
+        | BEFORE: Student::distinct()->whereNotNull('grade_level')
+        |             ->pluck('grade_level')->filter()->sort()->values()
+        |         → broke because grade_level varchar column no longer exists
+        |
+        | AFTER:  GradeLevel::ordered()->get()
+        |         → returns GradeLevel model collection with id + name
+        |----------------------------------------------------------------------
+        */
+        $gradeLevels = GradeLevel::ordered()->get();
 
         // Get statistics
         $stats = $this->enrollmentService->getEnrollmentStats();
@@ -518,7 +537,7 @@ class EnrollmentController extends Controller
                         'name' => $class->name,
                         'code' => $class->code,
                         'type' => $class->type,
-                        'grade_level' => $class->grade_level,
+                        'grade_level' => $class->gradeLevel->name ?? $class->grade_level_id,
                         'teacher_name' => $class->teacher ? $class->teacher->user->name : null,
                         'capacity' => $class->capacity,
                         'current_enrollment' => $class->current_enrollment,
@@ -568,7 +587,7 @@ class EnrollmentController extends Controller
 
         $classes = ClassModel::where('subject_id', $subjectId)
             ->where('status', 'active')
-            ->with(['teacher.user'])
+            ->with(['teacher.user', 'gradeLevel'])
             ->orderBy('name')
             ->get()
             ->map(function ($class) use ($existingEnrollments) {
@@ -578,7 +597,7 @@ class EnrollmentController extends Controller
                     'name' => $class->name,
                     'code' => $class->code,
                     'type' => $class->type,
-                    'grade_level' => $class->grade_level,
+                    'grade_level' => $class->gradeLevel->name ?? $class->grade_level_id,
                     'teacher_name' => $class->teacher ? $class->teacher->user->name : null,
                     'capacity' => $class->capacity,
                     'current_enrollment' => $class->current_enrollment,
