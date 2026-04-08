@@ -7,7 +7,7 @@ use App\Http\Requests\ExamRequest;
 use App\Models\Exam;
 use App\Models\ClassModel;
 use App\Models\Subject;
-use App\Models\Student;
+use App\Models\GradeLevel;          // CHANGED: was Student → now GradeLevel (master table)
 use App\Models\ActivityLog;
 use App\Services\ExamService;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ class ExamController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Exam::with(['class.subject', 'subject'])->latest('exam_date');
+        $query = Exam::with(['class.subject', 'class.gradeLevel', 'subject'])->latest('exam_date');
 
         // Search
         if ($request->filled('search')) {
@@ -53,10 +53,22 @@ class ExamController extends Controller
             $query->where('subject_id', $request->subject_id);
         }
 
-        // Filter by grade level (via class)
+        /*
+        |----------------------------------------------------------------------
+        | CHANGED: Filter by grade level via Class → grade_level_id FK
+        |----------------------------------------------------------------------
+        | BEFORE: $q->where('grade_level', $request->grade_level)
+        |         → compared old varchar column to string from Student table
+        |
+        | AFTER:  $q->where('grade_level_id', (int) $request->grade_level)
+        |         → compares FK column to grade_levels.id from master table
+        |
+        | Same pattern as ClassController: where('grade_level_id', $request->grade_level)
+        |----------------------------------------------------------------------
+        */
         if ($request->filled('grade_level')) {
             $query->whereHas('class', function ($q) use ($request) {
-                $q->where('grade_level', $request->grade_level);
+                $q->where('grade_level_id', (int) $request->grade_level);
             });
         }
 
@@ -78,17 +90,25 @@ class ExamController extends Controller
             'upcoming' => Exam::upcoming()->count(),
         ];
 
-        // Get classes and subjects for filters
-        $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
+        // Get classes and subjects for filters (eager load gradeLevel for filter linking)
+        $classes = ClassModel::active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
         $subjects = Subject::active()->orderBy('name')->get();
 
-        // Get unique grade levels from students for filter dropdown
-        $gradeLevels = Student::distinct()
-            ->whereNotNull('grade_level')
-            ->pluck('grade_level')
-            ->filter()
-            ->sort()
-            ->values();
+        /*
+        |----------------------------------------------------------------------
+        | CHANGED: Get grade levels from master table instead of Student model
+        |----------------------------------------------------------------------
+        | BEFORE: Student::distinct()->whereNotNull('grade_level')
+        |             ->pluck('grade_level')->filter()->sort()->values()
+        |         → returned plain string collection from students table
+        |
+        | AFTER:  GradeLevel::ordered()->get()
+        |         → returns GradeLevel model collection with id + name
+        |
+        | Blade usage changes from {{ $level }} to {{ $gl->id }} / {{ $gl->name }}
+        |----------------------------------------------------------------------
+        */
+        $gradeLevels = GradeLevel::ordered()->get();
 
         return view('admin.exams.index', compact('exams', 'stats', 'classes', 'subjects', 'gradeLevels'));
     }
@@ -135,7 +155,7 @@ class ExamController extends Controller
      */
     public function show(Exam $exam)
     {
-        $exam->load(['class.subject', 'subject', 'results.student.user']);
+        $exam->load(['class.subject', 'class.gradeLevel', 'subject', 'results.student.user']);
 
         $stats = [
             'total_students' => $exam->class->enrollments()->count(),
