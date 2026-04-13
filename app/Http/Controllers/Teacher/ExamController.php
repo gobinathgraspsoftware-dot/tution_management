@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\ClassModel;
 use App\Models\Subject;
+use App\Models\GradeLevel;
 use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ class ExamController extends Controller
         $query = Exam::whereHas('class', function ($q) use ($teacher) {
                 $q->where('teacher_id', $teacher->id);
             })
-            ->with(['class', 'subject', 'results']);
+            ->with(['class.gradeLevel', 'subject', 'results']);
 
         // Filter by class
         if ($request->filled('class_id')) {
@@ -59,6 +60,7 @@ class ExamController extends Controller
         // Get teacher's classes for filter
         $classes = ClassModel::where('teacher_id', $teacher->id)
             ->where('status', 'active')
+            ->with('gradeLevel')
             ->get();
 
         // Get subjects for filter
@@ -95,7 +97,7 @@ class ExamController extends Controller
 
         $classes = ClassModel::where('teacher_id', $teacher->id)
             ->where('status', 'active')
-            ->with('subject')
+            ->with(['subject', 'gradeLevel'])
             ->get();
 
         $subjects = Subject::whereHas('classes', function ($q) use ($teacher) {
@@ -103,7 +105,9 @@ class ExamController extends Controller
             })
             ->get();
 
-        return view('teacher.exams.create', compact('classes', 'subjects'));
+        $gradeLevels = GradeLevel::ordered()->get();
+
+        return view('teacher.exams.create', compact('classes', 'subjects', 'gradeLevels'));
     }
 
     /**
@@ -160,7 +164,7 @@ class ExamController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        $exam->load(['class', 'subject', 'results.student.user']);
+        $exam->load(['class.gradeLevel', 'subject', 'results.student.user']);
 
         // Get enrolled students
         $enrolledStudents = Enrollment::where('class_id', $exam->class_id)
@@ -203,9 +207,11 @@ class ExamController extends Controller
                 ->with('error', 'Cannot edit exam after results have been entered.');
         }
 
+        $exam->load(['class.gradeLevel']);
+
         $classes = ClassModel::where('teacher_id', $teacher->id)
             ->where('status', 'active')
-            ->with('subject')
+            ->with(['subject', 'gradeLevel'])
             ->get();
 
         $subjects = Subject::whereHas('classes', function ($q) use ($teacher) {
@@ -213,7 +219,9 @@ class ExamController extends Controller
             })
             ->get();
 
-        return view('teacher.exams.edit', compact('exam', 'classes', 'subjects'));
+        $gradeLevels = GradeLevel::ordered()->get();
+
+        return view('teacher.exams.edit', compact('exam', 'classes', 'subjects', 'gradeLevels'));
     }
 
     /**
@@ -341,6 +349,71 @@ class ExamController extends Controller
             DB::rollBack();
             return back()->with('error', 'Failed to save results: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * AJAX: Get grade levels mapped to a subject.
+     *
+     * Subject stores grade_levels as JSON array of grade_level IDs.
+     * Returns only grade levels the teacher has classes for.
+     */
+    public function getGradeLevelsBySubject(Request $request)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $teacher = Auth::user()->teacher;
+        $subject = Subject::findOrFail($request->subject_id);
+        $gradeLevelIds = $subject->grade_levels ?? [];
+
+        // Further filter to only grade levels where teacher has active classes
+        $teacherGradeLevelIds = ClassModel::where('teacher_id', $teacher->id)
+            ->where('status', 'active')
+            ->where('subject_id', $subject->id)
+            ->whereIn('grade_level_id', $gradeLevelIds)
+            ->pluck('grade_level_id')
+            ->unique()
+            ->toArray();
+
+        $gradeLevels = GradeLevel::whereIn('id', $teacherGradeLevelIds)
+            ->ordered()
+            ->get(['id', 'name']);
+
+        return response()->json($gradeLevels);
+    }
+
+    /**
+     * AJAX: Get teacher's active classes filtered by subject and/or grade level.
+     */
+    public function getClassesByFilters(Request $request)
+    {
+        $teacher = Auth::user()->teacher;
+
+        $query = ClassModel::where('teacher_id', $teacher->id)
+            ->where('status', 'active')
+            ->with(['subject', 'gradeLevel']);
+
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', (int) $request->subject_id);
+        }
+
+        if ($request->filled('grade_level_id')) {
+            $query->where('grade_level_id', (int) $request->grade_level_id);
+        }
+
+        $classes = $query->orderBy('name')->get()->map(function ($class) {
+            return [
+                'id'              => $class->id,
+                'name'            => $class->name,
+                'subject_id'      => $class->subject_id,
+                'grade_level_id'  => $class->grade_level_id,
+                'grade_level_name'=> $class->gradeLevel?->name ?? 'N/A',
+                'subject_name'    => $class->subject?->name ?? 'N/A',
+            ];
+        });
+
+        return response()->json($classes);
     }
 
     /**

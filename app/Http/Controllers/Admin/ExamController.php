@@ -7,7 +7,7 @@ use App\Http\Requests\ExamRequest;
 use App\Models\Exam;
 use App\Models\ClassModel;
 use App\Models\Subject;
-use App\Models\GradeLevel;          // CHANGED: was Student → now GradeLevel (master table)
+use App\Models\GradeLevel;
 use App\Models\ActivityLog;
 use App\Services\ExamService;
 use Illuminate\Http\Request;
@@ -53,19 +53,7 @@ class ExamController extends Controller
             $query->where('subject_id', $request->subject_id);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | CHANGED: Filter by grade level via Class → grade_level_id FK
-        |----------------------------------------------------------------------
-        | BEFORE: $q->where('grade_level', $request->grade_level)
-        |         → compared old varchar column to string from Student table
-        |
-        | AFTER:  $q->where('grade_level_id', (int) $request->grade_level)
-        |         → compares FK column to grade_levels.id from master table
-        |
-        | Same pattern as ClassController: where('grade_level_id', $request->grade_level)
-        |----------------------------------------------------------------------
-        */
+        // Filter by grade level via Class → grade_level_id FK
         if ($request->filled('grade_level')) {
             $query->whereHas('class', function ($q) use ($request) {
                 $q->where('grade_level_id', (int) $request->grade_level);
@@ -90,24 +78,9 @@ class ExamController extends Controller
             'upcoming' => Exam::upcoming()->count(),
         ];
 
-        // Get classes and subjects for filters (eager load gradeLevel for filter linking)
+        // Get classes and subjects for filters
         $classes = ClassModel::active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
         $subjects = Subject::active()->orderBy('name')->get();
-
-        /*
-        |----------------------------------------------------------------------
-        | CHANGED: Get grade levels from master table instead of Student model
-        |----------------------------------------------------------------------
-        | BEFORE: Student::distinct()->whereNotNull('grade_level')
-        |             ->pluck('grade_level')->filter()->sort()->values()
-        |         → returned plain string collection from students table
-        |
-        | AFTER:  GradeLevel::ordered()->get()
-        |         → returns GradeLevel model collection with id + name
-        |
-        | Blade usage changes from {{ $level }} to {{ $gl->id }} / {{ $gl->name }}
-        |----------------------------------------------------------------------
-        */
         $gradeLevels = GradeLevel::ordered()->get();
 
         return view('admin.exams.index', compact('exams', 'stats', 'classes', 'subjects', 'gradeLevels'));
@@ -118,10 +91,11 @@ class ExamController extends Controller
      */
     public function create()
     {
-        $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
+        $classes = ClassModel::active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
         $subjects = Subject::active()->orderBy('name')->get();
+        $gradeLevels = GradeLevel::ordered()->get();
 
-        return view('admin.exams.create', compact('classes', 'subjects'));
+        return view('admin.exams.create', compact('classes', 'subjects', 'gradeLevels'));
     }
 
     /**
@@ -173,10 +147,12 @@ class ExamController extends Controller
      */
     public function edit(Exam $exam)
     {
-        $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
+        $exam->load(['class.gradeLevel']);
+        $classes = ClassModel::active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
         $subjects = Subject::active()->orderBy('name')->get();
+        $gradeLevels = GradeLevel::ordered()->get();
 
-        return view('admin.exams.edit', compact('exam', 'classes', 'subjects'));
+        return view('admin.exams.edit', compact('exam', 'classes', 'subjects', 'gradeLevels'));
     }
 
     /**
@@ -291,5 +267,59 @@ class ExamController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to duplicate exam: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * AJAX: Get grade levels mapped to a subject.
+     *
+     * Subject stores grade_levels as JSON array of grade_level IDs.
+     * This endpoint resolves those IDs to {id, name} objects.
+     */
+    public function getGradeLevelsBySubject(Request $request)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $subject = Subject::findOrFail($request->subject_id);
+        $gradeLevelIds = $subject->grade_levels ?? [];
+
+        $gradeLevels = GradeLevel::whereIn('id', $gradeLevelIds)
+            ->ordered()
+            ->get(['id', 'name']);
+
+        return response()->json($gradeLevels);
+    }
+
+    /**
+     * AJAX: Get active classes filtered by subject and/or grade level.
+     *
+     * Used for cascading dropdown: Subject → Grade Level → Class
+     */
+    public function getClassesByFilters(Request $request)
+    {
+        $query = ClassModel::active()->with(['subject', 'gradeLevel', 'teacher.user']);
+
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', (int) $request->subject_id);
+        }
+
+        if ($request->filled('grade_level_id')) {
+            $query->where('grade_level_id', (int) $request->grade_level_id);
+        }
+
+        $classes = $query->orderBy('name')->get()->map(function ($class) {
+            return [
+                'id'              => $class->id,
+                'name'            => $class->name,
+                'subject_id'      => $class->subject_id,
+                'grade_level_id'  => $class->grade_level_id,
+                'teacher_name'    => $class->teacher?->user?->name ?? 'N/A',
+                'grade_level_name'=> $class->gradeLevel?->name ?? 'N/A',
+                'subject_name'    => $class->subject?->name ?? 'N/A',
+            ];
+        });
+
+        return response()->json($classes);
     }
 }

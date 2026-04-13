@@ -220,18 +220,18 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('teacher.exams.show', $exam) }}" 
+                                            <a href="{{ route('teacher.exams.show', $exam) }}"
                                                class="btn btn-sm btn-outline-primary" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             @if($exam->status == 'completed' || $exam->status == 'scheduled')
-                                                <a href="{{ route('teacher.exams.enter-results', $exam) }}" 
+                                                <a href="{{ route('teacher.exams.enter-results', $exam) }}"
                                                    class="btn btn-sm btn-outline-success" title="Enter Results">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                             @endif
                                             @if($exam->results->count() == 0)
-                                                <a href="{{ route('teacher.exams.edit', $exam) }}" 
+                                                <a href="{{ route('teacher.exams.edit', $exam) }}"
                                                    class="btn btn-sm btn-outline-warning" title="Edit">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </a>

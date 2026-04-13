@@ -75,12 +75,19 @@
                             <p class="mb-0 fw-semibold">{{ $exam->name }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Class</label>
-                            <p class="mb-0">{{ $exam->class->name ?? 'N/A' }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
                             <label class="text-muted small">Subject</label>
                             <p class="mb-0">{{ $exam->subject->name ?? 'N/A' }}</p>
+                        </div>
+                        {{-- NEW: Grade Level display --}}
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Grade Level</label>
+                            <p class="mb-0">
+                                <span class="badge bg-secondary">{{ $exam->class->gradeLevel->name ?? 'N/A' }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Class</label>
+                            <p class="mb-0">{{ $exam->class->name ?? 'N/A' }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="text-muted small">Exam Date</label>
@@ -170,23 +177,27 @@
                                                 <strong>{{ $result->student->user->name ?? 'N/A' }}</strong>
                                                 <br><small class="text-muted">{{ $result->student->student_id ?? '' }}</small>
                                             </td>
-                                            <td class="text-center">
-                                                <span class="fw-bold">{{ number_format($result->marks_obtained, 2) }}</span>
-                                                <span class="text-muted">/ {{ number_format($exam->max_marks, 2) }}</span>
+                                            <td class="text-center fw-bold">
+                                                {{ number_format($result->marks_obtained, 2) }} / {{ number_format($exam->max_marks, 2) }}
                                             </td>
-                                            <td class="text-center">{{ number_format($result->percentage, 1) }}%</td>
+                                            <td class="text-center">
+                                                @if($result->percentage)
+                                                    {{ number_format($result->percentage, 1) }}%
+                                                @else
+                                                    N/A
+                                                @endif
+                                            </td>
                                             <td class="text-center">
                                                 @php
-                                                    $gradeClass = match($result->grade) {
-                                                        'A+', 'A' => 'success',
-                                                        'B' => 'info',
-                                                        'C' => 'primary',
-                                                        'D' => 'warning',
-                                                        'E' => 'secondary',
-                                                        default => 'danger'
-                                                    };
+                                                    $gradeColors = [
+                                                        'A+' => 'success', 'A' => 'success',
+                                                        'B' => 'primary', 'C' => 'info',
+                                                        'D' => 'warning', 'E' => 'secondary', 'F' => 'danger',
+                                                    ];
                                                 @endphp
-                                                <span class="badge bg-{{ $gradeClass }}">{{ $result->grade }}</span>
+                                                <span class="badge bg-{{ $gradeColors[$result->grade] ?? 'secondary' }}">
+                                                    {{ $result->grade ?? 'N/A' }}
+                                                </span>
                                             </td>
                                             <td class="text-center">
                                                 @if($result->marks_obtained >= $exam->passing_marks)
@@ -289,11 +300,11 @@
                                 @php
                                     $passPercentage = ($stats['pass_count'] / $stats['results_entered']) * 100;
                                 @endphp
-                                <div class="progress-bar bg-success" role="progressbar" 
+                                <div class="progress-bar bg-success" role="progressbar"
                                      style="width: {{ $passPercentage }}%">
                                     {{ number_format($passPercentage, 0) }}% Pass
                                 </div>
-                                <div class="progress-bar bg-danger" role="progressbar" 
+                                <div class="progress-bar bg-danger" role="progressbar"
                                      style="width: {{ 100 - $passPercentage }}%">
                                     {{ number_format(100 - $passPercentage, 0) }}% Fail
                                 </div>

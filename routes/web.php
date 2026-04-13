@@ -569,6 +569,9 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         Route::get('exams/{exam}/export', [ExamResultController::class, 'export'])->name('exam-results.export');
         Route::get('exams/{exam}/statistics', [ExamResultController::class, 'statistics'])->name('exam-results.statistics');
         Route::post('exam-results/auto-calculate', [ExamResultController::class, 'autoCalculate'])->name('exam-results.auto-calculate');
+        Route::get('exams/get-grade-levels-by-subject', [ExamController::class, 'getGradeLevelsBySubject'])->name('exams.get-grade-levels-by-subject');
+        Route::get('exams/get-classes-by-filters', [ExamController::class, 'getClassesByFilters'])->name('exams.get-classes-by-filters');
+
 
         // ==================== ATTENDANCE MANAGEMENT ROUTES ====================
         Route::prefix('attendance')->name('attendance.')->group(function () {
@@ -1519,6 +1522,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::put('/{exam}', [TeacherExamController::class, 'update'])->name('update');
             Route::get('/{exam}/enter-results', [TeacherExamController::class, 'enterResults'])->name('enter-results');
             Route::post('/{exam}/results', [TeacherExamController::class, 'storeResults'])->name('store-results');
+            Route::get('/get-grade-levels-by-subject', [TeacherExamController::class, 'getGradeLevelsBySubject'])->name('get-grade-levels-by-subject');
+            Route::get('/get-classes-by-filters', [TeacherExamController::class, 'getClassesByFilters'])->name('get-classes-by-filters');
         });
 
         // Teacher Results Routes
