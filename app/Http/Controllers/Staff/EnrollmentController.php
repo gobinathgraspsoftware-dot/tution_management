@@ -7,24 +7,22 @@ use App\Http\Requests\EnrollmentRequest;
 use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Package;
-use App\Models\Subject;
 use App\Models\ClassModel;
+use App\Models\Subject;
+use App\Models\GradeLevel;
 use App\Models\ActivityLog;
-use App\Models\ClassAttendanceSummary;
 use App\Services\EnrollmentService;
-use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class EnrollmentController extends Controller
 {
     protected $enrollmentService;
-    protected $subscriptionService;
 
-    public function __construct(EnrollmentService $enrollmentService, SubscriptionService $subscriptionService)
+    public function __construct(EnrollmentService $enrollmentService)
     {
         $this->enrollmentService = $enrollmentService;
-        $this->subscriptionService = $subscriptionService;
     }
 
     /**
@@ -32,35 +30,33 @@ class EnrollmentController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Enrollment::with(['student.user', 'package', 'class.subject']);
+        $query = Enrollment::with(['student.user', 'student.gradeLevel', 'package', 'class.subject']);
 
-        // Search by student name or student ID
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('student', function ($q) use ($search) {
-                $q->whereHas('user', function ($uq) use ($search) {
-                    $uq->where('name', 'like', "%{$search}%")
-                       ->orWhere('email', 'like', "%{$search}%");
-                })->orWhere('student_id', 'like', "%{$search}%");
+            $query->whereHas('student.user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
             });
         }
 
-        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by class
         if ($request->filled('class_id')) {
             $query->where('class_id', $request->class_id);
         }
 
-        // Filter by package
         if ($request->filled('package_id')) {
             $query->where('package_id', $request->package_id);
         }
 
-        // Filter by date range
+        if ($request->filled('grade_level')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('grade_level_id', (int) $request->grade_level);
+            });
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('start_date', '>=', $request->date_from);
         }
@@ -68,16 +64,14 @@ class EnrollmentController extends Controller
             $query->whereDate('start_date', '<=', $request->date_to);
         }
 
-        $enrollments = $query->latest()->paginate(20)->withQueryString();
+        $enrollments = $query->latest()->paginate(20);
 
-        // Get filter options
         $classes = ClassModel::active()->with('subject')->orderBy('name')->get();
         $packages = Package::active()->orderBy('name')->get();
-
-        // Get statistics
+        $gradeLevels = GradeLevel::ordered()->get();
         $stats = $this->enrollmentService->getEnrollmentStats();
 
-        return view('staff.enrollments.index', compact('enrollments', 'classes', 'packages', 'stats'));
+        return view('staff.enrollments.index', compact('enrollments', 'classes', 'packages', 'gradeLevels', 'stats'));
     }
 
     /**
@@ -85,46 +79,162 @@ class EnrollmentController extends Controller
      */
     public function create()
     {
-        $students = Student::approved()
-            ->with('user')
-            ->get()
-            ->sortBy('user.name');
+        $packages = Package::active()->with('subjects')->get()->map(function ($package) {
+            $gradeLevelIds = $package->subjects->flatMap(function ($subject) {
+                return $subject->grade_levels ?? [];
+            })->unique()->values()->toArray();
 
-        $packages = Package::active()->with('subjects')->get();
-        $classes = ClassModel::active()->with(['subject', 'teacher.user'])->get();
-        $subjects = Subject::active()->orderBy('name')->get();
+            $package->subject_grade_level_ids = $gradeLevelIds;
+            return $package;
+        });
 
-        return view('staff.enrollments.create', compact('students', 'packages', 'classes', 'subjects'));
+        $classes = ClassModel::active()->with(['subject', 'teacher.user', 'gradeLevel'])->get();
+
+        $selectedStudent = null;
+        if (old('student_id')) {
+            $student = Student::with(['user', 'gradeLevel'])->find(old('student_id'));
+            if ($student) {
+                $selectedStudent = [
+                    'id'             => $student->id,
+                    'text'           => $student->user->name . ' (' . ($student->student_id ?? 'ID: ' . $student->id) . ')',
+                    'grade_level_id' => $student->grade_level_id,
+                ];
+            }
+        }
+
+        return view('staff.enrollments.create', compact('packages', 'classes', 'selectedStudent'));
+    }
+
+    /**
+     * Search students via AJAX for Select2
+     * Returns grade_level_id and grade_level_name for client-side filtering.
+     */
+    public function searchStudents(Request $request)
+    {
+        $search = $request->get('q', '');
+        $page = $request->get('page', 1);
+        $perPage = 15;
+
+        $query = Student::approved()
+            ->with(['user', 'gradeLevel'])
+            ->where(function ($q) use ($search) {
+                $q->where('student_id', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+
+        $total = $query->count();
+
+        $students = $query->orderBy('created_at', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get();
+
+        $results = $students->map(function ($student) {
+            return [
+                'id'               => $student->id,
+                'text'             => $student->user->name . ' (' . ($student->student_id ?? 'ID: ' . $student->id) . ')',
+                'grade_level_id'   => $student->grade_level_id,
+                'grade_level_name' => $student->gradeLevel->name ?? null,
+            ];
+        });
+
+        return response()->json([
+            'results' => $results,
+            'pagination' => ['more' => ($page * $perPage) < $total]
+        ]);
     }
 
     /**
      * Store new enrollment
+     *
+     * FIXES:
+     *  1) enrollment_date always set
+     *  2) Package-level duplicate pre-check (blocks if all classes already enrolled)
+     *  3) Service layer has lockForUpdate guard as final safety net
      */
     public function store(EnrollmentRequest $request)
     {
         try {
             $data = $request->validated();
+            $enrollmentType = $request->input('enrollment_type', 'package');
 
-            // Check if enrolling in package
-            if ($request->filled('package_id')) {
+            // FIX: Always set enrollment_date
+            if (empty($data['enrollment_date'])) {
+                $data['enrollment_date'] = $data['start_date'] ?? now()->toDateString();
+            }
+
+            if ($enrollmentType === 'package' && $request->filled('package_id')) {
                 $student = Student::findOrFail($data['student_id']);
-                $package = Package::findOrFail($data['package_id']);
+                $package = Package::with('subjects')->findOrFail($data['package_id']);
 
-                $enrollments = $this->enrollmentService->enrollInPackage($student, $package, $data);
+                /*
+                |----------------------------------------------------------------------
+                | NEW: Package-level duplicate pre-check
+                |----------------------------------------------------------------------
+                | Before processing, check if student is already enrolled in ALL
+                | classes of this package. If yes, block with a clear error message.
+                |----------------------------------------------------------------------
+                */
+                $packageCheck = $this->enrollmentService->isStudentFullyEnrolledInPackage($student, $package);
+                if ($packageCheck['fully_enrolled']) {
+                    return back()->withInput()
+                        ->with('error', $packageCheck['message']);
+                }
+
+                $subjectClasses = $request->input('subject_classes', []);
+
+                // Filter out empty selections
+                $subjectClasses = array_filter($subjectClasses, function ($classId) {
+                    return !empty($classId);
+                });
+
+                if (empty($subjectClasses)) {
+                    return back()->withInput()
+                        ->with('error', 'Please select at least one class for enrollment.');
+                }
+
+                $result = $this->enrollmentService->enrollInPackageWithClasses(
+                    $student, $package, $subjectClasses, $data
+                );
 
                 ActivityLog::create([
                     'user_id' => auth()->id(),
                     'action' => 'create',
                     'model_type' => 'Enrollment',
-                    'description' => "Enrolled student {$student->user->name} in package {$package->name}",
+                    'description' => "Enrolled student {$student->user->name} in package {$package->name} with " . count($result['created']) . " classes",
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                 ]);
 
+                $message = "Student successfully enrolled in {$package->name} package with " . count($result['created']) . " class(es)!";
+
+                if (!empty($result['skipped'])) {
+                    $skippedNames = array_map(fn($s) => $s['class_name'] ?? 'Unknown', $result['skipped']);
+                    $message .= " Skipped " . count($result['skipped']) . " class(es) (already enrolled): " . implode(', ', $skippedNames);
+                }
+
                 return redirect()->route('staff.enrollments.index')
-                    ->with('success', "Student successfully enrolled in {$package->name} package!");
+                    ->with('success', $message);
+
             } else {
-                // Single class enrollment
+                /*
+                |----------------------------------------------------------------------
+                | Single class enrollment — explicit duplicate check
+                |----------------------------------------------------------------------
+                */
+                $existingEnrollment = Enrollment::where('student_id', $data['student_id'])
+                    ->where('class_id', $data['class_id'])
+                    ->whereIn('status', ['active', 'trial', 'suspended'])
+                    ->first();
+
+                if ($existingEnrollment) {
+                    $class = ClassModel::find($data['class_id']);
+                    return back()->withInput()
+                        ->with('error', "Student is already enrolled in class '{$class->name}'. Cannot create duplicate enrollment.");
+                }
+
                 $enrollment = $this->enrollmentService->createEnrollment($data);
 
                 ActivityLog::create([
@@ -132,7 +242,7 @@ class EnrollmentController extends Controller
                     'action' => 'create',
                     'model_type' => 'Enrollment',
                     'model_id' => $enrollment->id,
-                    'description' => "Created enrollment for {$enrollment->student->user->name}",
+                    'description' => "Created enrollment for {$enrollment->student->user->name} in {$enrollment->class->name}",
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                 ]);
@@ -146,421 +256,341 @@ class EnrollmentController extends Controller
         }
     }
 
-    /**
-     * Display enrollment details
-     */
     public function show(Enrollment $enrollment)
     {
         $enrollment->load([
-            'student.user',
-            'student.parent.user',
-            'package.subjects',
-            'class.subject',
-            'class.teacher.user',
-            'class.schedules',
-            'invoices.payments',
-            'feeHistory',
+            'student.user', 'package.subjects',
+            'class.subject', 'class.teacher.user', 'class.schedules',
+            'invoices', 'feeHistory',
         ]);
 
-        // Get attendance summary
         $attendanceSummary = null;
         if ($enrollment->class_id) {
-            $attendanceSummary = ClassAttendanceSummary::where('class_id', $enrollment->class_id)
+            $attendanceSummary = \App\Models\StudentAttendance::whereHas('classSession', function ($q) use ($enrollment) {
+                    $q->where('class_id', $enrollment->class_id);
+                })
                 ->where('student_id', $enrollment->student_id)
+                ->selectRaw('
+                    COUNT(*) as total_sessions,
+                    SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present_count,
+                    SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent_count,
+                    SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late_count
+                ')
                 ->first();
         }
 
-        return view('staff.enrollments.show', compact('enrollment', 'attendanceSummary'));
+        $relatedEnrollments = [];
+        if ($enrollment->package_id) {
+            $relatedEnrollments = Enrollment::where('student_id', $enrollment->student_id)
+                ->where('package_id', $enrollment->package_id)
+                ->where('id', '!=', $enrollment->id)
+                ->with(['class.subject', 'class.teacher.user'])
+                ->get();
+        }
+
+        return view('staff.enrollments.show', compact('enrollment', 'attendanceSummary', 'relatedEnrollments'));
     }
 
-    /**
-     * Show edit form
-     */
     public function edit(Enrollment $enrollment)
     {
-        $enrollment->load(['student.user', 'package', 'class.subject']);
-
+        $enrollment->load(['student.user', 'package', 'class.subject', 'class.teacher.user', 'feeHistory']);
         $packages = Package::active()->with('subjects')->get();
         $classes = ClassModel::active()->with(['subject', 'teacher.user'])->get();
 
         return view('staff.enrollments.edit', compact('enrollment', 'packages', 'classes'));
     }
 
-    /**
-     * Update enrollment
-     */
-    public function update(Request $request, Enrollment $enrollment)
+    public function update(EnrollmentRequest $request, Enrollment $enrollment)
     {
-        $request->validate([
-            'monthly_fee' => 'required|numeric|min:0',
-            'payment_cycle_day' => 'required|integer|min:1|max:28',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'status' => 'required|in:active,suspended,expired,cancelled,trial',
-            'notes' => 'nullable|string|max:500',
-        ]);
-
         try {
-            $oldFee = $enrollment->monthly_fee;
-            $oldStatus = $enrollment->status;
-
-            DB::beginTransaction();
-
-            $enrollment->update([
-                'monthly_fee' => $request->monthly_fee,
-                'payment_cycle_day' => $request->payment_cycle_day,
-                'start_date' => $request->start_date,
-                'end_date' => $request->end_date,
-                'status' => $request->status,
-            ]);
-
-            // Log fee change history
-            if ($oldFee != $request->monthly_fee) {
-                $enrollment->feeHistory()->create([
-                    'old_fee' => $oldFee,
-                    'new_fee' => $request->monthly_fee,
-                    'reason' => $request->notes ?? 'Manual adjustment',
-                    'changed_by' => auth()->id(),
-                ]);
-            }
+            $data = $request->validated();
+            $this->enrollmentService->updateEnrollment($enrollment, $data);
 
             ActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'update',
                 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
-                'description' => "Updated enrollment for {$enrollment->student->user->name}" .
-                    ($oldFee != $request->monthly_fee ? " (Fee changed from RM{$oldFee} to RM{$request->monthly_fee})" : ''),
+                'description' => "Updated enrollment for {$enrollment->student->user->name}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
 
-            DB::commit();
-
-            return redirect()->route('staff.enrollments.show', $enrollment)
+            return redirect()->route('staff.enrollments.index')
                 ->with('success', 'Enrollment updated successfully!');
-
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->withInput()
                 ->with('error', 'Failed to update enrollment: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Delete enrollment
-     */
-    public function destroy(Enrollment $enrollment)
-    {
-        try {
-            // Check if enrollment has any paid invoices
-            if ($enrollment->invoices()->where('paid_amount', '>', 0)->exists()) {
-                return back()->with('error', 'Cannot delete enrollment with paid invoices.');
-            }
-
-            $studentName = $enrollment->student->user->name;
-
-            ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'delete',
-                'model_type' => 'Enrollment',
-                'model_id' => $enrollment->id,
-                'description' => "Deleted enrollment for {$studentName}",
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
-
-            $enrollment->delete();
-
-            return redirect()->route('staff.enrollments.index')
-                ->with('success', 'Enrollment deleted successfully!');
-
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete enrollment: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Cancel enrollment
-     */
     public function cancel(Request $request, Enrollment $enrollment)
     {
-        $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
+        $request->validate(['cancellation_reason' => 'required|string|max:500']);
 
         try {
-            $enrollment->update([
-                'status' => 'cancelled',
-                'cancelled_at' => now(),
-            ]);
+            $this->enrollmentService->cancelEnrollment($enrollment, $request->cancellation_reason);
 
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'cancel',
-                'model_type' => 'Enrollment',
+                'user_id' => auth()->id(), 'action' => 'cancel', 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
-                'description' => "Cancelled enrollment for {$enrollment->student->user->name}" .
-                    ($request->reason ? ". Reason: {$request->reason}" : ''),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'description' => "Cancelled enrollment for {$enrollment->student->user->name}",
+                'ip_address' => $request->ip(), 'user_agent' => $request->userAgent(),
             ]);
 
             return back()->with('success', 'Enrollment cancelled successfully!');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to cancel enrollment: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Suspend enrollment
-     */
     public function suspend(Request $request, Enrollment $enrollment)
     {
-        $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
+        $request->validate(['reason' => 'nullable|string|max:500']);
 
         try {
-            $enrollment->update([
-                'status' => 'suspended',
-            ]);
+            $this->enrollmentService->suspendEnrollment($enrollment, $request->reason);
 
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'suspend',
-                'model_type' => 'Enrollment',
+                'user_id' => auth()->id(), 'action' => 'suspend', 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
-                'description' => "Suspended enrollment for {$enrollment->student->user->name}" .
-                    ($request->reason ? ". Reason: {$request->reason}" : ''),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'description' => "Suspended enrollment for {$enrollment->student->user->name}",
+                'ip_address' => $request->ip(), 'user_agent' => $request->userAgent(),
             ]);
 
             return back()->with('success', 'Enrollment suspended successfully!');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to suspend enrollment: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Resume suspended enrollment
-     */
     public function resume(Enrollment $enrollment)
     {
         try {
-            $enrollment->update([
-                'status' => 'active',
-            ]);
+            $this->enrollmentService->resumeEnrollment($enrollment);
 
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'resume',
-                'model_type' => 'Enrollment',
+                'user_id' => auth()->id(), 'action' => 'resume', 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
                 'description' => "Resumed enrollment for {$enrollment->student->user->name}",
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
+                'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
             ]);
 
             return back()->with('success', 'Enrollment resumed successfully!');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to resume enrollment: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Renew enrollment
-     */
     public function renew(Request $request, Enrollment $enrollment)
     {
-        $request->validate([
-            'months' => 'nullable|integer|min:1|max:24',
-            'generate_invoice' => 'boolean',
-        ]);
+        $request->validate(['months' => 'nullable|integer|min:1|max:15']);
 
         try {
-            $this->subscriptionService->renewEnrollment(
-                $enrollment,
-                $request->months,
-                $request->boolean('generate_invoice', true)
-            );
+            $this->enrollmentService->renewEnrollment($enrollment, $request->months);
 
             ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'renew',
-                'model_type' => 'Enrollment',
+                'user_id' => auth()->id(), 'action' => 'renew', 'model_type' => 'Enrollment',
                 'model_id' => $enrollment->id,
-                'description' => "Renewed enrollment for {$enrollment->student->user->name} by " .
-                    ($request->months ?? $enrollment->package->duration_months ?? 1) . " month(s)",
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'description' => "Renewed enrollment for {$enrollment->student->user->name}",
+                'ip_address' => $request->ip(), 'user_agent' => $request->userAgent(),
             ]);
 
             return back()->with('success', 'Enrollment renewed successfully!');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to renew enrollment: ' . $e->getMessage());
         }
     }
 
-    /**
-     * AJAX: Search students for Select2
-     */
-    public function searchStudents(Request $request)
+    public function destroy(Enrollment $enrollment)
     {
-        $search = $request->get('q', '');
+        try {
+            if ($enrollment->invoices()->where('paid_amount', '>', 0)->exists()) {
+                return back()->with('error', 'Cannot delete enrollment with payment history!');
+            }
 
-        $students = Student::approved()
-            ->with('user')
-            ->where(function ($query) use ($search) {
-                $query->whereHas('user', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%");
-                })->orWhere('student_id', 'like', "%{$search}%");
-            })
-            ->limit(20)
-            ->get()
-            ->map(function ($student) {
+            $studentName = $enrollment->student->user->name;
+            $enrollment->delete();
+
+            ActivityLog::create([
+                'user_id' => auth()->id(), 'action' => 'delete', 'model_type' => 'Enrollment',
+                'model_id' => $enrollment->id,
+                'description' => "Deleted enrollment for {$studentName}",
+                'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
+            ]);
+
+            return redirect()->route('staff.enrollments.index')
+                ->with('success', 'Enrollment deleted successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete enrollment: ' . $e->getMessage());
+        }
+    }
+
+    // ===================== AJAX ENDPOINTS =====================
+
+    public function getClassFee($classId)
+    {
+        $class = ClassModel::findOrFail($classId);
+        return response()->json([
+            'price' => $class->price, 'monthly_fee' => $class->price,
+            'class_name' => $class->name, 'subject_name' => $class->subject->name ?? null,
+        ]);
+    }
+
+    public function getPackageDetails($packageId)
+    {
+        $package = Package::with('subjects.classes')->findOrFail($packageId);
+        $classes = $package->subjects->flatMap(function ($subject) {
+            return $subject->classes()->active()->get();
+        });
+
+        return response()->json([
+            'price' => $package->price, 'duration_months' => $package->duration_months,
+            'classes' => $classes->map(fn($class) => [
+                'id' => $class->id, 'name' => $class->name,
+                'subject' => $class->subject->name, 'price' => $class->price,
+            ]),
+        ]);
+    }
+
+    /**
+     * Get package subjects with classes — filters by grade_level_id.
+     */
+    public function getPackageSubjectsWithClasses(Request $request, $packageId)
+    {
+        $package = Package::with(['subjects' => fn($q) => $q->orderBy('name')])->findOrFail($packageId);
+
+        $studentId = $request->query('student_id');
+        $gradeLevelId = $request->query('grade_level_id');
+        $existingEnrollments = [];
+
+        if ($studentId) {
+            $existingEnrollments = Enrollment::where('student_id', $studentId)
+                ->whereIn('status', ['active', 'trial', 'suspended'])
+                ->pluck('class_id')->toArray();
+
+            if (!$gradeLevelId) {
+                $student = Student::find($studentId);
+                $gradeLevelId = $student ? $student->grade_level_id : null;
+            }
+        }
+
+        $subjects = $package->subjects->map(function ($subject) use ($existingEnrollments, $gradeLevelId) {
+            $classQuery = ClassModel::where('subject_id', $subject->id)
+                ->where('status', 'active')
+                ->with(['teacher.user', 'gradeLevel']);
+
+            if ($gradeLevelId) {
+                $classQuery->where('grade_level_id', (int) $gradeLevelId);
+            }
+
+            $classes = $classQuery->orderBy('name')->get()->map(function ($class) use ($existingEnrollments) {
+                $isEnrolled = in_array($class->id, $existingEnrollments);
                 return [
-                    'id' => $student->id,
-                    'text' => $student->user->name . ' (' . $student->student_id . ')',
-                    'student_id' => $student->student_id,
-                    'email' => $student->user->email,
-                    'phone' => $student->user->phone,
+                    'id' => $class->id, 'name' => $class->name,
+                    'code' => $class->code, 'type' => $class->type,
+                    'grade_level' => $class->gradeLevel->name ?? $class->grade_level_id,
+                    'teacher_name' => $class->teacher ? $class->teacher->user->name : null,
+                    'capacity' => $class->capacity,
+                    'current_enrollment' => $class->current_enrollment,
+                    'available_seats' => $class->capacity - $class->current_enrollment,
+                    'location' => $class->location, 'meeting_link' => $class->meeting_link,
+                    'price' => $class->price, 'is_enrolled' => $isEnrolled,
                 ];
             });
 
-        return response()->json(['results' => $students]);
-    }
+            return ['id' => $subject->id, 'name' => $subject->name, 'code' => $subject->code, 'classes' => $classes];
+        });
 
-    /**
-     * AJAX: Get class fee
-     * FIXED: Using 'price' instead of 'monthly_fee' from ClassModel
-     */
-    public function getClassFee(ClassModel $class)
-    {
         return response()->json([
-            'fee' => $class->price, // FIXED: Use 'price' from ClassModel
-            'name' => $class->name,
-            'subject' => $class->subject->name ?? null,
-            'teacher' => $class->teacher->user->name ?? null,
-            'schedule' => $class->schedules->map(function ($s) {
-                return $s->day_of_week . ' ' . $s->start_time . ' - ' . $s->end_time;
-            })->join(', '),
+            'id' => $package->id, 'name' => $package->name,
+            'price' => $package->price, 'duration_months' => $package->duration_months,
+            'type' => $package->type, 'subjects' => $subjects,
+            'existing_enrollments' => $existingEnrollments,
         ]);
     }
 
     /**
-     * AJAX: Get package details
+     * Get classes for a subject — filters by grade_level_id.
      */
-    public function getPackageDetails(Package $package)
+    public function getClassesBySubject(Request $request, $subjectId)
     {
-        $package->load('subjects');
+        $subject = Subject::findOrFail($subjectId);
 
-        return response()->json([
-            'id' => $package->id,
-            'name' => $package->name,
-            'price' => $package->price,
-            'duration_months' => $package->duration_months,
-            'subjects' => $package->subjects->map(function ($subject) {
-                return [
-                    'id' => $subject->id,
-                    'name' => $subject->name,
-                ];
-            }),
-            'features' => $package->features ?? [],
-        ]);
-    }
+        $studentId = $request->query('student_id');
+        $gradeLevelId = $request->query('grade_level_id');
+        $existingEnrollments = [];
 
-    /**
-     * AJAX: Get package subjects with classes
-     */
-    public function getPackageSubjectsWithClasses(Package $package)
-    {
-        $package->load('subjects');
+        if ($studentId) {
+            $existingEnrollments = Enrollment::where('student_id', $studentId)
+                ->whereIn('status', ['active', 'trial', 'suspended'])
+                ->pluck('class_id')->toArray();
 
-        $subjectsWithClasses = $package->subjects->map(function ($subject) {
-            $classes = ClassModel::where('subject_id', $subject->id)
-                ->active()
-                ->with(['teacher.user', 'schedules'])
-                ->get()
-                ->map(function ($class) {
-                    return [
-                        'id' => $class->id,
-                        'name' => $class->name,
-                        'price' => $class->price, // FIXED: Use 'price' instead of any other field
-                        'teacher' => $class->teacher->user->name ?? 'TBA',
-                        'schedule' => $class->schedules->map(function ($s) {
-                            return $s->day_of_week . ' ' . substr($s->start_time, 0, 5);
-                        })->join(', '),
-                        'available_seats' => $class->capacity - $class->current_enrollment,
-                    ];
-                });
+            if (!$gradeLevelId) {
+                $student = Student::find($studentId);
+                $gradeLevelId = $student ? $student->grade_level_id : null;
+            }
+        }
 
+        $classQuery = ClassModel::where('subject_id', $subjectId)
+            ->where('status', 'active')
+            ->with(['teacher.user', 'gradeLevel']);
+
+        if ($gradeLevelId) {
+            $classQuery->where('grade_level_id', (int) $gradeLevelId);
+        }
+
+        $classes = $classQuery->orderBy('name')->get()->map(function ($class) use ($existingEnrollments) {
             return [
-                'id' => $subject->id,
-                'name' => $subject->name,
-                'classes' => $classes,
+                'id' => $class->id, 'name' => $class->name,
+                'code' => $class->code, 'type' => $class->type,
+                'grade_level' => $class->gradeLevel->name ?? $class->grade_level_id,
+                'teacher_name' => $class->teacher ? $class->teacher->user->name : null,
+                'capacity' => $class->capacity,
+                'current_enrollment' => $class->current_enrollment,
+                'available_seats' => max(0, $class->capacity - $class->current_enrollment),
+                'price' => $class->price,
+                'is_enrolled' => in_array($class->id, $existingEnrollments),
             ];
         });
 
-        return response()->json($subjectsWithClasses);
+        return response()->json([
+            'subject_id' => $subject->id, 'subject_name' => $subject->name, 'classes' => $classes,
+        ]);
     }
 
     /**
-     * AJAX: Get classes by subject
-     * FIXED: Using 'price' instead of 'monthly_fee' from ClassModel
+     * Get student enrollments — returns grade_level_id for filtering.
      */
-    public function getClassesBySubject(Subject $subject)
+    public function getStudentEnrollments($studentId)
     {
-        $classes = ClassModel::where('subject_id', $subject->id)
-            ->active()
-            ->with(['teacher.user', 'schedules'])
-            ->get()
-            ->map(function ($class) {
-                return [
-                    'id' => $class->id,
-                    'name' => $class->name,
-                    'price' => $class->price, // FIXED: Use 'price' from ClassModel
-                    'teacher' => $class->teacher->user->name ?? 'TBA',
-                    'schedule' => $class->schedules->map(function ($s) {
-                        return $s->day_of_week . ' ' . substr($s->start_time, 0, 5) . '-' . substr($s->end_time, 0, 5);
-                    })->join(', '),
-                    'available_seats' => $class->capacity - $class->current_enrollment,
-                ];
-            });
+        $student = Student::with('gradeLevel')->findOrFail($studentId);
 
-        return response()->json($classes);
-    }
-
-    /**
-     * AJAX: Get student enrollments
-     */
-    public function getStudentEnrollments(Student $student)
-    {
-        $enrollments = $student->enrollments()
-            ->with(['package', 'class.subject'])
-            ->latest()
+        $enrollments = Enrollment::where('student_id', $studentId)
+            ->whereIn('status', ['active', 'trial', 'suspended'])
+            ->with(['class.subject', 'package'])
             ->get()
             ->map(function ($enrollment) {
                 return [
                     'id' => $enrollment->id,
-                    'type' => $enrollment->package_id ? 'Package' : 'Class',
-                    'name' => $enrollment->package_id
-                        ? $enrollment->package->name
-                        : ($enrollment->class->name . ' - ' . $enrollment->class->subject->name),
-                    'status' => $enrollment->status,
-                    'start_date' => $enrollment->start_date->format('d M Y'),
-                    'end_date' => $enrollment->end_date ? $enrollment->end_date->format('d M Y') : 'Ongoing',
+                    'class_id' => $enrollment->class_id,
+                    'package_id' => $enrollment->package_id,
+                    'class_name' => $enrollment->class?->name,
+                    'subject_name' => $enrollment->class?->subject?->name,
+                    'package_name' => $enrollment->package?->name,
                     'monthly_fee' => $enrollment->monthly_fee,
+                    'status' => $enrollment->status,
                 ];
             });
 
-        return response()->json($enrollments);
+        return response()->json([
+            'student_id'         => $studentId,
+            'student_name'       => $student->user->name,
+            'grade_level_id'     => $student->grade_level_id,
+            'grade_level_name'   => $student->gradeLevel->name ?? null,
+            'enrollments'        => $enrollments,
+            'enrolled_class_ids' => $enrollments->pluck('class_id')->filter()->toArray(),
+            'enrolled_package_ids' => $enrollments->pluck('package_id')->filter()->unique()->toArray(),
+        ]);
     }
 }

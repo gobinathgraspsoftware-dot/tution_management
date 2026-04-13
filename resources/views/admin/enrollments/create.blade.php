@@ -26,8 +26,8 @@
         @csrf
 
         <div class="row">
-            <!-- Main Form -->
             <div class="col-lg-8">
+                {{-- Student Information --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="card-title mb-0">Student Information</h5>
@@ -50,14 +50,32 @@
                             </small>
                         </div>
 
-                        <!-- Student Existing Enrollments Alert -->
+                        <div id="studentGradeLevelBadge" class="mb-3 d-none">
+                            <span class="badge bg-primary fs-6">
+                                <i class="fas fa-graduation-cap me-1"></i>
+                                Grade Level: <span id="gradeLevelText"></span>
+                            </span>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-filter me-1"></i>
+                                Packages and classes are filtered based on this grade level.
+                            </small>
+                        </div>
+
                         <div id="studentEnrollmentsAlert" class="alert alert-info d-none">
                             <i class="fas fa-info-circle me-2"></i>
                             <span id="studentEnrollmentsText">This student has existing enrollments.</span>
                         </div>
+
+                        {{-- NEW: Warning when all classes in package are already enrolled --}}
+                        <div id="allEnrolledWarning" class="alert alert-warning d-none">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Cannot enroll:</strong>
+                            <span id="allEnrolledWarningText">Student is already enrolled in all classes of this package.</span>
+                        </div>
                     </div>
                 </div>
 
+                {{-- Enrollment Type --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="card-title mb-0">Enrollment Type</h5>
@@ -82,7 +100,7 @@
                     </div>
                 </div>
 
-                <!-- Package Enrollment Section -->
+                {{-- Package Selection --}}
                 <div id="packageSection" class="card shadow-sm mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="card-title mb-0">Package Selection</h5>
@@ -96,6 +114,7 @@
                                     <option value="{{ $package->id }}"
                                             data-price="{{ $package->price }}"
                                             data-duration="{{ $package->duration_months }}"
+                                            data-grade-levels="{{ json_encode($package->subject_grade_level_ids ?? []) }}"
                                             {{ old('package_id') == $package->id ? 'selected' : '' }}>
                                         {{ $package->name }} - RM {{ number_format($package->price, 2) }}
                                         ({{ $package->duration_months }} months)
@@ -106,8 +125,6 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
-                        <!-- Package Subjects & Classes Container -->
                         <div id="subjectsContainer">
                             <div class="alert alert-secondary">
                                 <i class="fas fa-info-circle me-2"></i>
@@ -117,7 +134,7 @@
                     </div>
                 </div>
 
-                <!-- Single Class Section -->
+                {{-- Single Class --}}
                 <div id="singleClassSection" class="card shadow-sm mb-4 d-none">
                     <div class="card-header bg-white py-3">
                         <h5 class="card-title mb-0">Class Selection</h5>
@@ -131,15 +148,23 @@
                                     @foreach($classes as $class)
                                         <option value="{{ $class->id }}"
                                                 data-fee="{{ $class->price }}"
+                                                data-grade-level-id="{{ $class->grade_level_id }}"
                                                 {{ old('class_id') == $class->id ? 'selected' : '' }}>
                                             {{ $class->name }} - {{ $class->subject->name ?? 'N/A' }}
                                             ({{ $class->teacher->user->name ?? 'No Teacher' }}) - RM {{ number_format($class->price, 2) }}
+                                            @if($class->gradeLevel) [{{ $class->gradeLevel->name }}] @endif
                                         </option>
                                     @endforeach
                                 </select>
                                 @error('class_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+
+                                {{-- NEW: Single class duplicate warning --}}
+                                <div id="singleClassDuplicateWarning" class="text-danger mt-2 d-none">
+                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                    <strong>Student is already enrolled in this class.</strong> Please select a different class.
+                                </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Monthly Fee (RM)</label>
@@ -151,7 +176,7 @@
                     </div>
                 </div>
 
-                <!-- Enrollment Details -->
+                {{-- Enrollment Details --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="card-title mb-0">Enrollment Details</h5>
@@ -167,7 +192,6 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Payment Cycle Day <span class="text-danger">*</span></label>
                                 <select name="payment_cycle_day" id="payment_cycle_day"
@@ -183,7 +207,6 @@
                                 @enderror
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Status</label>
                             <select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
@@ -198,7 +221,7 @@
                 </div>
             </div>
 
-            <!-- Summary Sidebar -->
+            {{-- Summary Sidebar --}}
             <div class="col-lg-4">
                 <div class="card shadow-sm" style="top: 20px;">
                     <div class="card-header bg-primary text-white py-3">
@@ -228,8 +251,12 @@
 $(document).ready(function() {
     let selectedPackageData = null;
     let studentEnrollments = [];
+    let enrolledClassIds = [];        // Track ALL enrolled class IDs for this student
+    let enrolledPackageIds = [];      // Track enrolled package IDs
+    let selectedGradeLevelId = null;
+    let isSubmitting = false;         // Double-submit guard
 
-    // Initialize Select2 for Student dropdown with AJAX search
+    // Select2 init
     $('#student_id').select2({
         theme: 'bootstrap-5',
         placeholder: 'Type student name or ID to search...',
@@ -240,55 +267,186 @@ $(document).ready(function() {
             dataType: 'json',
             delay: 300,
             data: function(params) {
-                return {
-                    q: params.term,
-                    page: params.page || 1
-                };
+                return { q: params.term, page: params.page || 1 };
             },
             processResults: function(data, params) {
                 params.page = params.page || 1;
-                return {
-                    results: data.results,
-                    pagination: {
-                        more: data.pagination.more
-                    }
-                };
+                return { results: data.results, pagination: { more: data.pagination.more } };
             },
             cache: true
         }
     });
 
-    // When student is selected
+    // Student selected
     $('#student_id').on('select2:select', function(e) {
-        fetchStudentEnrollments(e.params.data.id);
+        const data = e.params.data;
+        selectedGradeLevelId = data.grade_level_id || null;
+        const gradeLevelName = data.grade_level_name || null;
+
+        if (selectedGradeLevelId && gradeLevelName) {
+            $('#gradeLevelText').text(gradeLevelName);
+            $('#studentGradeLevelBadge').removeClass('d-none');
+        } else {
+            $('#studentGradeLevelBadge').addClass('d-none');
+        }
+
+        filterPackagesByGradeLevel();
+        filterClassesByGradeLevel();
+        fetchStudentEnrollments(data.id);
     });
 
-    // When student selection is cleared
+    // Student cleared
     $('#student_id').on('select2:clear', function() {
         studentEnrollments = [];
+        enrolledClassIds = [];
+        enrolledPackageIds = [];
+        selectedGradeLevelId = null;
         $('#studentEnrollmentsAlert').addClass('d-none');
+        $('#studentGradeLevelBadge').addClass('d-none');
+        $('#allEnrolledWarning').addClass('d-none');
+        $('#singleClassDuplicateWarning').addClass('d-none');
+        resetPackageFilter();
+        resetClassFilter();
         updateSummary();
     });
+
+    // ==================== GRADE LEVEL FILTERING ====================
+
+    function filterPackagesByGradeLevel() {
+        const currentVal = $('#package_id').val();
+        let matchFound = false;
+
+        $('#package_id option').each(function() {
+            const $option = $(this);
+            if (!$option.val()) return;
+
+            if (!selectedGradeLevelId) {
+                $option.prop('disabled', false).show();
+                return;
+            }
+
+            let gradeLevelArr = $option.data('grade-levels');
+            if (!Array.isArray(gradeLevelArr)) {
+                try { gradeLevelArr = JSON.parse(gradeLevelArr); } catch(e) { gradeLevelArr = []; }
+            }
+            gradeLevelArr = (gradeLevelArr || []).map(Number);
+
+            if (gradeLevelArr.includes(Number(selectedGradeLevelId))) {
+                $option.prop('disabled', false).show();
+                if ($option.val() == currentVal) matchFound = true;
+            } else {
+                $option.prop('disabled', true).hide();
+            }
+        });
+
+        if (currentVal && !matchFound) {
+            $('#package_id').val('').trigger('change.select2');
+            selectedPackageData = null;
+            $('#subjectsContainer').html('<div class="alert alert-secondary"><i class="fas fa-info-circle me-2"></i>Please select a package to view available subjects and classes.</div>');
+        }
+    }
+
+    function resetPackageFilter() {
+        $('#package_id option').each(function() { $(this).prop('disabled', false).show(); });
+    }
+
+    function filterClassesByGradeLevel() {
+        const currentVal = $('#class_id').val();
+        let matchFound = false;
+
+        $('#class_id option').each(function() {
+            const $option = $(this);
+            if (!$option.val()) return;
+
+            if (!selectedGradeLevelId) {
+                $option.prop('disabled', false).show();
+                return;
+            }
+
+            const classGradeLevel = Number($option.data('grade-level-id'));
+            if (!classGradeLevel || classGradeLevel === Number(selectedGradeLevelId)) {
+                $option.prop('disabled', false).show();
+                if ($option.val() == currentVal) matchFound = true;
+            } else {
+                $option.prop('disabled', true).hide();
+            }
+        });
+
+        if (currentVal && !matchFound) {
+            $('#class_id').val('');
+            $('#monthly_fee_display').val('');
+            $('#monthly_fee').val('');
+        }
+
+        // Re-apply enrolled-class disabling after grade filter
+        markEnrolledClassesInDropdown();
+    }
+
+    function resetClassFilter() {
+        $('#class_id option').each(function() { $(this).prop('disabled', false).show(); });
+    }
+
+    // ==================== DUPLICATE DETECTION ====================
+
+    /*
+     * Mark already-enrolled classes as disabled in the single-class dropdown.
+     * This prevents the user from even selecting a duplicate class.
+     */
+    function markEnrolledClassesInDropdown() {
+        $('#class_id option').each(function() {
+            const $option = $(this);
+            if (!$option.val()) return;
+
+            const classId = Number($option.val());
+            if (enrolledClassIds.includes(classId)) {
+                // Append [ALREADY ENROLLED] tag if not already there
+                let text = $option.text();
+                if (text.indexOf('[ALREADY ENROLLED]') === -1) {
+                    $option.text(text.trim() + ' [ALREADY ENROLLED]');
+                }
+                $option.prop('disabled', true);
+            }
+        });
+    }
 
     // Fetch student enrollments
     function fetchStudentEnrollments(studentId) {
         studentEnrollments = [];
+        enrolledClassIds = [];
+        enrolledPackageIds = [];
 
         $.get(`/admin/enrollments/student/${studentId}/enrollments`, function(data) {
-            studentEnrollments = data.enrolled_class_ids || [];
+            enrolledClassIds = data.enrolled_class_ids || [];
+            enrolledPackageIds = data.enrolled_package_ids || [];
+            studentEnrollments = data.enrollments || [];
 
-            if (studentEnrollments.length > 0) {
+            // Fallback grade level
+            if (!selectedGradeLevelId && data.grade_level_id) {
+                selectedGradeLevelId = data.grade_level_id;
+                $('#gradeLevelText').text(data.grade_level_name || 'Grade ' + data.grade_level_id);
+                $('#studentGradeLevelBadge').removeClass('d-none');
+                filterPackagesByGradeLevel();
+                filterClassesByGradeLevel();
+            }
+
+            // Show enrollment count
+            if (enrolledClassIds.length > 0) {
                 $('#studentEnrollmentsAlert').removeClass('d-none');
-                $('#studentEnrollmentsText').text(`This student is already enrolled in ${studentEnrollments.length} class(es).`);
+                $('#studentEnrollmentsText').text(`This student is already enrolled in ${enrolledClassIds.length} class(es).`);
             } else {
                 $('#studentEnrollmentsAlert').addClass('d-none');
             }
 
+            // Mark enrolled classes in single-class dropdown
+            markEnrolledClassesInDropdown();
+
+            // Reload package subjects if a package is selected
             if ($('#package_id').val()) {
                 loadPackageSubjects($('#package_id').val());
             }
         }).fail(function() {
-            studentEnrollments = [];
+            enrolledClassIds = [];
+            enrolledPackageIds = [];
             $('#studentEnrollmentsAlert').addClass('d-none');
             if ($('#package_id').val()) {
                 loadPackageSubjects($('#package_id').val());
@@ -298,7 +456,8 @@ $(document).ready(function() {
         updateSummary();
     }
 
-    // Toggle enrollment type sections
+    // ==================== ENROLLMENT TYPE TOGGLE ====================
+
     $('input[name="enrollment_type"]').change(function() {
         const type = $(this).val();
         if (type === 'package') {
@@ -314,89 +473,89 @@ $(document).ready(function() {
             $('#monthly_fee').prop('required', true);
             $('#package_id').prop('required', false);
         }
+        $('#allEnrolledWarning').addClass('d-none');
+        $('#singleClassDuplicateWarning').addClass('d-none');
         updateSummary();
     });
 
-    // When package changes
+    // ==================== PACKAGE LOADING ====================
+
     $('#package_id').change(function() {
         const packageId = $(this).val();
         if (packageId) {
             loadPackageSubjects(packageId);
         } else {
-            $('#subjectsContainer').html(`
-                <div class="alert alert-secondary">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Please select a package to view available subjects and classes.
-                </div>
-            `);
+            $('#subjectsContainer').html('<div class="alert alert-secondary"><i class="fas fa-info-circle me-2"></i>Please select a package to view available subjects and classes.</div>');
+            $('#allEnrolledWarning').addClass('d-none');
         }
         updateSummary();
     });
 
-    // Load package subjects
     function loadPackageSubjects(packageId) {
         const studentId = $('#student_id').val();
         let url = `/admin/enrollments/package/${packageId}/subjects-classes`;
-        if (studentId) {
-            url += `?student_id=${studentId}`;
-        }
+        let params = [];
+        if (studentId) params.push(`student_id=${studentId}`);
+        if (selectedGradeLevelId) params.push(`grade_level_id=${selectedGradeLevelId}`);
+        if (params.length > 0) url += '?' + params.join('&');
 
-        $('#subjectsContainer').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 mb-0">Loading subjects and classes...</p>
-            </div>
-        `);
+        $('#subjectsContainer').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 mb-0">Loading subjects and classes...</p></div>');
 
         $.get(url, function(data) {
             selectedPackageData = data;
             renderSubjectsAndClasses(data);
+            checkAllClassesEnrolled(data);
             updateSummary();
         }).fail(function() {
-            $('#subjectsContainer').html(`
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Failed to load package details. Please try again.
-                </div>
-            `);
+            $('#subjectsContainer').html('<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load package details. Please try again.</div>');
         });
     }
 
-    // Render subjects and classes (WITHOUT sessions/month badge)
-    function renderSubjectsAndClasses(data) {
+    /*
+     * NEW: Check if ALL classes in the package response are already enrolled.
+     * If so, show a warning and disable the submit button.
+     */
+    function checkAllClassesEnrolled(data) {
         if (!data.subjects || data.subjects.length === 0) {
-            $('#subjectsContainer').html(`
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    This package has no subjects configured.
-                </div>
-            `);
+            $('#allEnrolledWarning').addClass('d-none');
             return;
         }
 
-        let html = `
-            <div class="mb-3">
-                <div class="alert alert-info">
-                    <i class="fas fa-lightbulb me-2"></i>
-                    <strong>Package:</strong> ${data.name} - RM ${parseFloat(data.price).toFixed(2)} for ${data.duration_months} month(s)
-                    <br><small>Select one class for each subject below.</small>
-                </div>
-            </div>
-        `;
+        let totalClasses = 0;
+        let totalEnrolled = 0;
 
         data.subjects.forEach(function(subject) {
-            html += `
-                <div class="card mb-3 border">
-                    <div class="card-header bg-light py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-book me-2"></i><strong>${subject.name}</strong></span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-            `;
+            if (subject.classes) {
+                subject.classes.forEach(function(cls) {
+                    totalClasses++;
+                    if (cls.is_enrolled) totalEnrolled++;
+                });
+            }
+        });
+
+        if (totalClasses > 0 && totalEnrolled >= totalClasses) {
+            $('#allEnrolledWarning').removeClass('d-none');
+            $('#allEnrolledWarningText').text(
+                `Student is already enrolled in all ${totalClasses} class(es) of this package. No new enrollment can be created.`
+            );
+        } else {
+            $('#allEnrolledWarning').addClass('d-none');
+        }
+    }
+
+    function renderSubjectsAndClasses(data) {
+        if (!data.subjects || data.subjects.length === 0) {
+            $('#subjectsContainer').html('<div class="alert alert-warning"><i class="fas fa-exclamation-circle me-2"></i>This package has no subjects configured.</div>');
+            return;
+        }
+
+        let html = `<div class="mb-3"><div class="alert alert-info"><i class="fas fa-lightbulb me-2"></i><strong>Package:</strong> ${data.name} - RM ${parseFloat(data.price).toFixed(2)} for ${data.duration_months} month(s)<br><small>Select one class for each subject below.</small></div></div>`;
+
+        data.subjects.forEach(function(subject) {
+            html += `<div class="card mb-3 border"><div class="card-header bg-light py-2"><div class="d-flex justify-content-between align-items-center"><span><i class="fas fa-book me-2"></i><strong>${subject.name}</strong></span></div></div><div class="card-body">`;
 
             if (!subject.classes || subject.classes.length === 0) {
-                html += `<div class="alert alert-warning mb-0">No active classes available.</div>`;
+                html += `<div class="alert alert-warning mb-0">No active classes available for this grade level.</div>`;
             } else {
                 html += `<select name="subject_classes[${subject.id}]" class="form-select subject-class-select" data-subject="${subject.name}"><option value="">-- Select a class --</option>`;
 
@@ -406,9 +565,7 @@ $(document).ready(function() {
                     const isDisabled = isEnrolled || isFull;
                     let statusText = isEnrolled ? ' [ALREADY ENROLLED]' : (isFull ? ' [FULL]' : '');
 
-                    html += `<option value="${cls.id}" data-enrolled="${isEnrolled ? '1' : '0'}" ${isDisabled ? 'disabled' : ''}>
-                        ${cls.name} - ${cls.teacher_name || 'No Teacher'} (${cls.available_seats} seats)${statusText}
-                    </option>`;
+                    html += `<option value="${cls.id}" data-enrolled="${isEnrolled ? '1' : '0'}" ${isDisabled ? 'disabled' : ''}>${cls.name} - ${cls.teacher_name || 'No Teacher'} (${cls.available_seats} seats)${statusText}</option>`;
                 });
 
                 html += `</select>`;
@@ -421,9 +578,13 @@ $(document).ready(function() {
         $('.subject-class-select').change(updateSummary);
     }
 
-    // When single class changes - show price in disabled field
+    // ==================== SINGLE CLASS CHANGE ====================
+
     $('#class_id').change(function() {
-        const fee = $(this).find(':selected').data('fee');
+        const $selected = $(this).find(':selected');
+        const fee = $selected.data('fee');
+        const classId = Number($(this).val());
+
         if (fee) {
             const formattedFee = parseFloat(fee).toFixed(2);
             $('#monthly_fee_display').val(formattedFee);
@@ -432,10 +593,19 @@ $(document).ready(function() {
             $('#monthly_fee_display').val('');
             $('#monthly_fee').val('');
         }
+
+        // Check if this class is already enrolled
+        if (classId && enrolledClassIds.includes(classId)) {
+            $('#singleClassDuplicateWarning').removeClass('d-none');
+        } else {
+            $('#singleClassDuplicateWarning').addClass('d-none');
+        }
+
         updateSummary();
     });
 
-    // Update summary
+    // ==================== SUMMARY ====================
+
     function updateSummary() {
         const studentId = $('#student_id').val();
         const enrollmentType = $('input[name="enrollment_type"]:checked').val();
@@ -444,7 +614,6 @@ $(document).ready(function() {
         let html = '';
         let isValid = false;
 
-        // Get student name from Select2
         let studentName = 'Not Selected';
         const studentData = $('#student_id').select2('data');
         if (studentData && studentData.length > 0 && studentData[0].text) {
@@ -476,9 +645,7 @@ $(document).ready(function() {
                         }
                     });
 
-                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Package</small><strong>${selectedPackageData.name}</strong>
-                        <div class="mt-1"><span class="badge bg-info">RM ${parseFloat(selectedPackageData.price).toFixed(2)}</span>
-                        <span class="badge bg-secondary">${selectedPackageData.duration_months} months</span></div></div>`;
+                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Package</small><strong>${selectedPackageData.name}</strong><div class="mt-1"><span class="badge bg-info">RM ${parseFloat(selectedPackageData.price).toFixed(2)}</span> <span class="badge bg-secondary">${selectedPackageData.duration_months} months</span></div></div>`;
 
                     if (selectedClasses.length > 0) {
                         html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Selected Classes (${selectedClasses.length})</small><ul class="list-unstyled mb-0 mt-2">`;
@@ -488,21 +655,30 @@ $(document).ready(function() {
                         });
                         html += `</ul></div>`;
 
-                        if (totalNewClasses > 0) {
-                            isValid = true;
-                        }
+                        if (totalNewClasses > 0) isValid = true;
+                    }
+
+                    // Show warning if no new classes possible
+                    if (totalNewClasses === 0 && selectedClasses.length > 0) {
+                        html += '<div class="alert alert-warning py-2 mb-0"><small>All selected classes are already enrolled. Nothing new to create.</small></div>';
                     }
                 } else {
                     html += '<p class="text-muted mb-0">Please select a package.</p>';
                 }
             } else {
-                const classId = $('#class_id').val();
+                const classId = Number($('#class_id').val());
                 const monthlyFee = $('#monthly_fee').val();
 
                 if (classId && monthlyFee) {
-                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Class</small><strong>${$('#class_id option:selected').text()}</strong></div>`;
-                    html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Monthly Fee</small><strong class="text-success">RM ${parseFloat(monthlyFee).toFixed(2)}</strong></div>`;
-                    isValid = true;
+                    // Block if already enrolled
+                    if (enrolledClassIds.includes(classId)) {
+                        html += '<div class="alert alert-danger py-2"><small><i class="fas fa-ban me-1"></i> Student is already enrolled in this class. Cannot create duplicate.</small></div>';
+                        isValid = false;
+                    } else {
+                        html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Class</small><strong>${$('#class_id option:selected').text()}</strong></div>`;
+                        html += `<div class="mb-3 pb-3 border-bottom"><small class="text-muted d-block">Monthly Fee</small><strong class="text-success">RM ${parseFloat(monthlyFee).toFixed(2)}</strong></div>`;
+                        isValid = true;
+                    }
                 } else {
                     html += '<p class="text-muted mb-0">Please select a class.</p>';
                 }
@@ -517,8 +693,15 @@ $(document).ready(function() {
         $('#submitBtn').prop('disabled', !isValid);
     }
 
-    // Form validation
+    // ==================== FORM SUBMIT WITH DOUBLE-CLICK GUARD ====================
+
     $('#enrollmentForm').submit(function(e) {
+        // Prevent double submit
+        if (isSubmitting) {
+            e.preventDefault();
+            return false;
+        }
+
         if ($('input[name="enrollment_type"]:checked').val() === 'package') {
             let hasNewEnrollment = false;
             $('.subject-class-select').each(function() {
@@ -529,14 +712,31 @@ $(document).ready(function() {
 
             if (!hasNewEnrollment) {
                 e.preventDefault();
-                alert('Please select at least one new class.');
+                alert('Please select at least one new class. Student is already enrolled in all selected classes.');
+                return false;
+            }
+        } else {
+            // Single class — check duplicate
+            const classId = Number($('#class_id').val());
+            if (classId && enrolledClassIds.includes(classId)) {
+                e.preventDefault();
+                alert('Student is already enrolled in this class. Please select a different class.');
                 return false;
             }
         }
+
+        // Mark as submitting and disable button
+        isSubmitting = true;
+        $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Creating...');
     });
 
     // Initialize if pre-selected student exists
     @if(isset($selectedStudent))
+        selectedGradeLevelId = {{ $selectedStudent['grade_level_id'] ?? 'null' }};
+        @if(!empty($selectedStudent['grade_level_id']))
+            filterPackagesByGradeLevel();
+            filterClassesByGradeLevel();
+        @endif
         fetchStudentEnrollments({{ $selectedStudent['id'] }});
     @endif
 
