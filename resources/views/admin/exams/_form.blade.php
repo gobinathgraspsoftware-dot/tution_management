@@ -5,10 +5,25 @@
 --}}
 @php
     $isEdit = isset($exam) && $exam->exists;
+
+    // Prepare data for JS (must be done in @php to avoid Blade parse errors with closures)
+    $jsSubjects = $subjects->map(function($s) {
+        return ['id' => $s->id, 'name' => $s->name, 'code' => $s->code, 'grade_levels' => $s->grade_levels ?? []];
+    })->values();
+
+    $jsClasses = $classes->map(function($c) {
+        return [
+            'id' => $c->id,
+            'name' => $c->name,
+            'subject_id' => $c->subject_id,
+            'grade_level_id' => $c->grade_level_id,
+            'teacher_name' => optional(optional($c->teacher)->user)->name ?? 'N/A',
+        ];
+    })->values();
 @endphp
 
 <div class="row">
-    {{-- Exam Name --}}
+    {{-- 1. Exam Name --}}
     <div class="col-md-12 mb-3">
         <label for="name" class="form-label fw-semibold">
             Exam Name <span class="text-danger">*</span>
@@ -22,57 +37,48 @@
         @enderror
     </div>
 
-    {{-- Class (UNCHANGED - original flow) --}}
-    <div class="col-md-6 mb-3">
-        <label for="class_id" class="form-label fw-semibold">
-            Class <span class="text-danger">*</span>
+    {{-- 2. Grade Level (select first) --}}
+    <div class="col-md-4 mb-3">
+        <label for="grade_level_id" class="form-label fw-semibold">
+            Grade Level <span class="text-danger">*</span>
         </label>
-        <select name="class_id" id="class_id"
-                class="form-select @error('class_id') is-invalid @enderror" required>
-            <option value="">-- Select Class --</option>
-            @foreach($classes as $class)
-                <option value="{{ $class->id }}"
-                    data-subject="{{ $class->subject_id ?? '' }}"
-                    {{ old('class_id', $isEdit ? $exam->class_id : '') == $class->id ? 'selected' : '' }}>
-                    {{ $class->name }}
+        <select class="form-select" id="grade_level_id" required>
+            <option value="">-- Select Grade Level --</option>
+            @foreach($gradeLevels as $gl)
+                <option value="{{ $gl->id }}"
+                    {{ old('grade_level_id', $isEdit ? ($exam->class->grade_level_id ?? '') : '') == $gl->id ? 'selected' : '' }}>
+                    {{ $gl->name }}
                 </option>
             @endforeach
         </select>
-        @error('class_id')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
     </div>
 
-    {{-- Subject (UNCHANGED flow, added data-grade-levels attribute) --}}
-    <div class="col-md-6 mb-3">
+    {{-- 3. Subject (filtered by grade level) --}}
+    <div class="col-md-4 mb-3">
         <label for="subject_id" class="form-label fw-semibold">
             Subject <span class="text-danger">*</span>
         </label>
         <select name="subject_id" id="subject_id"
                 class="form-select @error('subject_id') is-invalid @enderror" required>
-            <option value="">-- Select Subject --</option>
-            @foreach($subjects as $subject)
-                <option value="{{ $subject->id }}"
-                    data-grade-levels="{{ json_encode($subject->grade_levels ?? []) }}"
-                    {{ old('subject_id', $isEdit ? $exam->subject_id : '') == $subject->id ? 'selected' : '' }}>
-                    {{ $subject->name }} ({{ $subject->code }})
-                </option>
-            @endforeach
+            <option value="">-- Select Grade Level First --</option>
         </select>
         @error('subject_id')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
 
-    {{-- NEW: Grade Level (filtered by selected subject - informational display) --}}
-    <div class="col-md-12 mb-3">
-        <label for="grade_level_id" class="form-label fw-semibold">Grade Level</label>
-        <select class="form-select" id="grade_level_id" disabled>
-            <option value="">-- Select Subject to view Grade Levels --</option>
+    {{-- 4. Class (filtered by grade level + subject) --}}
+    <div class="col-md-4 mb-3">
+        <label for="class_id" class="form-label fw-semibold">
+            Class <span class="text-danger">*</span>
+        </label>
+        <select name="class_id" id="class_id"
+                class="form-select @error('class_id') is-invalid @enderror" required>
+            <option value="">-- Select Subject First --</option>
         </select>
-        <small class="form-text text-muted">
-            <i class="fas fa-info-circle me-1"></i>Shows grade levels mapped to the selected subject
-        </small>
+        @error('class_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
     </div>
 
     {{-- Exam Date --}}
@@ -181,57 +187,73 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    // All grade levels from server (for client-side filtering)
-    const allGradeLevels = @json($gradeLevels);
+    var allSubjects = {!! json_encode($jsSubjects) !!};
+    var allClasses  = {!! json_encode($jsClasses) !!};
 
-    // Pre-selected grade level from exam's class (for edit mode highlight)
-    const preSelectedGradeLevelId = '{{ $isEdit ? ($exam->class->grade_level_id ?? "") : "" }}';
+    var preGradeLevel = '{{ old("grade_level_id", $isEdit ? ($exam->class->grade_level_id ?? "") : "") }}';
+    var preSubject    = '{{ old("subject_id", $isEdit ? $exam->subject_id : "") }}';
+    var preClass      = '{{ old("class_id", $isEdit ? $exam->class_id : "") }}';
 
-    // =========================================================================
-    // EXISTING: Auto-select subject based on class (UNCHANGED)
-    // =========================================================================
-    $('#class_id').on('change', function() {
-        var subjectId = $(this).find(':selected').data('subject');
-        if (subjectId) {
-            $('#subject_id').val(subjectId).trigger('change');
-        }
-    });
+    $('#grade_level_id').on('change', function() {
+        var gradeLevelId = parseInt($(this).val()) || 0;
+        var $subjectSelect = $('#subject_id');
+        var $classSelect   = $('#class_id');
 
-    // =========================================================================
-    // NEW: Subject Change → Load mapped Grade Levels
-    // =========================================================================
-    $('#subject_id').on('change', function() {
-        var subjectId = $(this).val();
-        var $gradeSelect = $('#grade_level_id');
+        $classSelect.html('<option value="">-- Select Subject First --</option>');
 
-        if (!subjectId) {
-            $gradeSelect.html('<option value="">-- Select Subject to view Grade Levels --</option>').prop('disabled', true);
+        if (!gradeLevelId) {
+            $subjectSelect.html('<option value="">-- Select Grade Level First --</option>');
             return;
         }
 
-        // Get mapped grade level IDs from the selected option's data attribute
-        var mappedIds = $(this).find(':selected').data('grade-levels') || [];
-
-        if (mappedIds.length === 0) {
-            $gradeSelect.html('<option value="">-- No Grade Levels Mapped to this Subject --</option>').prop('disabled', true);
-            return;
-        }
-
-        // Filter allGradeLevels by the mapped IDs and build options
-        var options = '<option value="">-- ' + mappedIds.length + ' Grade Level(s) Mapped --</option>';
-        allGradeLevels.forEach(function(gl) {
-            if (mappedIds.includes(gl.id)) {
-                var selected = (gl.id == preSelectedGradeLevelId) ? 'selected' : '';
-                options += '<option value="' + gl.id + '" ' + selected + '>' + gl.name + '</option>';
-            }
+        var filtered = allSubjects.filter(function(s) {
+            return s.grade_levels && s.grade_levels.includes(gradeLevelId);
         });
 
-        $gradeSelect.html(options).prop('disabled', false);
+        var options = '<option value="">-- Select Subject --</option>';
+        if (filtered.length === 0) {
+            options = '<option value="">-- No Subjects for this Grade Level --</option>';
+        } else {
+            filtered.forEach(function(s) {
+                var selected = (s.id == preSubject) ? 'selected' : '';
+                options += '<option value="' + s.id + '" ' + selected + '>' + s.name + ' (' + s.code + ')</option>';
+            });
+        }
+        $subjectSelect.html(options);
+
+        if (preSubject && $subjectSelect.val()) {
+            $subjectSelect.trigger('change');
+        }
     });
 
-    // Trigger on page load if subject is pre-selected (edit mode or old() re-fill)
-    if ($('#subject_id').val()) {
-        $('#subject_id').trigger('change');
+    $('#subject_id').on('change', function() {
+        var subjectId    = parseInt($(this).val()) || 0;
+        var gradeLevelId = parseInt($('#grade_level_id').val()) || 0;
+        var $classSelect = $('#class_id');
+
+        if (!subjectId) {
+            $classSelect.html('<option value="">-- Select Subject First --</option>');
+            return;
+        }
+
+        var filtered = allClasses.filter(function(c) {
+            return c.subject_id == subjectId && c.grade_level_id == gradeLevelId;
+        });
+
+        var options = '<option value="">-- Select Class --</option>';
+        if (filtered.length === 0) {
+            options = '<option value="">-- No Classes Available --</option>';
+        } else {
+            filtered.forEach(function(c) {
+                var selected = (c.id == preClass) ? 'selected' : '';
+                options += '<option value="' + c.id + '" ' + selected + '>' + c.name + ' (' + c.teacher_name + ')</option>';
+            });
+        }
+        $classSelect.html(options);
+    });
+
+    if (preGradeLevel) {
+        $('#grade_level_id').trigger('change');
     }
 });
 </script>
