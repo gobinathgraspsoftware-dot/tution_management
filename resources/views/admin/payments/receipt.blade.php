@@ -206,9 +206,15 @@
     <div class="receipt-container">
         <!-- Header -->
         <div class="receipt-header">
-            @if(isset($company['logo']) && $company['logo'])
+            {{-- @if(isset($company['logo']) && $company['logo'])
             <img src="{{ asset('storage/' . $company['logo']) }}" alt="Logo" class="company-logo">
-            @endif
+            @endif --}}
+            <div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#000">
+                    <path d="M12 3L1 9L12 15L21 11.18V17H23V9L12 3Z"/>
+                    <path d="M5 12.5V17.5C5 19.43 8.58 21 12 21C15.42 21 19 19.43 19 17.5V12.5L12 16L5 12.5Z"/>
+                </svg>
+            </div>
             <div class="company-name">{{ $company['name'] ?? 'Arena Matriks Edu Group' }}</div>
             <div class="company-details">
                 {{ $company['address'] ?? '' }}<br>
