@@ -51,7 +51,7 @@
                 </div>
                 <div class="mb-2">
                     <i class="fas fa-graduation-cap text-muted me-2"></i>
-                    {{ $child->grade_level }}
+                    {{ $child->gradeLevel->name ?? ($child->grade_level ?? 'N/A') }}
                 </div>
                 <div class="mb-2">
                     <i class="fas fa-birthday-cake text-muted me-2"></i>
@@ -64,7 +64,13 @@
                 <h6 class="small text-muted mb-2">Active Enrollments:</h6>
                 @foreach($child->enrollments->where('status', 'active')->take(2) as $enrollment)
                 <div class="mb-1">
-                    <span class="badge bg-primary">{{ $enrollment->package->name }}</span>
+                    @if($enrollment->package)
+                        <span class="badge bg-primary">{{ $enrollment->package->name }}</span>
+                    @elseif($enrollment->class)
+                        <span class="badge bg-info">{{ $enrollment->class->name ?? 'Single Class' }}</span>
+                    @else
+                        <span class="badge bg-secondary">Enrollment #{{ $enrollment->id }}</span>
+                    @endif
                 </div>
                 @endforeach
                 @endif

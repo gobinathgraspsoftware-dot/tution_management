@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Parents;
 use App\Models\Student;
 use App\Models\Package;
+use App\Models\GradeLevel;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,13 +19,17 @@ class ChildRegistrationController extends Controller
 {
     /**
      * Display list of parent's children.
+     *
+     * FIX: Added 'enrollments.class' and 'gradeLevel' to eager load.
+     * Some enrollments are single-class (no package), so package is null.
+     * The blade now falls back to class name when package is null.
      */
     public function index()
     {
         $parent = Parents::where('user_id', auth()->id())->firstOrFail();
 
         $children = Student::where('parent_id', $parent->id)
-            ->with(['user', 'enrollments.package'])
+            ->with(['user', 'gradeLevel', 'enrollments.package', 'enrollments.class'])
             ->get();
 
         return view('parent.children.index', compact('children', 'parent'));
@@ -43,7 +48,7 @@ class ChildRegistrationController extends Controller
             ->orderBy('name')
             ->get();
 
-        $gradeLevels = $this->getGradeLevelOptions();
+        $gradeLevels = GradeLevel::ordered()->pluck('name', 'id')->toArray();
 
         return view('parent.children.register', compact('parent', 'packages', 'gradeLevels'));
     }
@@ -78,38 +83,23 @@ class ChildRegistrationController extends Controller
             $studentUser->assignRole('student');
 
             // Generate student ID
-            $studentId = 'STU-' . date('Y') . '-' . str_pad($studentUser->id, 4, '0', STR_PAD_LEFT);
+            $studentId = 'STU-' . date('Y') . '-' . str_pad(Student::count() + 1, 5, '0', STR_PAD_LEFT);
 
-            // Generate referral code
-            $referralCode = strtoupper(Str::random(8));
-
-            // Check if referred by someone
-            $referredBy = null;
-            if (!empty($validated['referral_code'])) {
-                $referrer = Student::where('referral_code', $validated['referral_code'])->first();
-                if ($referrer) {
-                    $referredBy = $referrer->id;
-                }
-            }
-
-            // Create Student profile (pending approval)
+            // Create student record
             $student = Student::create([
                 'user_id' => $studentUser->id,
-                'parent_id' => $parent->id,
                 'student_id' => $studentId,
+                'parent_id' => $parent->id,
                 'ic_number' => $validated['ic_number'],
                 'date_of_birth' => $validated['date_of_birth'],
                 'gender' => $validated['gender'],
                 'school_name' => $validated['school_name'],
-                'grade_level' => $validated['grade_level'],
-                'address' => $validated['address'] ?? $parent->address,
+                'grade_level_id' => $validated['grade_level_id'] ?? $validated['grade_level'] ?? null,
+                'address' => $validated['address'] ?? $parent->user->address ?? null,
                 'medical_conditions' => $validated['medical_conditions'] ?? null,
                 'registration_type' => 'online',
-                'registration_date' => now(),
-                'referral_code' => $referralCode,
-                'referred_by' => $referredBy,
                 'approval_status' => 'pending',
-                'notes' => $validated['notes'] ?? null,
+                'referral_code' => strtoupper(Str::random(8)),
             ]);
 
             // Log activity
@@ -118,7 +108,7 @@ class ChildRegistrationController extends Controller
                 'action' => 'create',
                 'model_type' => 'Student',
                 'model_id' => $student->id,
-                'description' => 'Parent registered child: ' . $validated['name'],
+                'description' => 'Parent registered new child: ' . $validated['name'],
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -147,29 +137,8 @@ class ChildRegistrationController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        $student->load(['user', 'enrollments.package', 'attendance', 'invoices']);
+        $student->load(['user', 'gradeLevel', 'enrollments.package', 'enrollments.class', 'attendance', 'invoices']);
 
         return view('parent.children.show', compact('student'));
-    }
-
-    /**
-     * Get grade level options.
-     */
-    private function getGradeLevelOptions(): array
-    {
-        return [
-            'Standard 1' => 'Standard 1',
-            'Standard 2' => 'Standard 2',
-            'Standard 3' => 'Standard 3',
-            'Standard 4' => 'Standard 4',
-            'Standard 5' => 'Standard 5',
-            'Standard 6' => 'Standard 6',
-            'Form 1' => 'Form 1',
-            'Form 2' => 'Form 2',
-            'Form 3' => 'Form 3',
-            'Form 4' => 'Form 4',
-            'Form 5' => 'Form 5',
-            'Pre-University' => 'Pre-University',
-        ];
     }
 }
