@@ -78,8 +78,16 @@
             <div class="card-body">
                 <h6 class="mb-2">{{ $physicalMaterial->name }}</h6>
                 <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Grade Level:</span>
+                    <strong>{{ $physicalMaterial->gradeLevel->name ?? 'N/A' }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Subject:</span>
                     <strong>{{ $physicalMaterial->subject->name ?? 'N/A' }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Class:</span>
+                    <strong>{{ $physicalMaterial->classModel->name ?? 'N/A' }}</strong>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Available:</span>
@@ -164,18 +172,20 @@
 
 @push('scripts')
 <script>
-// Initialize Bootstrap tooltips
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // Add search functionality for student select
-    const studentSelect = document.getElementById('studentSelect');
-    if (studentSelect && studentSelect.options.length > 20) {
-        // Could integrate Select2 or similar for better UX with many students
-        console.log('Consider adding Select2 for better student selection');
+    // Initialize Select2 for student select if available
+    if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+        $('#studentSelect').select2({
+            placeholder: 'Search student...',
+            allowClear: true,
+            width: '100%'
+        });
     }
 });
 </script>

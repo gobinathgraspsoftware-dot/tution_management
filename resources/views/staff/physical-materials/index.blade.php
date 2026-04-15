@@ -86,9 +86,20 @@
 <div class="card mb-4">
     <div class="card-body">
         <form action="{{ route('staff.physical-materials.index') }}" method="GET" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Search</label>
                 <input type="text" name="search" class="form-control" placeholder="Search materials..." value="{{ request('search') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Grade Level</label>
+                <select name="grade_level_id" class="form-select">
+                    <option value="">All Grade Levels</option>
+                    @foreach($gradeLevels as $gradeLevel)
+                        <option value="{{ $gradeLevel->id }}" {{ request('grade_level_id') == $gradeLevel->id ? 'selected' : '' }}>
+                            {{ $gradeLevel->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Subject</label>
@@ -112,10 +123,10 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
-                    <option value="">All Status</option>
+                    <option value="">All</option>
                     <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available</option>
                     <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
                 </select>
@@ -144,8 +155,9 @@
                 <thead>
                     <tr>
                         <th>Material</th>
-                        <th>Subject</th>
                         <th>Grade Level</th>
+                        <th>Subject</th>
+                        <th>Class</th>
                         <th>Month/Year</th>
                         <th>Quantity</th>
                         <th>Status</th>
@@ -161,8 +173,9 @@
                                 <br><small class="text-muted">{{ Str::limit($material->description, 50) }}</small>
                             @endif
                         </td>
+                        <td>{{ $material->gradeLevel->name ?? 'N/A' }}</td>
                         <td>{{ $material->subject->name ?? 'N/A' }}</td>
-                        <td>{{ $material->grade_level ?? 'N/A' }}</td>
+                        <td>{{ $material->classModel->name ?? '-' }}</td>
                         <td>{{ $material->month }} {{ $material->year }}</td>
                         <td>
                             <span class="badge bg-{{ $material->quantity_available > 10 ? 'success' : ($material->quantity_available > 0 ? 'warning' : 'danger') }}">
@@ -175,7 +188,7 @@
                             @elseif($material->status == 'out_of_stock')
                                 <span class="badge bg-danger">Out of Stock</span>
                             @else
-                                <span class="badge bg-secondary">{{ ucfirst($material->status) }}</span>
+                                <span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $material->status)) }}</span>
                             @endif
                         </td>
                         <td>
@@ -188,7 +201,7 @@
                 </tbody>
             </table>
         </div>
-        
+
         <div class="d-flex justify-content-center mt-4">
             {{ $physicalMaterials->links() }}
         </div>

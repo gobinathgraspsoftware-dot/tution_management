@@ -28,7 +28,7 @@
                         <i class="fas fa-edit me-1"></i> Edit
                     </a>
                     @endcan
-                    @can('manage-collections')
+                    @can('manage-material-collection')
                     <a href="{{ route('admin.physical-materials.collections', $physicalMaterial) }}" class="btn btn-success">
                         <i class="fas fa-clipboard-check me-1"></i> Manage Collections
                     </a>
@@ -51,13 +51,29 @@
                 @endif
 
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-1">Grade Level</label>
+                        <p class="mb-0">
+                            @if($physicalMaterial->gradeLevel)
+                                <span class="badge bg-info">{{ $physicalMaterial->gradeLevel->name }}</span>
+                            @else
+                                <span class="text-muted">Not specified</span>
+                            @endif
+                        </p>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label text-muted small mb-1">Subject</label>
                         <p class="mb-0">{{ $physicalMaterial->subject->name ?? 'N/A' }}</p>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label text-muted small mb-1">Grade Level</label>
-                        <p class="mb-0">{{ $physicalMaterial->grade_level ?? 'Not specified' }}</p>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-1">Class</label>
+                        <p class="mb-0">
+                            @if($physicalMaterial->classModel)
+                                {{ $physicalMaterial->classModel->name }}
+                            @else
+                                <span class="text-muted">Not specified</span>
+                            @endif
+                        </p>
                     </div>
                 </div>
 
@@ -203,7 +219,7 @@
                 <i class="fas fa-bolt me-2"></i> Quick Actions
             </div>
             <div class="card-body">
-                @can('manage-collections')
+                @can('manage-material-collection')
                 <a href="{{ route('admin.physical-materials.collections', $physicalMaterial) }}" class="btn btn-success w-100 mb-2">
                     <i class="fas fa-clipboard-check me-1"></i> Record Collection
                 </a>
@@ -227,6 +243,15 @@
                 <i class="fas fa-info-circle me-2"></i> Status Summary
             </div>
             <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Grade Level:</span>
+                    <strong>{{ $physicalMaterial->gradeLevel->name ?? 'N/A' }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Class:</span>
+                    <strong>{{ $physicalMaterial->classModel->name ?? 'N/A' }}</strong>
+                </div>
+                <hr>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Total Quantity:</span>
                     <strong>{{ $physicalMaterial->quantity_total }}</strong>

@@ -544,6 +544,8 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
 
 
         // Physical Materials
+        Route::get('physical-materials/get-subjects-by-grade-level', [PhysicalMaterialController::class, 'getSubjectsByGradeLevel'])->name('physical-materials.get-subjects-by-grade-level');
+        Route::get('physical-materials/get-classes-by-filters', [PhysicalMaterialController::class, 'getClassesByFilters'])->name('physical-materials.get-classes-by-filters');
         Route::resource('physical-materials', PhysicalMaterialController::class);
         Route::get('/physical-materials/{physicalMaterial}/collections', [PhysicalMaterialController::class, 'collections'])->name('physical-materials.collections');
         Route::post('/physical-materials/{physicalMaterial}/record-collection', [PhysicalMaterialController::class, 'recordCollection'])->name('physical-materials.record-collection');

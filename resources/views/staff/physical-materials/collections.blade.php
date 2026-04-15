@@ -50,12 +50,22 @@
                         <td>{{ $physicalMaterial->name }}</td>
                     </tr>
                     <tr>
+                        <th>Grade Level:</th>
+                        <td>
+                            @if($physicalMaterial->gradeLevel)
+                                <span class="badge bg-info">{{ $physicalMaterial->gradeLevel->name }}</span>
+                            @else
+                                N/A
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Subject:</th>
                         <td>{{ $physicalMaterial->subject->name ?? 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <th>Grade Level:</th>
-                        <td>{{ $physicalMaterial->grade_level ?? 'N/A' }}</td>
+                        <th>Class:</th>
+                        <td>{{ $physicalMaterial->classModel->name ?? 'N/A' }}</td>
                     </tr>
                     <tr>
                         <th>Month/Year:</th>
@@ -77,7 +87,7 @@
                             @elseif($physicalMaterial->status == 'out_of_stock')
                                 <span class="badge bg-danger">Out of Stock</span>
                             @else
-                                <span class="badge bg-secondary">{{ ucfirst($physicalMaterial->status) }}</span>
+                                <span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $physicalMaterial->status)) }}</span>
                             @endif
                         </td>
                     </tr>
@@ -113,9 +123,9 @@
                     </div>
                     <div class="mb-3">
                         <label for="collected_by_name" class="form-label">Collected By <span class="text-danger">*</span></label>
-                        <input type="text" 
-                               name="collected_by_name" 
-                               id="collected_by_name" 
+                        <input type="text"
+                               name="collected_by_name"
+                               id="collected_by_name"
                                class="form-control @error('collected_by_name') is-invalid @enderror"
                                value="{{ old('collected_by_name', auth()->user()->name) }}"
                                placeholder="Person collecting the material"
@@ -126,8 +136,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="notes" class="form-label">Notes</label>
-                        <textarea name="notes" 
-                                  id="notes" 
+                        <textarea name="notes"
+                                  id="notes"
                                   class="form-control @error('notes') is-invalid @enderror"
                                   rows="2"
                                   placeholder="Optional notes...">{{ old('notes') }}</textarea>
@@ -188,7 +198,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <div class="d-flex justify-content-center mt-4">
                     {{ $collections->links() }}
                 </div>

@@ -7,6 +7,8 @@ use App\Models\PhysicalMaterial;
 use App\Models\PhysicalMaterialCollection;
 use App\Models\Student;
 use App\Models\Subject;
+use App\Models\GradeLevel;
+use App\Models\ClassModel;
 use Illuminate\Http\Request;
 
 class PhysicalMaterialController extends Controller
@@ -16,7 +18,7 @@ class PhysicalMaterialController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PhysicalMaterial::with('subject');
+        $query = PhysicalMaterial::with(['subject', 'gradeLevel', 'classModel']);
 
         // Search
         if ($request->filled('search')) {
@@ -24,8 +26,9 @@ class PhysicalMaterialController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('grade_level', 'like', "%{$search}%")
-                  ->orWhereHas('subject', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('subject', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('gradeLevel', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('classModel', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -34,9 +37,19 @@ class PhysicalMaterialController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filter by grade level
+        if ($request->filled('grade_level_id')) {
+            $query->where('grade_level_id', (int) $request->grade_level_id);
+        }
+
         // Filter by subject
         if ($request->filled('subject_id')) {
             $query->where('subject_id', $request->subject_id);
+        }
+
+        // Filter by class
+        if ($request->filled('class_id')) {
+            $query->where('class_id', $request->class_id);
         }
 
         // Filter by month
@@ -60,14 +73,18 @@ class PhysicalMaterialController extends Controller
         ];
 
         // Get filter options
-        $subjects = Subject::orderBy('name')->get();
+        $gradeLevels = GradeLevel::ordered()->get();
+        $subjects = Subject::active()->orderBy('name')->get();
+        $classes = ClassModel::active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
         $months = [
             'January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
         $years = range(date('Y') - 1, date('Y') + 1);
 
-        return view('staff.physical-materials.index', compact('physicalMaterials', 'stats', 'subjects', 'months', 'years'));
+        return view('staff.physical-materials.index', compact(
+            'physicalMaterials', 'stats', 'gradeLevels', 'subjects', 'classes', 'months', 'years'
+        ));
     }
 
     /**
@@ -75,6 +92,8 @@ class PhysicalMaterialController extends Controller
      */
     public function collections(PhysicalMaterial $physicalMaterial)
     {
+        $physicalMaterial->load(['gradeLevel', 'classModel']);
+
         $collections = $physicalMaterial->collections()
             ->with(['student.user', 'staff.user'])
             ->latest('collected_at')
@@ -128,21 +147,11 @@ class PhysicalMaterialController extends Controller
             // Update quantity
             if ($physicalMaterial->quantity_available > 0) {
                 $physicalMaterial->decrement('quantity_available');
-                
+
                 if ($physicalMaterial->quantity_available <= 0) {
                     $physicalMaterial->update(['status' => 'out_of_stock']);
                 }
             }
-
-            // Log activity
-            activity()
-                ->causedBy(auth()->user())
-                ->performedOn($physicalMaterial)
-                ->withProperties([
-                    'student_id' => $request->student_id,
-                    'collected_by' => $request->collected_by_name,
-                ])
-                ->log('Recorded material collection');
 
             return redirect()
                 ->back()

@@ -44,27 +44,39 @@
                         @enderror
                     </div>
 
+                    <!-- Cascading Dropdowns: Grade Level → Subject + Class -->
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Subject <span class="text-danger">*</span></label>
-                            <select name="subject_id" class="form-select @error('subject_id') is-invalid @enderror" required>
-                                <option value="">Select Subject</option>
-                                @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}" {{ old('subject_id') == $subject->id ? 'selected' : '' }}>
-                                        {{ $subject->name }}
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Grade Level <span class="text-danger">*</span></label>
+                            <select name="grade_level_id" id="gradeLevelSelect" class="form-select @error('grade_level_id') is-invalid @enderror" required>
+                                <option value="">Select Grade Level</option>
+                                @foreach($gradeLevels as $gradeLevel)
+                                    <option value="{{ $gradeLevel->id }}" {{ old('grade_level_id') == $gradeLevel->id ? 'selected' : '' }}>
+                                        {{ $gradeLevel->name }}
                                     </option>
                                 @endforeach
+                            </select>
+                            @error('grade_level_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Subject <span class="text-danger">*</span></label>
+                            <select name="subject_id" id="subjectSelect" class="form-select @error('subject_id') is-invalid @enderror" required>
+                                <option value="">Select Grade Level First</option>
                             </select>
                             @error('subject_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Grade Level</label>
-                            <input type="text" name="grade_level" class="form-control @error('grade_level') is-invalid @enderror"
-                                   value="{{ old('grade_level') }}" placeholder="e.g., Form 1, Form 2">
-                            @error('grade_level')
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Class</label>
+                            <select name="class_id" id="classSelect" class="form-select @error('class_id') is-invalid @enderror">
+                                <option value="">Select Grade Level First</option>
+                            </select>
+                            @error('class_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -182,7 +194,7 @@
                     <p class="small mb-2"><strong>Physical Materials:</strong></p>
                     <ul class="small mb-0">
                         <li>Used for monthly modules (e.g., BM Module 1 & 2)</li>
-                        <li>Tracks physical material collection by students</li>
+                        <li>Select a Grade Level first — Subject and Class will load dynamically</li>
                         <li>Monitors stock levels and availability</li>
                         <li>Sends notifications to parents when ready</li>
                     </ul>
@@ -195,12 +207,108 @@
 
 @push('scripts')
 <script>
-// Auto-fill available quantity when total quantity changes
-document.getElementById('quantityTotal').addEventListener('input', function() {
-    const availableInput = document.getElementById('quantityAvailable');
-    if (availableInput.value == 0 || confirm('Update available quantity to match total quantity?')) {
-        availableInput.value = this.value;
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeLevelSelect = document.getElementById('gradeLevelSelect');
+    const subjectSelect    = document.getElementById('subjectSelect');
+    const classSelect      = document.getElementById('classSelect');
+
+    // Old values for re-populating after validation errors
+    const oldSubjectId = '{{ old('subject_id', '') }}';
+    const oldClassId   = '{{ old('class_id', '') }}';
+
+    /**
+     * Grade Level change → Load Subjects + Classes
+     */
+    gradeLevelSelect.addEventListener('change', function() {
+        const gradeLevelId = this.value;
+
+        // Reset dependents
+        subjectSelect.innerHTML = '<option value="">Loading...</option>';
+        classSelect.innerHTML   = '<option value="">Loading...</option>';
+
+        if (!gradeLevelId) {
+            subjectSelect.innerHTML = '<option value="">Select Grade Level First</option>';
+            classSelect.innerHTML   = '<option value="">Select Grade Level First</option>';
+            return;
+        }
+
+        // Load Subjects by Grade Level
+        fetch(`{{ route('admin.physical-materials.get-subjects-by-grade-level') }}?grade_level_id=${gradeLevelId}`)
+            .then(res => res.json())
+            .then(data => {
+                subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+                data.forEach(subject => {
+                    const opt = document.createElement('option');
+                    opt.value = subject.id;
+                    opt.textContent = subject.name + (subject.code ? ' (' + subject.code + ')' : '');
+                    if (oldSubjectId == subject.id) opt.selected = true;
+                    subjectSelect.appendChild(opt);
+                });
+                // Auto-trigger subject change to load classes if old value was set
+                if (oldSubjectId) {
+                    subjectSelect.dispatchEvent(new Event('change'));
+                }
+            })
+            .catch(() => {
+                subjectSelect.innerHTML = '<option value="">Failed to load subjects</option>';
+            });
+
+        // Load Classes by Grade Level
+        loadClasses(gradeLevelId, '');
+    });
+
+    /**
+     * Subject change → Reload Classes filtered by Grade Level + Subject
+     */
+    subjectSelect.addEventListener('change', function() {
+        const gradeLevelId = gradeLevelSelect.value;
+        const subjectId    = this.value;
+        loadClasses(gradeLevelId, subjectId);
+    });
+
+    /**
+     * Load classes via AJAX
+     */
+    function loadClasses(gradeLevelId, subjectId) {
+        classSelect.innerHTML = '<option value="">Loading...</option>';
+
+        if (!gradeLevelId) {
+            classSelect.innerHTML = '<option value="">Select Grade Level First</option>';
+            return;
+        }
+
+        let url = `{{ route('admin.physical-materials.get-classes-by-filters') }}?grade_level_id=${gradeLevelId}`;
+        if (subjectId) url += `&subject_id=${subjectId}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                classSelect.innerHTML = '<option value="">Select Class (Optional)</option>';
+                data.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls.id;
+                    opt.textContent = cls.name + ' — ' + cls.subject_name + ' (' + cls.teacher_name + ')';
+                    if (oldClassId == cls.id) opt.selected = true;
+                    classSelect.appendChild(opt);
+                });
+            })
+            .catch(() => {
+                classSelect.innerHTML = '<option value="">Failed to load classes</option>';
+            });
     }
+
+    // Trigger cascade on page load if old grade_level_id exists (validation error reload)
+    if (gradeLevelSelect.value) {
+        gradeLevelSelect.dispatchEvent(new Event('change'));
+    }
+
+    // Auto-fill available quantity when total quantity changes
+    document.getElementById('quantityTotal').addEventListener('input', function() {
+        const availableInput = document.getElementById('quantityAvailable');
+        if (availableInput.value == 0 || confirm('Update available quantity to match total quantity?')) {
+            availableInput.value = this.value;
+        }
+    });
 });
 </script>
 @endpush

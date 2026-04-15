@@ -70,17 +70,19 @@
     <div class="card-body">
         <form method="GET" action="{{ route('admin.physical-materials.index') }}">
             <div class="row">
-                <div class="col-md-3 mb-3 mb-md-0">
+                <div class="col-md-2 mb-3 mb-md-0">
                     <input type="text" name="search" class="form-control"
                            placeholder="Search materials..."
                            value="{{ request('search') }}">
                 </div>
                 <div class="col-md-2">
-                    <select name="status" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available</option>
-                        <option value="low_stock" {{ request('status') == 'low_stock' ? 'selected' : '' }}>Low Stock</option>
-                        <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
+                    <select name="grade_level_id" class="form-select">
+                        <option value="">All Grade Levels</option>
+                        @foreach($gradeLevels as $gradeLevel)
+                            <option value="{{ $gradeLevel->id }}" {{ request('grade_level_id') == $gradeLevel->id ? 'selected' : '' }}>
+                                {{ $gradeLevel->name }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -91,6 +93,14 @@
                                 {{ $subject->name }}
                             </option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <select name="status" class="form-select">
+                        <option value="">Status</option>
+                        <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available</option>
+                        <option value="low_stock" {{ request('status') == 'low_stock' ? 'selected' : '' }}>Low Stock</option>
+                        <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -145,8 +155,9 @@
                     <tr>
                         <th>#</th>
                         <th>Name</th>
+                        <th>Grade Level</th>
                         <th>Subject</th>
-                        <th>Grade</th>
+                        <th>Class</th>
                         <th>Month/Year</th>
                         <th>Quantity</th>
                         <th>Status</th>
@@ -163,8 +174,9 @@
                                     <br><small class="text-muted">{{ Str::limit($material->description, 50) }}</small>
                                 @endif
                             </td>
+                            <td>{{ $material->gradeLevel->name ?? '-' }}</td>
                             <td>{{ $material->subject->name ?? 'N/A' }}</td>
-                            <td>{{ $material->grade_level ?? '-' }}</td>
+                            <td>{{ $material->classModel->name ?? '-' }}</td>
                             <td>
                                 @if($material->month)
                                     {{ $material->month }} {{ $material->year }}
@@ -195,7 +207,7 @@
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @endcan
-                                    @can('manage-collections')
+                                    @can('manage-material-collection')
                                     <a href="{{ route('admin.physical-materials.collections', $material) }}"
                                        class="btn btn-outline-success" title="Collections">
                                         <i class="fas fa-clipboard-check"></i>
@@ -218,7 +230,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No physical materials found.</p>
                                 @can('create-physical-materials')
