@@ -263,7 +263,7 @@ class InvoiceService
     protected function calculateOnlineFee(Enrollment $enrollment): float
     {
         $package = $enrollment->package;
-        
+
         if (!$package) {
             return 0;
         }
@@ -387,8 +387,8 @@ class InvoiceService
     public function applyDiscount(Invoice $invoice, float $amount, string $reason): Invoice
     {
         $invoice->discount += $amount;
-        $invoice->discount_reason = $invoice->discount_reason 
-            ? $invoice->discount_reason . '; ' . $reason 
+        $invoice->discount_reason = $invoice->discount_reason
+            ? $invoice->discount_reason . '; ' . $reason
             : $reason;
         $invoice->total_amount = $invoice->subtotal + $invoice->online_fee - $invoice->discount + $invoice->tax;
         $invoice->save();
@@ -407,7 +407,7 @@ class InvoiceService
 
         $invoice->update([
             'status' => 'cancelled',
-            'notes' => $invoice->notes 
+            'notes' => $invoice->notes
                 ? $invoice->notes . "\nCancelled: " . ($reason ?? 'No reason provided')
                 : "Cancelled: " . ($reason ?? 'No reason provided')
         ]);
@@ -416,12 +416,72 @@ class InvoiceService
     }
 
     /**
+     * Create an invoice from validated form data (manual admin creation).
+     *
+     * Called by InvoiceController::store() with $request->validated() data.
+     * Unlike generateInvoice() which auto-calculates from an Enrollment,
+     * this method uses the exact amounts provided by the admin form.
+     */
+    public function createInvoice(array $data): Invoice
+    {
+        try {
+            DB::beginTransaction();
+
+            // Calculate total amount from form inputs
+            $subtotal   = (float) ($data['subtotal'] ?? 0);
+            $onlineFee  = (float) ($data['online_fee'] ?? 0);
+            $discount   = (float) ($data['discount'] ?? 0);
+            $tax        = (float) ($data['tax'] ?? 0);
+            $totalAmount = $subtotal + $onlineFee - $discount + $tax;
+
+            $invoice = Invoice::create([
+                'invoice_number'       => Invoice::generateInvoiceNumber(),
+                'student_id'           => $data['student_id'],
+                'enrollment_id'        => $data['enrollment_id'] ?? null,
+                'type'                 => $data['type'],
+                'billing_period_start' => $data['billing_period_start'],
+                'billing_period_end'   => $data['billing_period_end'],
+                'subtotal'             => $subtotal,
+                'online_fee'           => $onlineFee,
+                'discount'             => $discount,
+                'discount_reason'      => $data['discount_reason'] ?? null,
+                'tax'                  => $tax,
+                'total_amount'         => max(0, $totalAmount),
+                'paid_amount'          => 0,
+                'due_date'             => $data['due_date'],
+                'status'               => 'pending',
+                'reminder_count'       => 0,
+                'notes'                => $data['notes'] ?? null,
+            ]);
+
+            DB::commit();
+
+            Log::info('Invoice created manually', [
+                'invoice_id'     => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'student_id'     => $data['student_id'],
+                'total_amount'   => $invoice->total_amount,
+            ]);
+
+            return $invoice;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to create invoice manually', [
+                'student_id' => $data['student_id'] ?? null,
+                'error'      => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Generate registration/first invoice for new enrollment
      */
     public function generateRegistrationInvoice(Enrollment $enrollment): Invoice
     {
         $startDate = $enrollment->start_date ?? Carbon::now();
-        
+
         // Pro-rate if starting mid-month
         $daysInMonth = $startDate->daysInMonth;
         $remainingDays = $daysInMonth - $startDate->day + 1;
@@ -430,7 +490,7 @@ class InvoiceService
         $package = $enrollment->package;
         $subtotal = round(($enrollment->monthly_fee ?? ($package->price ?? 0)) * $proRateFactor, 2);
         $onlineFee = $this->calculateOnlineFee($enrollment);
-        
+
         return $this->generateInvoice($enrollment, [
             'billing_start' => $startDate,
             'billing_end' => $startDate->copy()->endOfMonth(),
