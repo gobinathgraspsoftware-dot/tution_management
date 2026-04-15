@@ -6,26 +6,21 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMaterialRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
             'title' => 'required|string|max:255',
+            'grade_level_id' => 'required|exists:grade_levels,id',   // ADDED
             'class_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
             'teacher_id' => 'nullable|exists:teachers,id',
-            'type' => 'required|in:notes,presentation,video,document,other',
-            'file' => 'required|file|max:51200|mimes:pdf,doc,docx,ppt,pptx,mp4,avi,mov', // 50MB max
+            'type' => 'required|in:notes,presentation,video,document,worksheet,assignment,reference,other',
+            'file' => 'required|file|max:51200|mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,mp4,avi,mov',
             'description' => 'nullable|string',
             'access_type' => 'required|in:view_only,downloadable',
             'publish_date' => 'nullable|date',
@@ -33,12 +28,10 @@ class StoreMaterialRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom attribute names.
-     */
     public function attributes(): array
     {
         return [
+            'grade_level_id' => 'grade level',
             'class_id' => 'class',
             'subject_id' => 'subject',
             'teacher_id' => 'teacher',
@@ -47,15 +40,13 @@ class StoreMaterialRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom error messages.
-     */
     public function messages(): array
     {
         return [
+            'grade_level_id.required' => 'Please select a grade level.',
             'file.required' => 'Please upload a file.',
             'file.max' => 'File size must not exceed 50MB.',
-            'file.mimes' => 'File must be a PDF, Word, PowerPoint, or Video file.',
+            'file.mimes' => 'File must be a PDF, Word, PowerPoint, Excel, or Video file.',
         ];
     }
 }

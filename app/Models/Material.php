@@ -13,6 +13,7 @@ class Material extends Model
         'title',
         'class_id',
         'subject_id',
+        'grade_level_id',       // ADDED: FK to grade_levels table
         'teacher_id',
         'type',
         'file_path',
@@ -32,7 +33,10 @@ class Material extends Model
         'publish_date' => 'date',
     ];
 
-    // Relationships
+    // ==========================================
+    // RELATIONSHIPS
+    // ==========================================
+
     public function class()
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
@@ -41,6 +45,14 @@ class Material extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    /**
+     * ADDED: Grade level relationship.
+     */
+    public function gradeLevel()
+    {
+        return $this->belongsTo(GradeLevel::class);
     }
 
     public function teacher()
@@ -63,7 +75,10 @@ class Material extends Model
         return $this->hasMany(MaterialView::class);
     }
 
-    // Scopes
+    // ==========================================
+    // SCOPES
+    // ==========================================
+
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
@@ -77,5 +92,10 @@ class Material extends Model
     public function scopeByType($query, $type)
     {
         return $query->where('type', $type);
+    }
+
+    public function scopeByGradeLevel($query, $gradeLevelId)
+    {
+        return $query->where('grade_level_id', (int) $gradeLevelId);
     }
 }

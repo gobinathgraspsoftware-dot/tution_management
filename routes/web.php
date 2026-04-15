@@ -536,9 +536,12 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
         });
 
         // Digital Materials
+        Route::get('materials/get-subjects-by-grade-level', [MaterialController::class, 'getSubjectsByGradeLevel'])->name('materials.get-subjects-by-grade-level');
+        Route::get('materials/get-classes-by-filters', [MaterialController::class, 'getClassesByFilters'])->name('materials.get-classes-by-filters');
         Route::resource('materials', MaterialController::class);
         Route::patch('/materials/{material}/approve', [MaterialController::class, 'approve'])->name('materials.approve');
         Route::get('/materials/{material}/download', [MaterialController::class, 'download'])->name('materials.download');
+
 
         // Physical Materials
         Route::resource('physical-materials', PhysicalMaterialController::class);
@@ -1487,7 +1490,11 @@ Route::middleware(['auth', CheckUserStatus::class])->group(function () {
             Route::get('/{document}/download', [TeacherOwnDocumentController::class, 'download'])->name('download');
             Route::delete('/{document}', [TeacherOwnDocumentController::class, 'destroy'])->name('destroy');
         });
+
+        Route::get('materials/get-subjects-by-grade-level', [TeacherMaterialController::class, 'getSubjectsByGradeLevel'])->name('materials.get-subjects-by-grade-level');
+        Route::get('materials/get-classes-by-filters', [TeacherMaterialController::class, 'getClassesByFilters'])->name('materials.get-classes-by-filters');
         Route::resource('materials', TeacherMaterialController::class);
+
 
         // Teacher Payslips (Chat 20)
         Route::prefix('payslips')->name('payslips.')->group(function () {

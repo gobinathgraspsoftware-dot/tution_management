@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Material;
 use App\Models\ClassModel;
 use App\Models\Subject;
+use App\Models\GradeLevel;
 use App\Services\MaterialService;
 use App\Http\Requests\StoreMaterialRequest;
 use App\Http\Requests\UpdateMaterialRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class MaterialController extends Controller
@@ -21,17 +23,13 @@ class MaterialController extends Controller
         $this->materialService = $materialService;
     }
 
-    /**
-     * Display a listing of teacher's materials.
-     */
     public function index(Request $request)
     {
         $teacher = auth()->user()->teacher;
 
         $query = Material::where('teacher_id', $teacher->id)
-            ->with(['class', 'subject', 'approvedBy']);
+            ->with(['class', 'class.gradeLevel', 'subject', 'gradeLevel', 'approvedBy']);
 
-        // Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -42,24 +40,25 @@ class MaterialController extends Controller
             });
         }
 
-        // Filter by type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by class
+        // ADDED: Filter by grade level
+        if ($request->filled('grade_level_id')) {
+            $query->where('grade_level_id', (int) $request->grade_level_id);
+        }
+
         if ($request->filled('class_id')) {
             $query->where('class_id', $request->class_id);
         }
 
         $materials = $query->latest()->paginate(15)->withQueryString();
 
-        // Statistics
         $stats = [
             'total' => Material::where('teacher_id', $teacher->id)->count(),
             'published' => Material::where('teacher_id', $teacher->id)->published()->count(),
@@ -67,60 +66,52 @@ class MaterialController extends Controller
             'draft' => Material::where('teacher_id', $teacher->id)->where('status', 'draft')->count(),
         ];
 
-        // Get teacher's classes
-        $classes = $teacher->classes()->active()->with('subject')->orderBy('name')->get();
+        $classes = $teacher->classes()->active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
 
-        return view('teacher.materials.index', compact('materials', 'stats', 'classes'));
+        // ADDED: Grade levels from teacher's active classes
+        $gradeLevelIds = $classes->pluck('grade_level_id')->unique()->filter()->toArray();
+        $gradeLevels = GradeLevel::whereIn('id', $gradeLevelIds)->ordered()->get();
+
+        return view('teacher.materials.index', compact('materials', 'stats', 'classes', 'gradeLevels'));
     }
 
-    /**
-     * Show the form for creating a new material.
-     */
     public function create()
     {
         $teacher = auth()->user()->teacher;
-        $classes = $teacher->classes()->active()->with('subject')->orderBy('name')->get();
+        $classes = $teacher->classes()->active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
 
-        return view('teacher.materials.create', compact('classes'));
+        // ADDED: Grade levels from teacher's active classes
+        $gradeLevelIds = $classes->pluck('grade_level_id')->unique()->filter()->toArray();
+        $gradeLevels = GradeLevel::whereIn('id', $gradeLevelIds)->ordered()->get();
+
+        return view('teacher.materials.create', compact('classes', 'gradeLevels'));
     }
 
-    /**
-     * Store a newly created material.
-     */
     public function store(StoreMaterialRequest $request)
     {
         try {
             $teacher = auth()->user()->teacher;
-
             $data = $request->validated();
             $data['teacher_id'] = $teacher->id;
 
             $material = $this->materialService->createMaterial($data);
 
-            return redirect()
-                ->route('teacher.materials.show', $material)
+            return redirect()->route('teacher.materials.show', $material)
                 ->with('success', 'Material uploaded successfully. Waiting for admin approval.');
         } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->withInput()
+            return redirect()->back()->withInput()
                 ->with('error', 'Failed to upload material: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Display the specified material.
-     */
     public function show(Material $material)
     {
-        // Ensure teacher can only view their own materials
         if ($material->teacher_id !== auth()->user()->teacher->id) {
             abort(403, 'Unauthorized access');
         }
 
-        $material->load(['class', 'subject', 'approvedBy', 'materialAccess', 'views']);
+        $material->load(['class', 'class.gradeLevel', 'subject', 'gradeLevel', 'approvedBy', 'materialAccess', 'views']);
 
-        // Get access statistics
         $accessStats = [
             'total_students' => $material->materialAccess()->count(),
             'total_views' => $material->views()->count(),
@@ -128,81 +119,109 @@ class MaterialController extends Controller
             'average_duration' => $material->views()->avg('duration_seconds'),
         ];
 
-        // Get recent viewers
-        $recentViewers = $material->views()
-            ->with('student.user')
-            ->latest('viewed_at')
-            ->take(10)
-            ->get();
+        $recentViewers = $material->views()->with('student.user')->latest('viewed_at')->take(10)->get();
 
         return view('teacher.materials.show', compact('material', 'accessStats', 'recentViewers'));
     }
 
-    /**
-     * Show the form for editing the specified material.
-     */
     public function edit(Material $material)
     {
-        // Ensure teacher can only edit their own materials
         if ($material->teacher_id !== auth()->user()->teacher->id) {
             abort(403, 'Unauthorized access');
         }
 
         $teacher = auth()->user()->teacher;
-        $classes = $teacher->classes()->active()->with('subject')->orderBy('name')->get();
+        $classes = $teacher->classes()->active()->with(['subject', 'gradeLevel'])->orderBy('name')->get();
 
-        return view('teacher.materials.edit', compact('material', 'classes'));
+        $gradeLevelIds = $classes->pluck('grade_level_id')->unique()->filter()->toArray();
+        $gradeLevels = GradeLevel::whereIn('id', $gradeLevelIds)->ordered()->get();
+
+        return view('teacher.materials.edit', compact('material', 'classes', 'gradeLevels'));
     }
 
-    /**
-     * Update the specified material.
-     */
     public function update(UpdateMaterialRequest $request, Material $material)
     {
-        // Ensure teacher can only update their own materials
         if ($material->teacher_id !== auth()->user()->teacher->id) {
             abort(403, 'Unauthorized access');
         }
 
         try {
             $this->materialService->updateMaterial($material, $request->validated());
-
-            return redirect()
-                ->route('teacher.materials.show', $material)
-                ->with('success', 'Material updated successfully.');
+            return redirect()->route('teacher.materials.show', $material)->with('success', 'Material updated successfully.');
         } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', 'Failed to update material: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Failed to update material: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Remove the specified material.
-     */
     public function destroy(Material $material)
     {
-        // Ensure teacher can only delete their own materials
         if ($material->teacher_id !== auth()->user()->teacher->id) {
             abort(403, 'Unauthorized access');
         }
 
         try {
-            // Delete file from storage
             if ($material->file_path && Storage::disk('public')->exists($material->file_path)) {
                 Storage::disk('public')->delete($material->file_path);
             }
-
             $material->delete();
-
-            return redirect()
-                ->route('teacher.materials.index')
-                ->with('success', 'Material deleted successfully.');
+            return redirect()->route('teacher.materials.index')->with('success', 'Material deleted successfully.');
         } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->with('error', 'Failed to delete material: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete material: ' . $e->getMessage());
         }
+    }
+
+    // ==========================================
+    // AJAX ENDPOINTS (Teacher-scoped)
+    // ==========================================
+
+    public function getSubjectsByGradeLevel(Request $request)
+    {
+        $request->validate(['grade_level_id' => 'required|exists:grade_levels,id']);
+
+        $teacher = Auth::user()->teacher;
+        $gradeLevelId = (int) $request->grade_level_id;
+
+        $subjectIds = ClassModel::where('teacher_id', $teacher->id)
+            ->where('status', 'active')
+            ->where('grade_level_id', $gradeLevelId)
+            ->pluck('subject_id')
+            ->unique()
+            ->toArray();
+
+        $subjects = Subject::active()
+            ->whereIn('id', $subjectIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        return response()->json($subjects);
+    }
+
+    public function getClassesByFilters(Request $request)
+    {
+        $teacher = Auth::user()->teacher;
+
+        $query = ClassModel::where('teacher_id', $teacher->id)
+            ->where('status', 'active')
+            ->with(['subject', 'gradeLevel']);
+
+        if ($request->filled('grade_level_id')) {
+            $query->where('grade_level_id', (int) $request->grade_level_id);
+        }
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', (int) $request->subject_id);
+        }
+
+        $classes = $query->orderBy('name')->get()->map(function ($class) {
+            return [
+                'id'              => $class->id,
+                'name'            => $class->name,
+                'subject_id'      => $class->subject_id,
+                'grade_level_id'  => $class->grade_level_id,
+                'grade_level_name'=> $class->gradeLevel?->name ?? 'N/A',
+                'subject_name'    => $class->subject?->name ?? 'N/A',
+            ];
+        });
+
+        return response()->json($classes);
     }
 }

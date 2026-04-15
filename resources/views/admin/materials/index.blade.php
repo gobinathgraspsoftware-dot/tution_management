@@ -96,6 +96,15 @@
                 <input type="text" name="search" class="form-control" placeholder="Title, description..." value="{{ request('search') }}">
             </div>
             <div class="col-md-2">
+                <label class="form-label">Grade Level</label>
+                <select name="grade_level_id" class="form-select">
+                    <option value="">All Grade Levels</option>
+                    @foreach($gradeLevels as $gradeLevel)
+                        <option value="{{ $gradeLevel->id }}" {{ request('grade_level_id') == $gradeLevel->id ? 'selected' : '' }}>{{ $gradeLevel->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Type</label>
                 <select name="type" class="form-select">
                     <option value="">All Types</option>
@@ -114,7 +123,7 @@
                     <option value="published" {{ request('status') == 'published' ? 'selected' : '' }}>Published</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label">Approval</label>
                 <select name="is_approved" class="form-select">
                     <option value="">All</option>
@@ -122,24 +131,9 @@
                     <option value="0" {{ request('is_approved') == '0' ? 'selected' : '' }}>Pending</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Class</label>
-                <select name="class_id" class="form-select">
-                    <option value="">All Classes</option>
-                    @foreach($classes as $class)
-                        <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                            {{ $class->name }} ({{ $class->subject->name ?? 'N/A' }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary me-2">
-                    <i class="fas fa-search me-1"></i> Search
-                </button>
-                <a href="{{ route('admin.materials.index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-redo me-1"></i> Reset
-                </a>
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-1"></i> Search</button>
+                <a href="{{ route('admin.materials.index') }}" class="btn btn-outline-secondary"><i class="fas fa-redo me-1"></i> Reset</a>
             </div>
         </form>
     </div>
@@ -153,6 +147,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Title</th>
+                        <th>Grade Level</th>
                         <th>Class</th>
                         <th>Subject</th>
                         <th>Teacher</th>
@@ -167,14 +162,16 @@
                     @forelse($materials as $material)
                         <tr>
                             <td>
-                                <strong>{{ $material->title }}</strong>
-                                <br>
-                                <small class="text-muted">
-                                    <i class="fas fa-calendar me-1"></i>
-                                    {{ $material->publish_date ? $material->publish_date->format('M d, Y') : 'Not published' }}
-                                </small>
+                                <strong>{{ $material->title }}</strong><br>
+                                <small class="text-muted"><i class="fas fa-calendar me-1"></i>{{ $material->publish_date ? $material->publish_date->format('M d, Y') : 'Not published' }}</small>
                             </td>
-                            {{-- FIX: Null-safe access for soft-deleted class/subject/teacher --}}
+                            <td>
+                                @if($material->gradeLevel)
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">{{ $material->gradeLevel->name }}</span>
+                                @else
+                                    <span class="text-muted">N/A</span>
+                                @endif
+                            </td>
                             <td>
                                 {{ $material->class?->name ?? 'N/A' }}
                                 @if($material->class && $material->class->trashed())
@@ -193,9 +190,7 @@
                                     <span class="badge bg-danger bg-opacity-10 text-danger ms-1" style="font-size: 0.65rem;">Deleted</span>
                                 @endif
                             </td>
-                            <td>
-                                <span class="badge bg-secondary">{{ ucfirst($material->type) }}</span>
-                            </td>
+                            <td><span class="badge bg-secondary">{{ ucfirst($material->type) }}</span></td>
                             <td>
                                 @if($material->access_type == 'view_only')
                                     <span class="badge bg-info">View Only</span>
@@ -205,13 +200,9 @@
                             </td>
                             <td>
                                 @if($material->is_approved)
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check me-1"></i> Approved
-                                    </span>
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i> Approved</span>
                                 @else
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="fas fa-clock me-1"></i> Pending
-                                    </span>
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Pending</span>
                                 @endif
                             </td>
                             <td>
@@ -224,36 +215,23 @@
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
                                     @can('view-materials')
-                                    <a href="{{ route('admin.materials.show', $material) }}" class="btn btn-outline-primary" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
+                                    <a href="{{ route('admin.materials.show', $material) }}" class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></a>
                                     @endcan
-
                                     @can('edit-materials')
-                                    <a href="{{ route('admin.materials.edit', $material) }}" class="btn btn-outline-warning" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                    <a href="{{ route('admin.materials.edit', $material) }}" class="btn btn-outline-warning" title="Edit"><i class="fas fa-edit"></i></a>
                                     @endcan
-
                                     @if(!$material->is_approved)
                                         @can('approve-materials')
                                         <form action="{{ route('admin.materials.approve', $material) }}" method="POST" style="display: inline;">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="btn btn-outline-success" title="Approve">
-                                                <i class="fas fa-check"></i>
-                                            </button>
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="btn btn-outline-success" title="Approve"><i class="fas fa-check"></i></button>
                                         </form>
                                         @endcan
                                     @endif
-
                                     @can('delete-materials')
                                     <form action="{{ route('admin.materials.destroy', $material) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></button>
                                     </form>
                                     @endcan
                                 </div>
@@ -261,7 +239,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-4">
+                            <td colspan="10" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted mb-0">No materials found</p>
                             </td>
@@ -270,11 +248,7 @@
                 </tbody>
             </table>
         </div>
-
-        <!-- Pagination -->
-        <div class="d-flex justify-content-center mt-4">
-            {{ $materials->links() }}
-        </div>
+        <div class="d-flex justify-content-center mt-4">{{ $materials->links() }}</div>
     </div>
 </div>
 @endsection

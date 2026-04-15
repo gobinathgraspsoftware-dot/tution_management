@@ -50,12 +50,23 @@
                 </div>
                 @endif
 
+                {{-- ADDED: Grade Level row --}}
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-1">Grade Level</label>
+                        <p class="mb-0">
+                            @if($material->gradeLevel)
+                                <span class="badge bg-primary bg-opacity-10 text-primary">{{ $material->gradeLevel->name }}</span>
+                            @else
+                                <span class="text-muted">N/A</span>
+                            @endif
+                        </p>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label text-muted small mb-1">Class</label>
                         <p class="mb-0">{{ $material->class->name ?? 'N/A' }}</p>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label text-muted small mb-1">Subject</label>
                         <p class="mb-0">{{ $material->subject->name ?? 'N/A' }}</p>
                     </div>
@@ -94,7 +105,7 @@
                     <div class="col-md-4">
                         <label class="form-label text-muted small mb-1">Downloadable</label>
                         <p class="mb-0">
-                            @if($material->is_downloadable)
+                            @if($material->access_type == 'downloadable')
                                 <span class="badge bg-success">Yes</span>
                             @else
                                 <span class="badge bg-danger">No (View Only)</span>
@@ -147,7 +158,7 @@
                         <tbody>
                             @foreach($recentViewers as $view)
                             <tr>
-                                <td>{{ $view->student->user->name }}</td>
+                                <td>{{ $view->student->user->name ?? 'N/A' }}</td>
                                 <td>{{ $view->viewed_at->format('d M Y, h:i A') }}</td>
                                 <td>
                                     @if($view->duration_seconds)
@@ -218,16 +229,16 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Grade Level:</span>
+                    <strong>{{ $material->gradeLevel->name ?? 'N/A' }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Status:</span>
                     <strong>{{ ucfirst($material->status) }}</strong>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Downloadable:</span>
-                    <strong>{{ $material->is_downloadable ? 'Yes' : 'No' }}</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="text-muted">Featured:</span>
-                    <strong>{{ $material->is_featured ? 'Yes' : 'No' }}</strong>
+                    <strong>{{ $material->access_type == 'downloadable' ? 'Yes' : 'No' }}</strong>
                 </div>
             </div>
         </div>

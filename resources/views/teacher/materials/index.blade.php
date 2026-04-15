@@ -70,10 +70,21 @@
     <div class="card-body">
         <form method="GET" action="{{ route('teacher.materials.index') }}">
             <div class="row">
-                <div class="col-md-4 mb-3 mb-md-0">
+                <div class="col-md-3 mb-3 mb-md-0">
                     <input type="text" name="search" class="form-control"
                            placeholder="Search materials..."
                            value="{{ request('search') }}">
+                </div>
+                {{-- ADDED: Grade Level filter --}}
+                <div class="col-md-2">
+                    <select name="grade_level_id" class="form-select">
+                        <option value="">All Levels</option>
+                        @foreach($gradeLevels as $gradeLevel)
+                            <option value="{{ $gradeLevel->id }}" {{ request('grade_level_id') == $gradeLevel->id ? 'selected' : '' }}>
+                                {{ $gradeLevel->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <select name="type" class="form-select">
@@ -93,17 +104,7 @@
                         <option value="archived" {{ request('status') == 'archived' ? 'selected' : '' }}>Archived</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <select name="class_id" class="form-select">
-                        <option value="">All Classes</option>
-                        @foreach($classes as $class)
-                            <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                                {{ $class->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div class="btn-group w-100">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-search"></i>
@@ -133,6 +134,7 @@
                     <tr>
                         <th>#</th>
                         <th>Title</th>
+                        <th>Grade Level</th>
                         <th>Class/Subject</th>
                         <th>Type</th>
                         <th>Status</th>
@@ -149,6 +151,14 @@
                                 <strong>{{ $material->title }}</strong>
                                 @if($material->description)
                                     <br><small class="text-muted">{{ Str::limit($material->description, 40) }}</small>
+                                @endif
+                            </td>
+                            {{-- ADDED: Grade Level column --}}
+                            <td>
+                                @if($material->gradeLevel)
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">{{ $material->gradeLevel->name }}</span>
+                                @else
+                                    <span class="text-muted">N/A</span>
                                 @endif
                             </td>
                             <td>
@@ -198,7 +208,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No materials uploaded yet.</p>
                                 <a href="{{ route('teacher.materials.create') }}" class="btn btn-primary">
