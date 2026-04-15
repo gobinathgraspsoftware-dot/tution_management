@@ -329,7 +329,7 @@ class ParentController extends Controller
      */
     public function show(Parents $parent)
     {
-        $parent->load(['user', 'students.user', 'students.enrollments.package']);
+        $parent->load(['user', 'students.user', 'students.enrollments.package', 'students.enrollments.class']);
 
         // Get payment summary for parent's children
         $childrenIds = $parent->students->pluck('id');

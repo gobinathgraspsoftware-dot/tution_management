@@ -183,7 +183,7 @@
                 <hr>
                 <form action="{{ route('admin.parents.resend-welcome', $parent) }}" method="POST" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn btn-sm btn-outline-success w-100" 
+                    <button type="submit" class="btn btn-sm btn-outline-success w-100"
                             onclick="return confirm('Are you sure you want to resend the welcome notification?')">
                         <i class="fab fa-whatsapp me-1"></i> Resend Welcome Notification
                     </button>
@@ -292,7 +292,7 @@
                             <thead>
                                 <tr>
                                     <th>Student</th>
-                                    <th>Package</th>
+                                    <th>Package / Class</th>
                                     <th>Fee</th>
                                     <th>Start Date</th>
                                     <th>Status</th>
@@ -301,10 +301,18 @@
                             <tbody>
                                 @foreach($activeEnrollments as $enrollment)
                                 <tr>
-                                    <td>{{ $enrollment->student->user->name }}</td>
-                                    <td>{{ $enrollment->package->name }}</td>
-                                    <td>RM {{ number_format($enrollment->fee_amount, 2) }}</td>
-                                    <td>{{ $enrollment->enrollment_date->format('d M Y') }}</td>
+                                    <td>{{ $enrollment->student->user->name ?? 'N/A' }}</td>
+                                    <td>
+                                        @if($enrollment->package)
+                                            {{ $enrollment->package->name }}
+                                        @elseif($enrollment->class)
+                                            {{ $enrollment->class->name }}
+                                        @else
+                                            Enrollment #{{ $enrollment->id }}
+                                        @endif
+                                    </td>
+                                    <td>RM {{ number_format($enrollment->monthly_fee ?? 0, 2) }}</td>
+                                    <td>{{ $enrollment->start_date?->format('d M Y') ?? ($enrollment->enrollment_date?->format('d M Y') ?? 'N/A') }}</td>
                                     <td>
                                         <span class="badge bg-success">{{ ucfirst($enrollment->status) }}</span>
                                     </td>
