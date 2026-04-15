@@ -19,10 +19,20 @@
         <a href="{{ route('teacher.classes.students', $class) }}" class="btn btn-info me-2">
             <i class="fas fa-users me-1"></i> View Students
         </a>
-        @if(Route::has('teacher.attendance.mark'))
-        <a href="{{ route('teacher.attendance.mark', ['class_id' => $class->id]) }}" class="btn btn-success">
-            <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
-        </a>
+        {{-- FIX: teacher.attendance.mark requires {session} parameter (ClassSession ID).
+             Link to the first upcoming scheduled session if available,
+             otherwise fall back to attendance index page. --}}
+        @php
+            $nextScheduledSession = $upcomingSessions->where('status', 'scheduled')->first();
+        @endphp
+        @if($nextScheduledSession && Route::has('teacher.attendance.mark'))
+            <a href="{{ route('teacher.attendance.mark', $nextScheduledSession) }}" class="btn btn-success">
+                <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
+            </a>
+        @elseif(Route::has('teacher.attendance.index'))
+            <a href="{{ route('teacher.attendance.index') }}" class="btn btn-success">
+                <i class="fas fa-clipboard-check me-1"></i> Attendance
+            </a>
         @endif
     </div>
 </div>
@@ -68,9 +78,11 @@
                     </p>
                 </div>
 
+                {{-- FIX: Changed from $class->grade_level (old varchar column, now removed)
+                     to $class->gradeLevel->name (FK relationship to grade_levels table) --}}
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Grade Level</label>
-                    <p class="mb-0 fw-medium">{{ $class->grade_level ?? 'All Levels' }}</p>
+                    <p class="mb-0 fw-medium">{{ $class->gradeLevel->name ?? 'All Levels' }}</p>
                 </div>
 
                 <div class="mb-3">
@@ -184,7 +196,7 @@
                                     <th>Day</th>
                                     <th>Time</th>
                                     <th>Duration</th>
-                                    <th>Room</th>
+                                    <th>Location</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -210,7 +222,16 @@
                                             @endphp
                                             {{ floor($duration / 60) }}h {{ $duration % 60 }}m
                                         </td>
-                                        <td>{{ $schedule->room ?? $class->location ?? 'Online' }}</td>
+                                        {{-- FIX: Removed $schedule->room — class_schedules table has NO room column.
+                                             Now uses $class->location (from classes table) or shows Online. --}}
+                                        <td>
+                                            @if($class->type == 'online')
+                                                <i class="fas fa-video text-info me-1"></i> Online
+                                            @else
+                                                <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                                {{ $class->location ?? 'TBD' }}
+                                            @endif
+                                        </td>
                                         <td>
                                             @if($schedule->is_active)
                                                 <span class="badge bg-success">Active</span>
@@ -251,11 +272,20 @@
                                         {{ \Carbon\Carbon::parse($session->start_time)->format('h:i A') }} -
                                         {{ \Carbon\Carbon::parse($session->end_time)->format('h:i A') }}
                                     </small>
+                                    @if($session->topic)
+                                        <br><small class="text-muted"><i class="fas fa-book me-1"></i> {{ $session->topic }}</small>
+                                    @endif
                                 </div>
-                                <div>
+                                <div class="d-flex align-items-center gap-2">
                                     @if($session->status == 'scheduled')
+                                        <a href="{{ route('teacher.attendance.mark', $session) }}" class="btn btn-sm btn-outline-success" title="Mark Attendance">
+                                            <i class="fas fa-clipboard-check"></i>
+                                        </a>
                                         <span class="badge bg-primary">Scheduled</span>
                                     @elseif($session->status == 'completed')
+                                        <a href="{{ route('teacher.attendance.session-details', $session) }}" class="btn btn-sm btn-outline-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
                                         <span class="badge bg-success">Completed</span>
                                     @else
                                         <span class="badge bg-secondary">{{ ucfirst($session->status) }}</span>

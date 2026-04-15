@@ -71,6 +71,9 @@ class TeacherClassController extends Controller
 
     /**
      * Display class details.
+     *
+     * FIX: Added 'gradeLevel' to eager loading so that the blade view
+     *      can safely call $class->gradeLevel->name without N+1 or null errors.
      */
     public function show(ClassModel $class)
     {
@@ -83,6 +86,7 @@ class TeacherClassController extends Controller
 
         $class->load([
             'subject',
+            'gradeLevel',  // ← FIX: Added — blade uses $class->gradeLevel->name
             'schedules' => fn($q) => $q->orderBy('day_of_week')->orderBy('start_time'),
             'enrollments.student.user',
             'sessions' => fn($q) => $q->latest()->take(10),
@@ -128,6 +132,8 @@ class TeacherClassController extends Controller
                 'average_attendance' => 0,
                 'present_rate' => 0,
                 'absent_rate' => 0,
+                'present_count' => 0,
+                'absent_count' => 0,
             ];
         }
 
